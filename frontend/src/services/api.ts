@@ -1,9 +1,11 @@
-import axios from 'axios';
+import axios from "axios";
 
-const api = axios.create({ baseURL: '/api' });
+const api = axios.create({
+  baseURL: "https://finance-tracker-backend-rt5b.onrender.com/api",
+});
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -13,35 +15,35 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       localStorage.clear();
-      window.location.href = '/login';
+      window.location.href = "/login";
     }
     return Promise.reject(err);
-  }
+  },
 );
 
 export const authApi = {
   login: (email: string, password: string) =>
-    api.post('/auth/login', { email, password }),
+    api.post("/auth/login", { email, password }),
   register: (fullName: string, email: string, password: string) =>
-    api.post('/auth/register', { fullName, email, password }),
+    api.post("/auth/register", { fullName, email, password }),
 };
 
 export const transactionApi = {
-  getAll: () => api.get('/transactions'),
-  create: (data: any) => api.post('/transactions', data),
+  getAll: () => api.get("/transactions"),
+  create: (data: any) => api.post("/transactions", data),
   update: (id: number, data: any) => api.put(`/transactions/${id}`, data),
   delete: (id: number) => api.delete(`/transactions/${id}`),
-  getSummary: () => api.get('/transactions/summary'),
+  getSummary: () => api.get("/transactions/summary"),
   getByCategory: (month: number, year: number) =>
-    api.get('/transactions/analytics/by-category', { params: { month, year } }),
+    api.get("/transactions/analytics/by-category", { params: { month, year } }),
   getMonthly: (type: string, year: number) =>
-    api.get('/transactions/analytics/monthly', { params: { type, year } }),
+    api.get("/transactions/analytics/monthly", { params: { type, year } }),
 };
 
 export const budgetApi = {
   getForMonth: (month: number, year: number) =>
-    api.get('/budgets', { params: { month, year } }),
-  create: (data: any) => api.post('/budgets', data),
+    api.get("/budgets", { params: { month, year } }),
+  create: (data: any) => api.post("/budgets", data),
   delete: (id: number) => api.delete(`/budgets/${id}`),
 };
 
