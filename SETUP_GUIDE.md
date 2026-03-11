@@ -61,7 +61,7 @@ Follow these steps **in order** and you'll have the app running in about 15 minu
 3. Run it — when it asks for a **password**, set it to `password` (or whatever you put in the `.env` file)
 4. Keep the default port **5432**
 5. After install, open **pgAdmin** (it installs alongside PostgreSQL)
-6. In pgAdmin: right-click **Databases** → **Create** → **Database** → name it `finance_tracker` → Save
+6. In pgAdmin: right-click **Databases** → **Create** → **Database** → name it `omni_hub` → Save
 
 ---
 
@@ -69,7 +69,7 @@ Follow these steps **in order** and you'll have the app running in about 15 minu
 
 1. Open VS Code
 2. Click **File → Open Folder**
-3. Select the `finance-tracker` folder you downloaded
+3. Select the `omnihub` folder you downloaded
 4. VS Code will ask **"Install recommended extensions?"** → Click **Install All** ✅
 5. Wait a few minutes for everything to install
 
@@ -88,7 +88,7 @@ Follow these steps **in order** and you'll have the app running in about 15 minu
 
 ### Start the Backend:
 1. Press **Ctrl+Shift+P** → `Run Task` → select **🚀 Start Backend**
-2. Wait until you see `Started FinanceTrackerApplication` in the terminal
+2. Wait until you see `Started OmniHubApplication` in the terminal
 
 ### Start the Frontend:
 1. Press **Ctrl+Shift+P** → `Run Task` → select **🎨 Start Frontend**
@@ -101,14 +101,14 @@ Follow these steps **in order** and you'll have the app running in about 15 minu
 
 1. Go to **https://github.com** and create a free account if you don't have one
 2. Click the **+** button → **New Repository**
-3. Name it `finance-tracker`, leave it empty, click **Create Repository**
+3. Name it `omnihub`, leave it empty, click **Create Repository**
 4. In VS Code, open the terminal (**Ctrl+`**) and run:
 
 ```bash
 git init
 git add .
-git commit -m "Initial commit: Finance Tracker"
-git remote add origin https://github.com/YOUR_GITHUB_USERNAME/finance-tracker.git
+git commit -m "Initial commit: OmniHub"
+git remote add origin https://github.com/YOUR_GITHUB_USERNAME/omnihub.git
 git branch -M main
 git push -u origin main
 ```
@@ -134,7 +134,7 @@ git push -u origin main
 ## 📁 Project Layout (What Each Folder Does)
 
 ```
-finance-tracker/
+omnihub/
 ├── 📁 backend/          ← Java Spring Boot API (the brain)
 │   ├── src/             ← All Java source code
 │   └── pom.xml          ← Java dependencies (like package.json)

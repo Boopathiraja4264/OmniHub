@@ -1,4 +1,4 @@
-name: CI
+name: OmniHub CI
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_DB: finance_tracker_test
+          POSTGRES_DB: omni_hub_test
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         options: >-
@@ -41,16 +41,16 @@ jobs:
         env:
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
-          JWT_SECRET: test-secret-key-for-ci-pipeline-that-is-very-long
+          JWT_SECRET: OmniHubSecretKeyForCIPipelineThatIsVeryLong
 
       - name: Run backend tests
         working-directory: ./backend
         run: mvn test
         env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/finance_tracker_test
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/omni_hub_test
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
-          JWT_SECRET: test-secret-key-for-ci-pipeline-that-is-very-long
+          JWT_SECRET: OmniHubSecretKeyForCIPipelineThatIsVeryLong
 
   frontend:
     name: Build Frontend

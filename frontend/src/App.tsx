@@ -1,12 +1,20 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import TransactionsPage from './pages/TransactionsPage';
-import BudgetsPage from './pages/BudgetsPage';
-import AnalyticsPage from './pages/AnalyticsPage';
-import AuthPage from './pages/AuthPage';
+import { AuthProvider, useAuth } from './shared/context/AuthContext';
+import Sidebar from './shared/components/Sidebar';
+import Dashboard from './shared/components/Dashboard';
+import TransactionsPage from './modules/finance/TransactionsPage';
+import BudgetsPage from './modules/finance/BudgetsPage';
+import AnalyticsPage from './modules/finance/AnalyticsPage';
+import AuthPage from './modules/auth/AuthPage';
+
+// Fitness pages
+import FitnessDashboard from './modules/fitness/FitnessDashboard';
+import WorkoutPage from './modules/fitness/WorkoutPage';
+import ExercisesPage from './modules/fitness/ExercisesPage';
+import WeeklyPlanPage from './modules/fitness/WeeklyPlanPage';
+import WeightPage from './modules/fitness/WeightPage';
+
 import './index.css';
 
 const ProtectedLayout: React.FC = () => {
@@ -19,10 +27,17 @@ const ProtectedLayout: React.FC = () => {
       <Sidebar />
       <main className="main-content">
         <Routes>
+          {/* Finance */}
           <Route path="/" element={<Dashboard />} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/budgets" element={<BudgetsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          {/* Fitness */}
+          <Route path="/fitness" element={<FitnessDashboard />} />
+          <Route path="/fitness/workout" element={<WorkoutPage />} />
+          <Route path="/fitness/exercises" element={<ExercisesPage />} />
+          <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />
+          <Route path="/fitness/weight" element={<WeightPage />} />
         </Routes>
       </main>
     </div>

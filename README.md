@@ -1,14 +1,20 @@
-# 💰 Ledger — Finance Tracker
+# 🌐 OmniHub — All-in-One Personal Tracker
 
-A full-stack personal finance tracker built with **Java Spring Boot** (backend) and **React TypeScript** (frontend).
+A modular, full-stack personal hub for tracking your life, starting with **Finance** and **Fitness**. Built with **Java Spring Boot** (backend) and **React TypeScript** (frontend).
 
 ## ✨ Features
 
+### 💰 Finance Tracker
 - **Authentication** — JWT-based register/login
 - **Transaction Management** — Add, edit, delete income & expenses with categories
 - **Budget Goals** — Set monthly spending limits with visual progress bars
 - **Analytics Dashboard** — Doughnut, bar, and line charts powered by Chart.js
-- **Responsive UI** — Luxe dark theme with gold accents
+
+### 🏋️ Fitness Tracker
+- **Workout Logging** — Track your daily workouts and sets
+- **Exercise Database** — Manage your list of exercises
+- **Weight Tracking** — Monitor your weight over time
+- **Weekly Planning** — Plan your fitness routine for the week
 
 ## 🏗️ Tech Stack
 
@@ -23,14 +29,14 @@ A full-stack personal finance tracker built with **Java Spring Boot** (backend) 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Java 17+
-- Node.js 18+
-- PostgreSQL 14+
-- Maven 3.8+
+- Java 25
+- Node.js 20+
+- PostgreSQL 15+
+- Maven 3.9+
 
 ### 1. Database Setup
 ```sql
-CREATE DATABASE finance_tracker;
+CREATE DATABASE omni_hub;
 ```
 
 ### 2. Backend
@@ -39,7 +45,7 @@ cd backend
 # Configure DB credentials (or use env vars)
 export DB_USERNAME=postgres
 export DB_PASSWORD=yourpassword
-export JWT_SECRET=yourverylongsecretkey
+export JWT_SECRET=OmniHubSecretKeyThatIsVeryLongAndSecure
 
 mvn spring-boot:run
 ```
@@ -61,59 +67,34 @@ Frontend runs on **http://localhost:3000**
 | `DB_PASSWORD` | PostgreSQL password | `password` |
 | `JWT_SECRET` | JWT signing secret | (set a strong value!) |
 
-## 📁 Project Structure
+## 📁 Project Structure (Modular)
 
 ```
-finance-tracker/
-├── backend/                    # Spring Boot API
-│   └── src/main/java/com/financetracker/
-│       ├── controller/         # REST endpoints
-│       ├── service/            # Business logic
-│       ├── entity/             # JPA entities
-│       ├── repository/         # Data access
-│       ├── security/           # JWT auth
-│       ├── dto/                # Request/response objects
-│       └── config/             # Security config
+omnihub/
+├── backend/                    # Spring Boot API (package: com.omnihub)
+│   └── src/main/java/com/omnihub/
+│       ├── core/               # Shared: Auth, Security, Config, User
+│       ├── finance/            # Feature: Budgets, Transactions
+│       └── fitness/            # Feature: Workouts, Exercises, Weight
 └── frontend/                   # React TypeScript app
     └── src/
-        ├── pages/              # Dashboard, Transactions, Budgets, Analytics
-        ├── components/         # Sidebar
-        ├── context/            # Auth context
-        ├── services/           # Axios API client
-        └── types/              # TypeScript types
+        ├── modules/            # Feature-based modules
+        │   ├── auth/           # Login/Register
+        │   ├── finance/        # Money tracking pages
+        │   └── fitness/        # Health tracking pages
+        └── shared/             # Shared components and logic
+            ├── components/     # Sidebar, Dashboard
+            ├── context/        # Auth context
+            ├── services/       # Axios API client
+            └── types/          # TypeScript types
 ```
-
-## 🌐 API Endpoints
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Create account |
-| POST | `/api/auth/login` | Sign in |
-
-### Transactions (🔒 Authenticated)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/transactions` | Get all transactions |
-| POST | `/api/transactions` | Create transaction |
-| PUT | `/api/transactions/{id}` | Update transaction |
-| DELETE | `/api/transactions/{id}` | Delete transaction |
-| GET | `/api/transactions/summary` | Financial summary |
-| GET | `/api/transactions/analytics/by-category` | Expenses by category |
-| GET | `/api/transactions/analytics/monthly` | Monthly totals |
-
-### Budgets (🔒 Authenticated)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/budgets?month=1&year=2025` | Get monthly budgets |
-| POST | `/api/budgets` | Create budget |
-| DELETE | `/api/budgets/{id}` | Delete budget |
 
 ## 🚢 Deployment
 
-See [`.github/workflows/`](.github/workflows/) for CI/CD pipeline examples.
-
-For production, set environment variables securely and use a managed PostgreSQL service (e.g. Railway, Supabase, AWS RDS).
+Use Docker for a quick setup:
+```bash
+docker-compose up --build
+```
 
 ## 📄 License
 

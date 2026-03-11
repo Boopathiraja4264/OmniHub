@@ -11,10 +11,10 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.financetracker</groupId>
-    <artifactId>finance-tracker-backend</artifactId>
+    <groupId>com.omnihub</groupId>
+    <artifactId>omni-hub-backend</artifactId>
     <version>1.0.0</version>
-    <name>Finance Tracker Backend</name>
+    <name>OmniHub Backend</name>
 
     <properties>
         <java.version>25</java.version>
