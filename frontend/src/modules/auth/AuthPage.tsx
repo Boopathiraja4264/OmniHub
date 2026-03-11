@@ -101,7 +101,7 @@ const AuthPage: React.FC = () => {
             }}
           >
             {isLogin ? "Sign Up" : "Sign In"}
-          </a>
+          </button>
         </div>
       </div>
     </div>
