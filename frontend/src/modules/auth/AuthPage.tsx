@@ -94,14 +94,14 @@ const AuthPage: React.FC = () => {
 
         <div className="auth-switch">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <a
+          <a href="javascript:void(0)"
             onClick={() => {
               setIsLogin(!isLogin);
               setError("");
             }}
           >
             {isLogin ? "Sign Up" : "Sign In"}
-          </button>
+          </a>
         </div>
       </div>
     </div>
