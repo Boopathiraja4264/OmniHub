@@ -116,6 +116,7 @@
                     </dependency>
                 </dependencies>
                 <configuration>
+                    <mainClass>com.omnihub.OmniHubApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
