@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.3</version>
+        <version>3.5.0</version>
         <relativePath/>
     </parent>
 
@@ -15,10 +15,14 @@
     <artifactId>omni-hub-backend</artifactId>
     <version>1.0.0</version>
     <name>OmniHub Backend</name>
+    <packaging>jar</packaging>
 
     <properties>
         <java.version>25</java.version>
         <jjwt.version>0.11.5</jjwt.version>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
+        <maven.compiler.release>25</maven.compiler.release>
     </properties>
 
     <dependencies>
@@ -81,7 +85,6 @@
 
     <build>
         <plugins>
-            <!-- Override Spring Boot Maven Plugin with ASM 9.8 for Java 25 -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -101,6 +104,16 @@
                         <artifactId>asm-tree</artifactId>
                         <version>9.8</version>
                     </dependency>
+                    <dependency>
+                        <groupId>org.ow2.asm</groupId>
+                        <artifactId>asm-analysis</artifactId>
+                        <version>9.8</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.ow2.asm</groupId>
+                        <artifactId>asm-util</artifactId>
+                        <version>9.8</version>
+                    </dependency>
                 </dependencies>
                 <configuration>
                     <excludes>
@@ -110,29 +123,6 @@
                         </exclude>
                     </excludes>
                 </configuration>
-            </plugin>
-
-            <!-- Override Maven Shade Plugin with ASM 9.8 for Java 25 -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.ow2.asm</groupId>
-                        <artifactId>asm</artifactId>
-                        <version>9.8</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.ow2.asm</groupId>
-                        <artifactId>asm-commons</artifactId>
-                        <version>9.8</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.ow2.asm</groupId>
-                        <artifactId>asm-tree</artifactId>
-                        <version>9.8</version>
-                    </dependency>
-                </dependencies>
             </plugin>
         </plugins>
     </build>
