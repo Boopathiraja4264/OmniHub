@@ -1,11 +1,11 @@
 FROM ubuntu:22.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y curl tar wget ca-certificates
+RUN apt-get update && apt-get install -y curl tar ca-certificates
 
-# Install Java 25 EA
+# Install Java 25 (GA) via Microsoft build
 RUN mkdir -p /opt/jdk25 && \
-    curl -L "https://download.java.net/java/early_access/jdk25/1/GPL/openjdk-25-ea+1_linux-x64_bin.tar.gz" -o /tmp/jdk25.tar.gz && \
+    curl -L "https://aka.ms/download-jdk/microsoft-jdk-25-linux-x64.tar.gz" -o /tmp/jdk25.tar.gz && \
     tar -xzf /tmp/jdk25.tar.gz -C /opt/jdk25 --strip-components=1
 
 ENV JAVA_HOME=/opt/jdk25
@@ -25,7 +25,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y curl tar ca-certificates && \
     mkdir -p /opt/jdk25 && \
-    curl -L "https://download.java.net/java/early_access/jdk25/1/GPL/openjdk-25-ea+1_linux-x64_bin.tar.gz" -o /tmp/jdk25.tar.gz && \
+    curl -L "https://aka.ms/download-jdk/microsoft-jdk-25-linux-x64.tar.gz" -o /tmp/jdk25.tar.gz && \
     tar -xzf /tmp/jdk25.tar.gz -C /opt/jdk25 --strip-components=1
 
 ENV JAVA_HOME=/opt/jdk25
