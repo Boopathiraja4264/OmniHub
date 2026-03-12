@@ -1,7 +1,9 @@
 import axios from "axios";
 
+const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 const api = axios.create({
-  baseURL: "https://finance-tracker-backend-rt5b.onrender.com/api",
+  baseURL: `${BASE_URL}/api`,
 });
 
 api.interceptors.request.use((config) => {
@@ -45,6 +47,12 @@ export const budgetApi = {
     api.get("/budgets", { params: { month, year } }),
   create: (data: any) => api.post("/budgets", data),
   delete: (id: number) => api.delete(`/budgets/${id}`),
+};
+
+export const notificationApi = {
+  getSettings: () => api.get("/notifications/email-settings"),
+  updateSettings: (data: any) => api.put("/notifications/email-settings", data),
+  sendTest: () => api.post("/notifications/email-settings/test"),
 };
 
 export default api;

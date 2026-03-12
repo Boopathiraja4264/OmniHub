@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../../shared/services/api';
+import api from '../../services/api';
 
 const MUSCLES = ['Chest','Back','Shoulders','Biceps','Triceps','Legs','Core','Cardio','Full Body'];
 const DEFAULTS = [
@@ -19,17 +19,17 @@ const ExercisesPage: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', muscleGroup: 'Chest', description: '' });
 
-  const load = () => api.get('/api/fitness/exercises').then(r => setExercises(r.data)).catch(() => {});
+  const load = () => api.get('/fitness/exercises').then(r => setExercises(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
 
   const add = async () => {
     if (!form.name) return;
-    await api.post('/api/fitness/exercises', form);
+    await api.post('/fitness/exercises', form);
     load(); setShowAdd(false); setForm({ name: '', muscleGroup: 'Chest', description: '' });
   };
 
   const seed = async () => {
-    for (const e of DEFAULTS) { try { await api.post('/api/fitness/exercises', e); } catch {} }
+    for (const e of DEFAULTS) { try { await api.post('/fitness/exercises', e); } catch {} }
     load();
   };
 
@@ -63,7 +63,7 @@ const ExercisesPage: React.FC = () => {
                 <h4 style={{ color: 'var(--text-primary)', marginBottom: 8 }}>{e.name}</h4>
                 <span className="badge badge-warning">{e.muscleGroup}</span>
               </div>
-              <button onClick={() => api.delete(`/api/fitness/exercises/${e.id}`).then(load)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18 }}>✕</button>
+              <button onClick={() => api.delete(`/fitness/exercises/${e.id}`).then(load)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18 }}>✕</button>
             </div>
             {e.description && <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 12 }}>{e.description}</p>}
           </div>

@@ -50,6 +50,13 @@ public class FitnessController {
         return ResponseEntity.ok(fitnessService.saveWeeklyPlan(getEmail(auth), body));
     }
 
+    @DeleteMapping("/weekly-plan/{id}")
+    public ResponseEntity<?> deleteWeeklyPlan(@RequestHeader("Authorization") String auth,
+                                              @PathVariable Long id) {
+        fitnessService.deleteWeeklyPlan(getEmail(auth), id);
+        return ResponseEntity.ok().build();
+    }
+
     // ── WORKOUTS ───────────────────────────────────────────────────────────────
     @GetMapping("/workouts")
     public ResponseEntity<?> getWorkouts(@RequestHeader("Authorization") String auth) {
@@ -79,6 +86,13 @@ public class FitnessController {
     public ResponseEntity<?> saveWeight(@RequestHeader("Authorization") String auth,
                                         @RequestBody Map<String, Object> body) {
         return ResponseEntity.ok(fitnessService.saveWeight(getEmail(auth), body));
+    }
+
+    @DeleteMapping("/weight/{id}")
+    public ResponseEntity<?> deleteWeight(@RequestHeader("Authorization") String auth,
+                                          @PathVariable Long id) {
+        fitnessService.deleteWeight(getEmail(auth), id);
+        return ResponseEntity.ok().build();
     }
 
     // ── DASHBOARD ──────────────────────────────────────────────────────────────

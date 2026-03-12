@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../../shared/services/api';
+import api from '../../services/api';
 
 const DAYS = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
 const DAY_SHORT = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
@@ -11,7 +11,7 @@ const WeeklyPlanPage: React.FC = () => {
   const [notes, setNotes] = useState('');
   const today = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
 
-  const load = () => api.get('/api/fitness/weekly-plan').then(r => setPlans(r.data)).catch(() => {});
+  const load = () => api.get('/fitness/weekly-plan').then(r => setPlans(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
 
   const getPlan = (d: string) => plans.find(p => p.dayOfWeek === d);
@@ -25,15 +25,14 @@ const WeeklyPlanPage: React.FC = () => {
 
   const save = async () => {
     if (!editing || !planDesc) return;
-    await api.post('/api/fitness/weekly-plan', { dayOfWeek: editing, planDescription: planDesc, notes });
+    await api.post('/fitness/weekly-plan', { dayOfWeek: editing, planDescription: planDesc, notes });
     load();
     setEditing(null);
   };
 
   const deletePlan = (id: number) => {
-    api.delete(`/api/fitness/weekly-plan/${id}`).then(load);
+    api.delete(`/fitness/weekly-plan/${id}`).then(load);
   };
-
   return (
     <div>
       <h1 className="page-title">Weekly Plan</h1>

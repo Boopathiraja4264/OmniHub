@@ -1,6 +1,6 @@
 # 🌐 OmniHub — All-in-One Personal Tracker
 
-A modular, full-stack personal hub for tracking your life, starting with **Finance** and **Fitness**. Built with **Java Spring Boot** (backend) and **React TypeScript** (frontend).
+A modular, full-stack personal hub for tracking your life, starting with **Finance**, **Fitness**, and **Notifications**. Built with **Java Spring Boot** (backend) and **React TypeScript** (frontend).
 
 ## ✨ Features
 
@@ -15,6 +15,10 @@ A modular, full-stack personal hub for tracking your life, starting with **Finan
 - **Exercise Database** — Manage your list of exercises
 - **Weight Tracking** — Monitor your weight over time
 - **Weekly Planning** — Plan your fitness routine for the week
+
+### 📧 Notifications
+- **Email Alerts** — Receive personalized summaries and budget alerts
+- **Settings** — Manage your notification preferences directly from the dashboard
 
 ## 🏗️ Tech Stack
 
@@ -46,6 +50,8 @@ cd backend
 export DB_USERNAME=postgres
 export DB_PASSWORD=yourpassword
 export JWT_SECRET=OmniHubSecretKeyThatIsVeryLongAndSecure
+export MAIL_USERNAME=your-email@gmail.com
+export MAIL_PASSWORD=your-app-password
 
 mvn spring-boot:run
 ```
@@ -66,6 +72,8 @@ Frontend runs on **http://localhost:3000**
 | `DB_USERNAME` | PostgreSQL username | `postgres` |
 | `DB_PASSWORD` | PostgreSQL password | `password` |
 | `JWT_SECRET` | JWT signing secret | (set a strong value!) |
+| `MAIL_USERNAME` | Email for notifications | `sunways839@gmail.com` |
+| `MAIL_PASSWORD` | App password for email | `ydtqspjrzglidrfs` |
 
 ## 📁 Project Structure (Modular)
 
@@ -75,18 +83,19 @@ omnihub/
 │   └── src/main/java/com/omnihub/
 │       ├── core/               # Shared: Auth, Security, Config, User
 │       ├── finance/            # Feature: Budgets, Transactions
-│       └── fitness/            # Feature: Workouts, Exercises, Weight
+│       ├── fitness/            # Feature: Workouts, Exercises, Weight
+│       └── notification/       # Feature: Email Services, Settings
 └── frontend/                   # React TypeScript app
     └── src/
         ├── modules/            # Feature-based modules
         │   ├── auth/           # Login/Register
         │   ├── finance/        # Money tracking pages
-        │   └── fitness/        # Health tracking pages
-        └── shared/             # Shared components and logic
-            ├── components/     # Sidebar, Dashboard
-            ├── context/        # Auth context
-            ├── services/       # Axios API client
-            └── types/          # TypeScript types
+        │   ├── fitness/        # Health tracking pages
+        │   └── settings/       # Notification and account settings
+        ├── components/         # Shared UI: Sidebar, Dashboard
+        ├── context/            # Auth context
+        ├── services/           # Axios API client
+        └── types/              # TypeScript types
 ```
 
 ## 🚢 Deployment

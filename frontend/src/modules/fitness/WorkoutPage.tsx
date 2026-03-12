@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../../shared/services/api';
+import api from '../../services/api';
 
 const WorkoutPage: React.FC = () => {
   const [exercises, setExercises] = useState<any[]>([]);
@@ -7,13 +7,13 @@ const WorkoutPage: React.FC = () => {
   const [sets, setSets] = useState<any[]>([]);
   const [notes, setNotes] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [newSet, setNewSet] = useState({ exerciseId: '', setNumber: 1, reps: '', weight: '' });
+  const [newSet, setNewSet] = useState({ exerciseId: '', sets: 1, reps: '', weight: '' });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { api.get('/api/fitness/exercises').then(r => setExercises(r.data)).catch(() => {}); }, []);
+  useEffect(() => { api.get('/fitness/exercises').then(r => setExercises(r.data)).catch(() => {}); }, []);
 
   useEffect(() => {
-    api.get(`/api/fitness/workouts/date/${selectedDate}`).then(r => {
+    api.get(`/fitness/workouts/date/${selectedDate}`).then(r => {
       if (r.data) { setSets(r.data.sets || []); setNotes(r.data.notes || ''); }
       else { setSets([]); setNotes(''); }
     }).catch(() => { setSets([]); setNotes(''); });
@@ -24,22 +24,26 @@ const WorkoutPage: React.FC = () => {
     const ex = exercises.find(e => e.id === parseInt(newSet.exerciseId));
     setSets(prev => [...prev, {
       exerciseId: parseInt(newSet.exerciseId), exerciseName: ex?.name,
-      muscleGroup: ex?.muscleGroup, setNumber: newSet.setNumber,
+      muscleGroup: ex?.muscleGroup, sets: newSet.sets,
       reps: parseInt(newSet.reps), weight: newSet.weight ? parseFloat(newSet.weight) : null
     }]);
-    setNewSet(p => ({ ...p, setNumber: p.setNumber + 1, reps: '', weight: '' }));
+    setNewSet(p => ({ ...p, sets: p.sets + 1, reps: '', weight: '' }));
     setShowAdd(false);
   };
 
   const saveWorkout = async () => {
     setSaving(true);
     try {
-      await api.post('/api/fitness/workouts', {
+      await api.post('/fitness/workouts', {
         date: selectedDate, notes,
-        sets: sets.map(s => ({ exerciseId: s.exerciseId, setNumber: s.setNumber, reps: s.reps, weight: s.weight }))
+        sets: sets.map(s => ({ exerciseId: s.exerciseId, sets: s.sets, reps: s.reps, weight: s.weight }))
       });
       alert('Workout saved! 💪');
-    } catch { alert('Failed to save'); } finally { setSaving(false); }
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.response?.data?.message || 'Failed to save';
+      alert(`Error: ${msg}`);
+      console.error('Save error details:', err.response?.data);
+    } finally { setSaving(false); }
   };
 
   return (
@@ -62,13 +66,13 @@ const WorkoutPage: React.FC = () => {
         <h3 style={{ color: 'var(--text-primary)', marginBottom: 20 }}>Sets ({sets.length})</h3>
         {sets.length > 0 ? (
           <table className="table">
-            <thead><tr><th>Exercise</th><th>Muscle</th><th>Set</th><th>Reps</th><th>Weight</th><th></th></tr></thead>
+            <thead><tr><th>Exercise</th><th>Muscle</th><th>Sets</th><th>Reps</th><th>Weight</th><th></th></tr></thead>
             <tbody>
               {sets.map((s, i) => (
                 <tr key={i}>
                   <td style={{ color: 'var(--text-primary)' }}>{s.exerciseName}</td>
                   <td><span className="badge badge-warning">{s.muscleGroup}</span></td>
-                  <td>{s.setNumber}</td><td>{s.reps}</td>
+                  <td>{s.sets}</td><td>{s.reps}</td>
                   <td>{s.weight ? `${s.weight} kg` : 'BW'}</td>
                   <td><button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => setSets(prev => prev.filter((_, j) => j !== i))}>✕</button></td>
                 </tr>
@@ -94,7 +98,7 @@ const WorkoutPage: React.FC = () => {
               </select>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-              <div className="form-group"><label className="form-label">SET #</label><input type="number" className="input" value={newSet.setNumber} onChange={e => setNewSet(p => ({ ...p, setNumber: parseInt(e.target.value) }))} /></div>
+              <div className="form-group"><label className="form-label">SETS</label><input type="number" className="input" value={newSet.sets} onChange={e => setNewSet(p => ({ ...p, sets: parseInt(e.target.value) }))} /></div>
               <div className="form-group"><label className="form-label">REPS</label><input type="number" className="input" value={newSet.reps} onChange={e => setNewSet(p => ({ ...p, reps: e.target.value }))} placeholder="12" /></div>
               <div className="form-group"><label className="form-label">KG</label><input type="number" className="input" value={newSet.weight} onChange={e => setNewSet(p => ({ ...p, weight: e.target.value }))} placeholder="BW" step="0.5" /></div>
             </div>

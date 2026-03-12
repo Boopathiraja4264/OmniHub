@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../shared/context/AuthContext';
-import api from '../../shared/services/api';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 const FitnessDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -14,8 +14,8 @@ const FitnessDashboard: React.FC = () => {
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
 
   useEffect(() => {
-    api.get('/api/fitness/dashboard').then(r => setDashboard(r.data)).catch(() => {});
-    api.get(`/api/fitness/workouts/date/${todayStr}`).then(r => setTodayWorkout(r.data)).catch(() => {});
+    api.get('/fitness/dashboard').then(r => setDashboard(r.data)).catch(() => {});
+    api.get(`/fitness/workouts/date/${todayStr}`).then(r => setTodayWorkout(r.data)).catch(() => {});
   }, [todayStr]);
 
   const totalSets = todayWorkout?.sets?.length || 0;

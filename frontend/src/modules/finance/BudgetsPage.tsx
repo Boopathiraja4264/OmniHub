@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { budgetApi } from "../../shared/services/api";
-import { Budget, EXPENSE_CATEGORIES } from "../../shared/types";
+import { budgetApi } from "../../services/api";
+import { Budget, EXPENSE_CATEGORIES } from "../../types";
 
 const formatCurrency = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(

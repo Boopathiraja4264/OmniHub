@@ -1,33 +1,38 @@
-# Maven
-backend/target/
-backend/.mvn/
-backend/mvnw
-backend/mvnw.cmd
-
-# Node
-frontend/node_modules/
-frontend/build/
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
+# Mac
+.DS_Store
+**/.DS_Store
 
 # Logs
 *.log
-npm-debug.log*
+backend_live.log
+backend_mvn.log
+spring_boot.log
+react.log
+final_output.log
+foreground.log
+new_spring_boot.log
+omni_hub_live.log
+output.log
 
-# IDE
-.idea/
-*.iml
+# Junk files in backend folder
+backend/finance-tracker-frontend@1.0.0
+backend/react-scripts
+backend/package-lock.json
+backend/package.json
+
+# Environment / secrets
+backend/.env
+frontend/.env.local
+
+# VSCode (optional — remove if you want to share settings)
 .vscode/
-*.swp
-*.swo
 
-# OS
-.DS_Store
-Thumbs.db
+# Java build
+backend/target/
 
-# Env
-.env
-*.env
+# Node
+frontend/node_modules/
+
+# Docker
+docker-compose.yml
 application-local.properties

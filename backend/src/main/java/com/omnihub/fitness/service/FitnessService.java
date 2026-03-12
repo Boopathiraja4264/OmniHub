@@ -91,30 +91,93 @@ public class FitnessService {
         return m;
     }
 
+    public void deleteWeeklyPlan(String email, Long id) {
+        WeeklyPlan p = weeklyPlanRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Plan not found"));
+        weeklyPlanRepository.delete(p);
+    }
+
     // ── WORKOUT LOGS ───────────────────────────────────────────────────────────
     public Map<String, Object> saveWorkout(String email, Map<String, Object> req) {
         User user = getUser(email);
-        LocalDate date = LocalDate.parse((String) req.get("date"));
+        Object dateVal = req.get("date");
+        if (dateVal == null || dateVal.toString().trim().isEmpty()) {
+            throw new RuntimeException("Date is required");
+        }
+        LocalDate date;
+        try {
+            date = LocalDate.parse(dateVal.toString().trim());
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid date format: " + dateVal);
+        }
+        
         WorkoutLog log = workoutLogRepository.findByUserIdAndDate(user.getId(), date)
             .orElse(new WorkoutLog());
         log.setDate(date);
-        log.setNotes((String) req.getOrDefault("notes", ""));
+        log.setNotes(req.get("notes") != null ? req.get("notes").toString() : "");
         log.setUser(user);
-        log.getSets().clear();
+        
+        if (log.getSets() == null) {
+            log.setSets(new ArrayList<>());
+        } else {
+            log.getSets().clear();
+        }
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> setsData = (List<Map<String, Object>>) req.get("sets");
         if (setsData != null) {
             for (Map<String, Object> sd : setsData) {
+                if (sd == null) continue;
+                
                 ExerciseSet set = new ExerciseSet();
-                Long exId = Long.valueOf(sd.get("exerciseId").toString());
+                Object exIdObj = sd.get("exerciseId");
+                if (exIdObj == null || exIdObj.toString().trim().isEmpty()) continue;
+                
+                Long exId;
+                try {
+                    exId = Long.valueOf(exIdObj.toString().trim().split("\\.")[0]);
+                } catch (Exception e) {
+                    continue;
+                }
+                
                 Exercise ex = exerciseRepository.findById(exId)
-                    .orElseThrow(() -> new RuntimeException("Exercise not found"));
+                    .orElseThrow(() -> new RuntimeException("Exercise not found with id: " + exId));
                 set.setExercise(ex);
-                set.setSets(Integer.valueOf(sd.getOrDefault("sets", sd.getOrDefault("setNumber", "1")).toString()));
-                set.setReps(Integer.valueOf(sd.get("reps").toString()));
-                set.setWeight(Double.valueOf(sd.get("weight").toString()));
-                set.setNotes((String) sd.getOrDefault("notes", ""));
+                
+                Object sVal = sd.get("sets") != null ? sd.get("sets") : sd.get("setNumber");
+                if (sVal != null && !sVal.toString().trim().isEmpty()) {
+                    try {
+                        set.setSets(Integer.valueOf(sVal.toString().trim().split("\\.")[0]));
+                    } catch (Exception e) {
+                        set.setSets(1);
+                    }
+                } else {
+                    set.setSets(1);
+                }
+                
+                Object rVal = sd.get("reps");
+                if (rVal != null && !rVal.toString().trim().isEmpty()) {
+                    try {
+                        set.setReps(Integer.valueOf(rVal.toString().trim().split("\\.")[0]));
+                    } catch (Exception e) {
+                        set.setReps(0);
+                    }
+                } else {
+                    set.setReps(0);
+                }
+                
+                Object wVal = sd.get("weight");
+                if (wVal != null && !wVal.toString().trim().isEmpty()) {
+                    try {
+                        set.setWeight(Double.valueOf(wVal.toString().trim()));
+                    } catch (Exception e) {
+                        set.setWeight(null);
+                    }
+                } else {
+                    set.setWeight(null);
+                }
+                
+                set.setNotes(sd.get("notes") != null ? sd.get("notes").toString() : "");
                 set.setWorkoutLog(log);
                 log.getSets().add(set);
             }
@@ -162,12 +225,23 @@ public class FitnessService {
     // ── WEIGHT LOGS ────────────────────────────────────────────────────────────
     public Map<String, Object> saveWeight(String email, Map<String, Object> req) {
         User user = getUser(email);
-        LocalDate date = LocalDate.parse((String) req.get("date"));
+        Object dateVal = req.get("date");
+        if (dateVal == null || dateVal.toString().trim().isEmpty()) {
+            throw new RuntimeException("Date is required");
+        }
+        LocalDate date = LocalDate.parse(dateVal.toString().trim());
+        
         WeightLog log = weightLogRepository.findByUserIdAndDate(user.getId(), date)
             .orElse(new WeightLog());
         log.setDate(date);
-        log.setWeight(Double.valueOf(req.get("weight").toString()));
-        log.setNotes((String) req.getOrDefault("notes", ""));
+        
+        Object wVal = req.get("weight");
+        if (wVal == null || wVal.toString().trim().isEmpty()) {
+            throw new RuntimeException("Weight value is required");
+        }
+        log.setWeight(Double.valueOf(wVal.toString().trim()));
+        
+        log.setNotes(req.get("notes") != null ? req.get("notes").toString() : "");
         log.setUser(user);
         weightLogRepository.save(log);
         Map<String, Object> m = new LinkedHashMap<>();
@@ -190,6 +264,12 @@ public class FitnessService {
             result.add(m);
         }
         return result;
+    }
+
+    public void deleteWeight(String email, Long id) {
+        WeightLog log = weightLogRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Weight log not found"));
+        weightLogRepository.delete(log);
     }
 
     // ── DASHBOARD ──────────────────────────────────────────────────────────────

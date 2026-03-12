@@ -4,7 +4,7 @@ import {
   LinearScale, BarElement, LineElement, PointElement, Title
 } from 'chart.js';
 import { Doughnut, Bar, Line } from 'react-chartjs-2';
-import { transactionApi } from '../../shared/services/api';
+import { transactionApi } from '../../services/api';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title);
 

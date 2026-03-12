@@ -14,9 +14,22 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
+        System.err.println("Runtime exception: " + ex.getMessage());
+        ex.printStackTrace();
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage());
+        error.put("type", ex.getClass().getSimpleName());
         return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleGeneral(Exception ex) {
+        System.err.println("General exception: " + ex.getMessage());
+        ex.printStackTrace();
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        error.put("type", ex.getClass().getSimpleName());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

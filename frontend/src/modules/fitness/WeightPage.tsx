@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import api from '../../shared/services/api';
+import api from '../../services/api';
 
 const WeightPage: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ weight: '', date: new Date().toISOString().split('T')[0], notes: '' });
 
-  const load = () => api.get('/api/fitness/weight').then(r => setLogs(r.data)).catch(() => {});
+  const load = () => api.get('/fitness/weight').then(r => setLogs(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
 
   const add = async () => {
     if (!form.weight) return;
-    await api.post('/api/fitness/weight', { weight: parseFloat(form.weight), date: form.date, notes: form.notes });
+    await api.post('/fitness/weight', { weight: parseFloat(form.weight), date: form.date, notes: form.notes });
     load(); setShowAdd(false); setForm({ weight: '', date: new Date().toISOString().split('T')[0], notes: '' });
   };
 
@@ -57,7 +57,7 @@ const WeightPage: React.FC = () => {
                   <td>{new Date(l.date).toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</td>
                   <td style={{ color: 'var(--primary)', fontWeight: 600 }}>{l.weight} kg</td>
                   <td style={{ color: 'var(--text-muted)' }}>{l.notes || '-'}</td>
-                  <td><button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => api.delete(`/api/fitness/weight/${l.id}`).then(load)}>✕</button></td>
+                  <td><button className="btn btn-danger" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => api.delete(`/fitness/weight/${l.id}`).then(load)}>✕</button></td>
                 </tr>
               ))}
             </tbody>

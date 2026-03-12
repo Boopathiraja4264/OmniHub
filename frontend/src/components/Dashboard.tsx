@@ -14,8 +14,8 @@ const Dashboard: React.FC = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    transactionApi.getSummary().then((r) => setSummary(r.data));
-    transactionApi.getAll().then((r) => setRecent(r.data.slice(0, 8)));
+    transactionApi.getSummary().then((r: { data: Summary }) => setSummary(r.data));
+    transactionApi.getAll().then((r: { data: Transaction[] }) => setRecent(r.data.slice(0, 8)));
   }, []);
 
   const now = new Date();
@@ -71,26 +71,27 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" style={{ padding: '24px 0' }}>
         <div
           style={{
+            padding: '0 24px',
             marginBottom: 20,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
           }}
         >
-          <h3 style={{ fontSize: 18 }}>Recent Transactions</h3>
+          <h3 style={{ fontSize: 18, margin: 0 }}>Recent Transactions</h3>
         </div>
         <div className="table-container">
-          <table>
+          <table className="table">
             <thead>
               <tr>
-                <th>Description</th>
-                <th>Category</th>
-                <th>Date</th>
-                <th>Type</th>
-                <th style={{ textAlign: "right" }}>Amount</th>
+                <th style={{ paddingLeft: 24, width: '35%' }}>Description</th>
+                <th style={{ width: '20%' }}>Category</th>
+                <th style={{ width: '15%' }}>Date</th>
+                <th style={{ width: '15%' }}>Type</th>
+                <th style={{ textAlign: "right", paddingRight: 24, width: '15%' }}>Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -110,7 +111,7 @@ const Dashboard: React.FC = () => {
               )}
               {recent.map((t) => (
                 <tr key={t.id}>
-                  <td style={{ color: "var(--text-primary)" }}>
+                  <td style={{ color: "var(--text-primary)", paddingLeft: 24 }}>
                     {t.description}
                   </td>
                   <td>{t.category}</td>
@@ -120,7 +121,7 @@ const Dashboard: React.FC = () => {
                       {t.type}
                     </span>
                   </td>
-                  <td style={{ textAlign: "right" }}>
+                  <td style={{ textAlign: "right", paddingRight: 24 }}>
                     <span className={`amount-${t.type.toLowerCase()}`}>
                       {t.type === "EXPENSE" ? "-" : "+"}
                       {formatCurrency(t.amount)}

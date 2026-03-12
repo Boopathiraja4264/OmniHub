@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { transactionApi } from '../../shared/services/api';
-import { Transaction, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../shared/types';
+import { transactionApi } from '../../services/api';
+import { Transaction, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../types';
 
 const formatCurrency = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
@@ -78,17 +78,17 @@ const TransactionsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card" style={{ padding: '24px 0' }}>
         <div className="table-container">
-          <table>
+          <table className="table">
             <thead>
               <tr>
-                <th>Description</th>
-                <th>Category</th>
-                <th>Date</th>
-                <th>Type</th>
-                <th style={{ textAlign: 'right' }}>Amount</th>
-                <th></th>
+                <th style={{ paddingLeft: 24, width: '30%' }}>Description</th>
+                <th style={{ width: '15%' }}>Category</th>
+                <th style={{ width: '15%' }}>Date</th>
+                <th style={{ width: '15%' }}>Type</th>
+                <th style={{ textAlign: 'right', width: '15%' }}>Amount</th>
+                <th style={{ width: '10%', paddingRight: 24 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -99,7 +99,7 @@ const TransactionsPage: React.FC = () => {
               )}
               {filtered.map(t => (
                 <tr key={t.id}>
-                  <td style={{ color: 'var(--text-primary)' }}>
+                  <td style={{ color: 'var(--text-primary)', paddingLeft: 24 }}>
                     {t.description}
                     {t.notes && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t.notes}</div>}
                   </td>
@@ -111,7 +111,7 @@ const TransactionsPage: React.FC = () => {
                       {t.type === 'EXPENSE' ? '-' : '+'}{formatCurrency(t.amount)}
                     </span>
                   </td>
-                  <td>
+                  <td style={{ paddingRight: 24 }}>
                     <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
                       <button className="btn btn-sm btn-secondary" onClick={() => handleOpen(t)}>Edit</button>
                       <button className="btn btn-sm btn-danger" onClick={() => handleDelete(t.id)}>Delete</button>
