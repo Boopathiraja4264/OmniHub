@@ -14,22 +14,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Debug PAT
-        env:
-          PAT: ${{ secrets.PROD_REPO_PAT }}
-        run: |
-          if [ -z "$PAT" ]; then
-            echo "PAT is EMPTY!"
-          else
-            echo "PAT length: ${#PAT}"
-            echo "PAT starts with: ${PAT:0:4}"
-          fi
-
       - name: Push to omnihub-prod dev branch
-        env:
-          REPO_PAT: ${{ secrets.PROD_REPO_PAT }}
         run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-          git remote add prod "https://x-access-token:${REPO_PAT}@github.com/Boopathiraja4264/omnihub-prod.git"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add prod "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Boopathiraja4264/omnihub-prod.git"
           git push prod main:dev --force
