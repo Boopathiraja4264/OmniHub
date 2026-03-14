@@ -16,8 +16,8 @@ jobs:
 
       - name: Push to omnihub-prod dev branch
         run: |
-          git config user.name "GitHub Actions"
+          git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git remote add prod https://x-access-token:${{ secrets.PROD_REPO_PAT }}@github.com/Boopathiraja4264/omnihub-prod.git
+          git remote add prod https://Boopathiraja4264:${{ secrets.PROD_REPO_PAT }}@github.com/Boopathiraja4264/omnihub-prod.git
           git push prod main:dev --force
-          echo "✅ Successfully synced to omnihub-prod/dev"
+          echo "Synced to omnihub-prod/dev successfully"
