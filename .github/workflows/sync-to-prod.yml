@@ -15,6 +15,7 @@ jobs:
           fetch-depth: 0
 
       - name: Push to omnihub-prod dev branch
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.PROD_REPO_PAT }}
         run: |
