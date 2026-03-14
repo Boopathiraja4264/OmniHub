@@ -12,8 +12,10 @@ import java.util.*;
 @RequestMapping("/api/fitness")
 public class FitnessController {
 
-    @Autowired private FitnessService fitnessService;
-    @Autowired private JwtUtil jwtUtil;
+    @Autowired
+    private FitnessService fitnessService;
+    @Autowired
+    private JwtUtil jwtUtil;
 
     private String getEmail(String authHeader) {
         return jwtUtil.extractUsername(authHeader.substring(7));
@@ -27,13 +29,13 @@ public class FitnessController {
 
     @PostMapping("/exercises")
     public ResponseEntity<?> saveExercise(@RequestHeader("Authorization") String auth,
-                                          @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(fitnessService.saveExercise(getEmail(auth), body));
     }
 
     @DeleteMapping("/exercises/{id}")
     public ResponseEntity<?> deleteExercise(@RequestHeader("Authorization") String auth,
-                                            @PathVariable Long id) {
+            @PathVariable Long id) {
         fitnessService.deleteExercise(getEmail(auth), id);
         return ResponseEntity.ok().build();
     }
@@ -46,13 +48,13 @@ public class FitnessController {
 
     @PostMapping("/weekly-plan")
     public ResponseEntity<?> saveWeeklyPlan(@RequestHeader("Authorization") String auth,
-                                            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(fitnessService.saveWeeklyPlan(getEmail(auth), body));
     }
 
     @DeleteMapping("/weekly-plan/{id}")
     public ResponseEntity<?> deleteWeeklyPlan(@RequestHeader("Authorization") String auth,
-                                              @PathVariable Long id) {
+            @PathVariable Long id) {
         fitnessService.deleteWeeklyPlan(getEmail(auth), id);
         return ResponseEntity.ok().build();
     }
@@ -65,14 +67,14 @@ public class FitnessController {
 
     @GetMapping("/workouts/date/{date}")
     public ResponseEntity<?> getWorkoutByDate(@RequestHeader("Authorization") String auth,
-                                              @PathVariable String date) {
+            @PathVariable String date) {
         Object result = fitnessService.getWorkoutByDate(getEmail(auth), LocalDate.parse(date));
         return result != null ? ResponseEntity.ok(result) : ResponseEntity.notFound().build();
     }
 
     @PostMapping("/workouts")
     public ResponseEntity<?> saveWorkout(@RequestHeader("Authorization") String auth,
-                                         @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body) {
         return ResponseEntity.ok(fitnessService.saveWorkout(getEmail(auth), body));
     }
 
@@ -84,15 +86,34 @@ public class FitnessController {
 
     @PostMapping("/weight")
     public ResponseEntity<?> saveWeight(@RequestHeader("Authorization") String auth,
-                                        @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body) {
         return ResponseEntity.ok(fitnessService.saveWeight(getEmail(auth), body));
     }
 
     @DeleteMapping("/weight/{id}")
     public ResponseEntity<?> deleteWeight(@RequestHeader("Authorization") String auth,
-                                          @PathVariable Long id) {
+            @PathVariable Long id) {
         fitnessService.deleteWeight(getEmail(auth), id);
         return ResponseEntity.ok().build();
+    }
+
+    // ── WEIGHT SETUP ───────────────────────────────────────────────────────────
+    @GetMapping("/weight/setup")
+    public ResponseEntity<?> getWeightSetup(@RequestHeader("Authorization") String auth) {
+        return ResponseEntity.ok(fitnessService.getWeightSetup(getEmail(auth)));
+    }
+
+    @PostMapping("/weight/setup")
+    public ResponseEntity<?> saveWeightSetup(@RequestHeader("Authorization") String auth,
+            @RequestBody Map<String, Object> body) {
+        return ResponseEntity.ok(fitnessService.saveWeightSetup(getEmail(auth), body));
+    }
+
+    // ── WEIGHT STATS ───────────────────────────────────────────────────────────
+    @GetMapping("/weight/stats")
+    public ResponseEntity<?> getWeightStats(@RequestHeader("Authorization") String auth,
+            @RequestParam String month) {
+        return ResponseEntity.ok(fitnessService.getWeightStats(getEmail(auth), month));
     }
 
     // ── DASHBOARD ──────────────────────────────────────────────────────────────

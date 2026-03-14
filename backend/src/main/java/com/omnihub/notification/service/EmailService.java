@@ -29,27 +29,36 @@ import java.util.Optional;
 @Service
 public class EmailService {
 
-    @Autowired private JavaMailSender mailSender;
-    @Autowired private EmailSettingsRepository emailSettingsRepository;
-    @Autowired private TransactionRepository transactionRepository;
-    @Autowired private BudgetRepository budgetRepository;
-    @Autowired private WorkoutLogRepository workoutLogRepository;
-    @Autowired private WeightLogRepository weightLogRepository;
-    @Autowired private WeeklyPlanRepository weeklyPlanRepository;
+    @Autowired
+    private JavaMailSender mailSender;
+    @Autowired
+    private EmailSettingsRepository emailSettingsRepository;
+    @Autowired
+    private TransactionRepository transactionRepository;
+    @Autowired
+    private BudgetRepository budgetRepository;
+    @Autowired
+    private WorkoutLogRepository workoutLogRepository;
+    @Autowired
+    private WeightLogRepository weightLogRepository;
+    @Autowired
+    private WeeklyPlanRepository weeklyPlanRepository;
 
     @Scheduled(cron = "0 * * * * *")
     public void sendScheduledEmails() {
         LocalTime now = LocalTime.now(ZoneId.of("Asia/Kolkata"));
         int hour = now.getHour();
         int minute = now.getMinute();
-        System.out.println("Scheduler checking IST time - hour: " + hour + " minute: " + minute);
+        // System.out.println("Scheduler checking IST time - hour: " + hour + " minute:
+        // " + minute);
 
         List<EmailSettings> settings = emailSettingsRepository.findAllEnabledAtTime(hour, minute);
         for (EmailSettings setting : settings) {
             try {
                 sendDailyEmail(setting);
             } catch (Exception e) {
-                System.err.println("Failed to send email for: " + setting.getUser().getEmail() + " - " + e.getMessage());
+                System.err
+                        .println("Failed to send email for: " + setting.getUser().getEmail() + " - " + e.getMessage());
             }
         }
     }
@@ -78,35 +87,42 @@ public class EmailService {
 
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html><html><head><style>")
-            .append("body{font-family:Arial,sans-serif;background:#f0f4f8;padding:20px;}")
-            .append(".container{max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;}")
-            .append(".header{background:linear-gradient(135deg,#6b7c3a,#8a9f4a);color:white;padding:32px;text-align:center;}")
-            .append(".section{padding:24px 32px;border-bottom:1px solid #f0f0f0;}")
-            .append(".row{display:flex;justify-content:space-between;margin-bottom:8px;}")
-            .append(".green{color:#6b7c3a;font-weight:600;}")
-            .append(".red{color:#c0392b;font-weight:600;}")
-            .append(".blue{color:#2980b9;font-weight:600;}")
-            .append(".alert{background:#fff7ed;border-left:4px solid #f97316;padding:10px;margin:4px 0;}")
-            .append(".good{background:#f0fdf4;border-left:4px solid #6b7c3a;padding:10px;margin:4px 0;}")
-            .append(".plan{background:#f0f4e8;border-left:4px solid #8a9f4a;padding:10px;}")
-            .append(".footer{padding:20px;text-align:center;color:#94a3b8;font-size:13px;}")
-            .append("</style></head><body><div class='container'>")
-            .append("<div class='header'><h1>🌿 OmniHub Daily Summary</h1>")
-            .append("<p>").append(today).append(" — ").append(dayOfWeek).append("</p></div>");
+                .append("body{font-family:Arial,sans-serif;background:#f0f4f8;padding:20px;}")
+                .append(".container{max-width:600px;margin:0 auto;background:white;border-radius:16px;overflow:hidden;}")
+                .append(".header{background:linear-gradient(135deg,#6b7c3a,#8a9f4a);color:white;padding:32px;text-align:center;}")
+                .append(".section{padding:24px 32px;border-bottom:1px solid #f0f0f0;}")
+                .append(".row{display:flex;justify-content:space-between;margin-bottom:8px;}")
+                .append(".green{color:#6b7c3a;font-weight:600;}")
+                .append(".red{color:#c0392b;font-weight:600;}")
+                .append(".blue{color:#2980b9;font-weight:600;}")
+                .append(".alert{background:#fff7ed;border-left:4px solid #f97316;padding:10px;margin:4px 0;}")
+                .append(".good{background:#f0fdf4;border-left:4px solid #6b7c3a;padding:10px;margin:4px 0;}")
+                .append(".plan{background:#f0f4e8;border-left:4px solid #8a9f4a;padding:10px;}")
+                .append(".footer{padding:20px;text-align:center;color:#94a3b8;font-size:13px;}")
+                .append("</style></head><body><div class='container'>")
+                .append("<div class='header'><h1>🌿 OmniHub Daily Summary</h1>")
+                .append("<p>").append(today).append(" — ").append(dayOfWeek).append("</p></div>");
 
         if (settings.isIncludeFinance()) {
             try {
-                BigDecimal income = transactionRepository.sumByUserIdAndTypeAndMonthAndYear(user.getId(), TransactionType.INCOME, month, year);
-                BigDecimal expenses = transactionRepository.sumByUserIdAndTypeAndMonthAndYear(user.getId(), TransactionType.EXPENSE, month, year);
-                if (income == null) income = BigDecimal.ZERO;
-                if (expenses == null) expenses = BigDecimal.ZERO;
+                BigDecimal income = transactionRepository.sumByUserIdAndTypeAndMonthAndYear(user.getId(),
+                        TransactionType.INCOME, month, year);
+                BigDecimal expenses = transactionRepository.sumByUserIdAndTypeAndMonthAndYear(user.getId(),
+                        TransactionType.EXPENSE, month, year);
+                if (income == null)
+                    income = BigDecimal.ZERO;
+                if (expenses == null)
+                    expenses = BigDecimal.ZERO;
                 BigDecimal balance = income.subtract(expenses);
                 String balanceClass = balance.compareTo(BigDecimal.ZERO) >= 0 ? "green" : "red";
                 html.append("<div class='section'><h2>💰 Finance Summary</h2>")
-                    .append("<div class='row'><span>Monthly Income</span><span class='green'>₹").append(income).append("</span></div>")
-                    .append("<div class='row'><span>Monthly Expenses</span><span class='red'>₹").append(expenses).append("</span></div>")
-                    .append("<div class='row'><span>Balance</span><span class='").append(balanceClass).append("'>₹").append(balance).append("</span></div>")
-                    .append("</div>");
+                        .append("<div class='row'><span>Monthly Income</span><span class='green'>₹").append(income)
+                        .append("</span></div>")
+                        .append("<div class='row'><span>Monthly Expenses</span><span class='red'>₹").append(expenses)
+                        .append("</span></div>")
+                        .append("<div class='row'><span>Balance</span><span class='").append(balanceClass).append("'>₹")
+                        .append(balance).append("</span></div>")
+                        .append("</div>");
             } catch (Exception e) {
                 html.append("<div class='section'><h2>💰 Finance</h2><p>No data yet</p></div>");
             }
@@ -118,20 +134,25 @@ public class EmailService {
                 if (!budgets.isEmpty()) {
                     html.append("<div class='section'><h2>🎯 Budget Alerts</h2>");
                     for (var budget : budgets) {
-                        BigDecimal spent = transactionRepository.sumByUserIdAndTypeAndMonthAndYear(user.getId(), TransactionType.EXPENSE, month, year);
-                        if (spent == null) spent = BigDecimal.ZERO;
+                        BigDecimal spent = transactionRepository.sumByUserIdAndTypeAndMonthAndYear(user.getId(),
+                                TransactionType.EXPENSE, month, year);
+                        if (spent == null)
+                            spent = BigDecimal.ZERO;
                         double pct = budget.getLimitAmount().compareTo(BigDecimal.ZERO) > 0
-                                ? spent.divide(budget.getLimitAmount(), 2, java.math.RoundingMode.HALF_UP).doubleValue() * 100 : 0;
+                                ? spent.divide(budget.getLimitAmount(), 2, java.math.RoundingMode.HALF_UP).doubleValue()
+                                        * 100
+                                : 0;
                         String cssClass = pct >= 80 ? "alert" : "good";
                         String icon = pct >= 80 ? "⚠️" : "✅";
                         html.append("<div class='").append(cssClass).append("'>")
-                            .append(icon).append(" <strong>").append(budget.getCategory()).append("</strong>: ₹")
-                            .append(spent).append(" / ₹").append(budget.getLimitAmount())
-                            .append(" (").append(String.format("%.0f", pct)).append("%)</div>");
+                                .append(icon).append(" <strong>").append(budget.getCategory()).append("</strong>: ₹")
+                                .append(spent).append(" / ₹").append(budget.getLimitAmount())
+                                .append(" (").append(String.format("%.0f", pct)).append("%)</div>");
                     }
                     html.append("</div>");
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         if (settings.isIncludeFitness()) {
@@ -140,9 +161,11 @@ public class EmailService {
                 var weights = weightLogRepository.findByUserIdOrderByDateDesc(user.getId());
                 String weight = weights.isEmpty() ? "No data" : weights.get(0).getWeight() + " kg";
                 html.append("<div class='section'><h2>💪 Fitness Summary</h2>")
-                    .append("<div class='row'><span>Total Workouts</span><span class='blue'>").append(totalWorkouts).append("</span></div>")
-                    .append("<div class='row'><span>Latest Weight</span><span class='blue'>").append(weight).append("</span></div>")
-                    .append("</div>");
+                        .append("<div class='row'><span>Total Workouts</span><span class='blue'>").append(totalWorkouts)
+                        .append("</span></div>")
+                        .append("<div class='row'><span>Latest Weight</span><span class='blue'>").append(weight)
+                        .append("</span></div>")
+                        .append("</div>");
             } catch (Exception e) {
                 html.append("<div class='section'><h2>💪 Fitness</h2><p>No data yet</p></div>");
             }
@@ -154,14 +177,15 @@ public class EmailService {
                 Optional<WeeklyPlan> plan = weeklyPlanRepository.findByUserIdAndDayOfWeek(user.getId(), day);
                 if (plan.isPresent()) {
                     html.append("<div class='section'><h2>📅 Today's Plan (").append(day).append(")</h2>")
-                        .append("<div class='plan'>").append(plan.get().getPlanDescription()).append("</div>")
-                        .append("</div>");
+                            .append("<div class='plan'>").append(plan.get().getPlanDescription()).append("</div>")
+                            .append("</div>");
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
 
         html.append("<div class='footer'>OmniHub — Your Personal Tracker 🌿</div>")
-            .append("</div></body></html>");
+                .append("</div></body></html>");
 
         return html.toString();
     }
