@@ -13,6 +13,7 @@ import ExercisesPage from './modules/fitness/ExercisesPage';
 import WeeklyPlanPage from './modules/fitness/WeeklyPlanPage';
 import WeightPage from './modules/fitness/WeightPage';
 import SettingsPage from './modules/settings/SettingsPage';
+import BackupPage from './modules/settings/BackupPage';
 import './index.css';
 
 const ThemeToggle: React.FC<{ theme: string; toggle: () => void }> = ({ theme, toggle }) => (
@@ -46,6 +47,7 @@ const ProtectedLayout: React.FC<{ theme: string; toggleTheme: () => void }> = ({
           <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />
           <Route path="/fitness/weight" element={<WeightPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/backup" element={<BackupPage />} />
         </Routes>
       </main>
     </div>

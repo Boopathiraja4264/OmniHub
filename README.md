@@ -46,12 +46,16 @@ CREATE DATABASE omni_hub;
 ### 2. Backend
 ```bash
 cd backend
-# Configure DB credentials (or use env vars)
+# Configure credentials in .env file (already in .gitignore)
+# or export them directly:
 export DB_USERNAME=postgres
 export DB_PASSWORD=yourpassword
 export JWT_SECRET=OmniHubSecretKeyThatIsVeryLongAndSecure
-export MAIL_USERNAME=your-email@gmail.com
-export MAIL_PASSWORD=your-app-password
+
+# Microsoft Graph API (OneDrive & Outlook)
+export MICROSOFT_CLIENT_ID=your-client-id
+export MICROSOFT_CLIENT_SECRET=your-client-secret
+export MICROSOFT_REFRESH_TOKEN=your-refresh-token
 
 mvn spring-boot:run
 ```
@@ -72,8 +76,9 @@ Frontend runs on **http://localhost:3000**
 | `DB_USERNAME` | PostgreSQL username | `postgres` |
 | `DB_PASSWORD` | PostgreSQL password | `password` |
 | `JWT_SECRET` | JWT signing secret | (set a strong value!) |
-| `MAIL_USERNAME` | Email for notifications | `sunways839@gmail.com` |
-| `MAIL_PASSWORD` | App password for email | `ydtqspjrzglidrfs` |
+| `MICROSOFT_CLIENT_ID` | Azure App Client ID | (required) |
+| `MICROSOFT_CLIENT_SECRET` | Azure App Client Secret | (required) |
+| `MICROSOFT_REFRESH_TOKEN` | Microsoft Graph Refresh Token | (required) |
 
 ## 📁 Project Structure (Modular)
 
@@ -82,9 +87,10 @@ omnihub/
 ├── backend/                    # Spring Boot API (package: com.omnihub)
 │   └── src/main/java/com/omnihub/
 │       ├── core/               # Shared: Auth, Security, Config, User
+│       ├── backup/             # Feature: OneDrive Backups, Token Mgmt
 │       ├── finance/            # Feature: Budgets, Transactions
 │       ├── fitness/            # Feature: Workouts, Exercises, Weight
-│       └── notification/       # Feature: Email Services, Settings
+│       └── notification/       # Feature: Email Services (Graph API), Settings
 └── frontend/                   # React TypeScript app
     └── src/
         ├── modules/            # Feature-based modules

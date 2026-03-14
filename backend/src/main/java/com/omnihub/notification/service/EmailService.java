@@ -1,5 +1,6 @@
 package com.omnihub.notification.service;
 
+import com.omnihub.backup.service.OneDriveTokenService;
 import com.omnihub.core.entity.User;
 import com.omnihub.finance.entity.Transaction.TransactionType;
 import com.omnihub.finance.repository.BudgetRepository;
@@ -10,27 +11,29 @@ import com.omnihub.fitness.repository.WeightLogRepository;
 import com.omnihub.fitness.repository.WorkoutLogRepository;
 import com.omnihub.notification.entity.EmailSettings;
 import com.omnihub.notification.repository.EmailSettingsRepository;
-import jakarta.mail.internet.MimeMessage;
+// import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.*;
+// import org.springframework.mail.javamail.JavaMailSender;
+// import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.TextStyle;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class EmailService {
 
+    // @Autowired
+    // private JavaMailSender mailSender;
     @Autowired
-    private JavaMailSender mailSender;
+    private OneDriveTokenService tokenService;
     @Autowired
     private EmailSettingsRepository emailSettingsRepository;
     @Autowired
@@ -43,6 +46,9 @@ public class EmailService {
     private WeightLogRepository weightLogRepository;
     @Autowired
     private WeeklyPlanRepository weeklyPlanRepository;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+    private static final String GRAPH_SENDMAIL_URL = "https://graph.microsoft.com/v1.0/me/sendMail";
 
     @Scheduled(cron = "0 * * * * *")
     public void sendScheduledEmails() {
@@ -70,13 +76,50 @@ public class EmailService {
                 : user.getEmail();
 
         String html = buildEmailHtml(user, settings);
+        String subject = "🌟 OmniHub Daily Summary - " + LocalDate.now();
 
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        helper.setTo(toEmail);
-        helper.setSubject("🌟 OmniHub Daily Summary - " + LocalDate.now());
-        helper.setText(html, true);
-        mailSender.send(message);
+        /*
+         * // Gmail SMTP implementation (Commented out)
+         * MimeMessage message = mailSender.createMimeMessage();
+         * MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+         * helper.setTo(toEmail);
+         * helper.setSubject(subject);
+         * helper.setText(html, true);
+         * mailSender.send(message);
+         */
+
+        // Microsoft Graph API Implementation
+        Map<String, Object> message = new LinkedHashMap<>();
+        message.put("subject", subject);
+
+        Map<String, String> body = new HashMap<>();
+        body.put("contentType", "HTML");
+        body.put("content", html);
+        message.put("body", body);
+
+        Map<String, Object> recipient = new HashMap<>();
+        Map<String, String> emailAddress = new HashMap<>();
+        emailAddress.put("address", toEmail);
+        recipient.put("emailAddress", emailAddress);
+        message.put("toRecipients", Collections.singletonList(recipient));
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("message", message);
+        payload.put("saveToSentItems", "true");
+
+        String accessToken = tokenService.getAccessToken();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+        ResponseEntity<Void> response = restTemplate.postForEntity(GRAPH_SENDMAIL_URL, request, Void.class);
+
+        if (response.getStatusCode().is2xxSuccessful()) {
+            System.out.println("Email sent successfully via Graph API to: " + toEmail);
+        } else {
+            throw new RuntimeException("Failed to send email via Graph API. Status: " + response.getStatusCode());
+        }
     }
 
     private String buildEmailHtml(User user, EmailSettings settings) {
