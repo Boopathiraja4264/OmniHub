@@ -55,12 +55,15 @@ public class EmailService {
         LocalTime now = LocalTime.now(ZoneId.of("Asia/Kolkata"));
         int hour = now.getHour();
         int minute = now.getMinute();
-        // System.out.println("Scheduler checking IST time - hour: " + hour + " minute:
-        // " + minute);
-
+        
         List<EmailSettings> settings = emailSettingsRepository.findAllEnabledAtTime(hour, minute);
+        if (!settings.isEmpty()) {
+            System.out.println("Found " + settings.size() + " enabled email schedules at " + hour + ":" + minute);
+        }
+
         for (EmailSettings setting : settings) {
             try {
+                System.out.println("Sending scheduled email to: " + setting.getUser().getEmail());
                 sendDailyEmail(setting);
             } catch (Exception e) {
                 System.err

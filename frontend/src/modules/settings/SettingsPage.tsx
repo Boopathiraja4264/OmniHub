@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../../services/api";
+import BackupPage from "./BackupPage";
 
 const Toggle: React.FC<{ value: boolean; onChange: () => void }> = ({
   value,
@@ -53,15 +54,20 @@ const SettingsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showEmailContent, setShowEmailContent] = useState(false);
+  const [showBackupInfo, setShowBackupInfo] = useState(false);
   const [message, setMessage] = useState<{
     text: string;
     type: "success" | "error";
   } | null>(null);
 
   useEffect(() => {
-    api
-      .get("/notifications/email-settings")
-      .then((r) => {
+    Promise.all([
+      api.get("/notifications/email-settings"),
+      api.get("/backup/settings")
+    ])
+      .then(([r, b]) => {
         setSettings({
           enabled: r.data.enabled,
           sendTime: r.data.sendTime?.slice(0, 5) || "08:00",
@@ -71,6 +77,9 @@ const SettingsPage: React.FC = () => {
           includeWeeklyPlan: r.data.includeWeeklyPlan,
         });
         setCustomEmail(r.data.customEmail || r.data.user?.email || "");
+        
+        setBackupEnabled(b.data.enabled);
+        setBackupTime(b.data.backupTime?.slice(0, 5) || "00:00");
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -84,9 +93,25 @@ const SettingsPage: React.FC = () => {
         ...settings,
         customEmail,
       });
-      setMessage({ text: "✅ Settings saved successfully!", type: "success" });
+      setMessage({ text: "✅ Email settings saved successfully!", type: "success" });
     } catch {
       setMessage({ text: "❌ Failed to save settings.", type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveBackupSettings = async () => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      await api.put("/backup/settings", {
+        enabled: backupEnabled,
+        backupTime: backupTime.length === 5 ? backupTime + ":00" : backupTime
+      });
+      setMessage({ text: "✅ Backup settings saved!", type: "success" });
+    } catch {
+      setMessage({ text: "❌ Failed to save backup settings.", type: "error" });
     } finally {
       setSaving(false);
     }
@@ -129,7 +154,7 @@ const SettingsPage: React.FC = () => {
   ];
 
   return (
-    <div style={{ maxWidth: 640 }}>
+    <div>
       <div style={{ marginBottom: 32 }}>
         <h1 className="page-title">Settings</h1>
         <p className="page-subtitle">
@@ -242,77 +267,94 @@ const SettingsPage: React.FC = () => {
                 onChange={(e) => setCustomEmail(e.target.value)}
                 placeholder="your@email.com"
               />
-              <p
-                style={{
-                  color: "var(--text-muted)",
-                  fontSize: 12,
-                  marginTop: 6,
-                }}
+            </div>
+
+            <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+                onClick={save}
+                disabled={saving}
               >
-                Leave as your account email or enter a different one
-              </p>
+                {saving ? "Saving..." : "💾 Save Settings"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowEmailContent(!showEmailContent)}
+              >
+                {showEmailContent ? "📋 Hide Content Settings" : "📋 Configure Email Content"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={sendTest}
+                disabled={testing}
+              >
+                {testing ? "..." : "📧 Send Test"}
+              </button>
             </div>
           </div>
 
-          <div className="card" style={{ marginBottom: 20 }}>
-            <h3 style={{ color: "var(--text-primary)", marginBottom: 20 }}>
-              📋 What to Include
-            </h3>
-            {[
-              {
-                key: "includeFinance" as const,
-                label: "💰 Finance Summary",
-                desc: "Monthly income, expenses and balance",
-              },
-              {
-                key: "includeBudgetAlerts" as const,
-                label: "🎯 Budget Alerts",
-                desc: "Warnings when over 80% of budget",
-              },
-              {
-                key: "includeFitness" as const,
-                label: "💪 Fitness Summary",
-                desc: "Total workouts and latest weight",
-              },
-              {
-                key: "includeWeeklyPlan" as const,
-                label: "📅 Today's Plan",
-                desc: "Your workout plan for today",
-              },
-            ].map((item) => (
-              <div
-                key={item.key}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "14px 0",
-                  borderBottom: "1px solid var(--border)",
-                }}
-              >
-                <div>
-                  <p
-                    style={{
-                      color: "var(--text-primary)",
-                      fontWeight: 500,
-                      marginBottom: 2,
-                    }}
-                  >
-                    {item.label}
-                  </p>
-                  <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
-                    {item.desc}
-                  </p>
+          {showEmailContent && (
+            <div className="card" style={{ marginBottom: 20, animation: "fadeIn 0.3s" }}>
+              <h3 style={{ color: "var(--text-primary)", marginBottom: 20 }}>
+                📋 What to Include
+              </h3>
+              {[
+                {
+                  key: "includeFinance" as const,
+                  label: "💰 Finance Summary",
+                  desc: "Monthly income, expenses and balance",
+                },
+                {
+                  key: "includeBudgetAlerts" as const,
+                  label: "🎯 Budget Alerts",
+                  desc: "Warnings when over 80% of budget",
+                },
+                {
+                  key: "includeFitness" as const,
+                  label: "💪 Fitness Summary",
+                  desc: "Total workouts and latest weight",
+                },
+                {
+                  key: "includeWeeklyPlan" as const,
+                  label: "📅 Today's Plan",
+                  desc: "Your workout plan for today",
+                },
+              ].map((item) => (
+                <div
+                  key={item.key}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "14px 0",
+                    borderBottom: "1px solid var(--border)",
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        color: "var(--text-primary)",
+                        fontWeight: 500,
+                        marginBottom: 2,
+                      }}
+                    >
+                      {item.label}
+                    </p>
+                    <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                      {item.desc}
+                    </p>
+                  </div>
+                  <Toggle
+                    value={settings[item.key]}
+                    onChange={() => toggle(item.key)}
+                  />
                 </div>
-                <Toggle
-                  value={settings[item.key]}
-                  onChange={() => toggle(item.key)}
-                />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {message && (
+          {message && (activeTab === "email") && (
             <div
               style={{
                 padding: "12px 16px",
@@ -332,24 +374,6 @@ const SettingsPage: React.FC = () => {
               {message.text}
             </div>
           )}
-
-          <div style={{ display: "flex", gap: 12 }}>
-            <button
-              className="btn btn-primary"
-              style={{ flex: 1 }}
-              onClick={save}
-              disabled={saving}
-            >
-              {saving ? "Saving..." : "💾 Save Settings"}
-            </button>
-            <button
-              className="btn btn-secondary"
-              onClick={sendTest}
-              disabled={testing}
-            >
-              {testing ? "Sending..." : "📧 Send Test Email"}
-            </button>
-          </div>
         </>
       )}
 
@@ -367,7 +391,7 @@ const SettingsPage: React.FC = () => {
             >
               <div>
                 <h3 style={{ color: "var(--text-primary)", marginBottom: 4 }}>
-                  ☁️ Auto Backup
+                  ☁️ Auto Backup Settings
                 </h3>
                 <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
                   Automatically back up your data to OneDrive
@@ -398,108 +422,135 @@ const SettingsPage: React.FC = () => {
                 Default: 12:00 AM — runs once daily
               </p>
             </div>
-          </div>
 
-          <div className="card" style={{ marginBottom: 20 }}>
-            <h3 style={{ color: "var(--text-primary)", marginBottom: 20 }}>
-              📂 What Gets Backed Up
-            </h3>
-            {[
-              {
-                icon: "💸",
-                label: "Transactions",
-                desc: "All income and expense records",
-              },
-              { icon: "🎯", label: "Budgets", desc: "Monthly budget limits" },
-              {
-                icon: "💪",
-                label: "Workout Logs",
-                desc: "All workout sessions and sets",
-              },
-              {
-                icon: "⚖️",
-                label: "Weight Logs",
-                desc: "Daily weight tracking records",
-              },
-            ].map((item) => (
-              <div
-                key={item.label}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: "14px 0",
-                  borderBottom: "1px solid var(--border)",
-                }}
+            <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+                onClick={saveBackupSettings}
+                disabled={saving}
               >
-                <div style={{ fontSize: 20, width: 32, textAlign: "center" }}>
-                  {item.icon}
-                </div>
-                <div>
-                  <p
-                    style={{
-                      color: "var(--text-primary)",
-                      fontWeight: 500,
-                      marginBottom: 2,
-                    }}
-                  >
-                    {item.label}
-                  </p>
-                  <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
-                    {item.desc}
-                  </p>
-                </div>
-                <div style={{ marginLeft: "auto" }}>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      padding: "3px 10px",
-                      borderRadius: 20,
-                      background: "var(--primary-dim)",
-                      color: "var(--primary-light)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Always
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="card" style={{ marginBottom: 20 }}>
-            <h3 style={{ color: "var(--text-primary)", marginBottom: 8 }}>
-              📁 Drive Folder Structure
-            </h3>
-            <p
-              style={{
-                color: "var(--text-muted)",
-                fontSize: 13,
-                marginBottom: 14,
-              }}
-            >
-              Auto-created — you never need to touch anything
-            </p>
-            <div
-              style={{
-                background: "var(--bg-elevated)",
-                borderRadius: 10,
-                padding: "14px 18px",
-                fontFamily: "monospace",
-                fontSize: 12,
-                color: "var(--text-secondary)",
-                lineHeight: 2,
-              }}
-            >
-              OneDrive / OmniHub / 2026 / March / Week-2 / 13-Mar-2026.json
-              <br />
-              OneDrive / OmniHub / 2026 / April / Week-1 / 01-Apr-2026.json
-              <br />
-              OneDrive / OmniHub / 2027 / January / Week-1 / 01-Jan-2027.json
+                {saving ? "Saving..." : "💾 Save Settings"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowBackupInfo(!showBackupInfo)}
+              >
+                {showBackupInfo ? "📂 Hide Info" : "📂 Backup Details"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowHistory(!showHistory)}
+              >
+                {showHistory ? "📊 Hide History" : "📊 View History & Stats"}
+              </button>
             </div>
           </div>
 
-          {message && (
+          {showBackupInfo && (
+            <div style={{ animation: "fadeIn 0.3s" }}>
+              <div className="card" style={{ marginBottom: 20 }}>
+                <h3 style={{ color: "var(--text-primary)", marginBottom: 20 }}>
+                  📂 What Gets Backed Up
+                </h3>
+                {[
+                  {
+                    icon: "💸",
+                    label: "Transactions",
+                    desc: "All income and expense records",
+                  },
+                  { icon: "🎯", label: "Budgets", desc: "Monthly budget limits" },
+                  {
+                    icon: "💪",
+                    label: "Workout Logs",
+                    desc: "All workout sessions and sets",
+                  },
+                  {
+                    icon: "⚖️",
+                    label: "Weight Logs",
+                    desc: "Daily weight tracking records",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 14,
+                      padding: "14px 0",
+                      borderBottom: "1px solid var(--border)",
+                    }}
+                  >
+                    <div style={{ fontSize: 20, width: 32, textAlign: "center" }}>
+                      {item.icon}
+                    </div>
+                    <div>
+                      <p
+                        style={{
+                          color: "var(--text-primary)",
+                          fontWeight: 500,
+                          marginBottom: 2,
+                        }}
+                      >
+                        {item.label}
+                      </p>
+                      <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                        {item.desc}
+                      </p>
+                    </div>
+                    <div style={{ marginLeft: "auto" }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          padding: "3px 10px",
+                          borderRadius: 20,
+                          background: "var(--primary-dim)",
+                          color: "var(--primary-light)",
+                          fontWeight: 700,
+                        }}
+                      >
+                        Always
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="card" style={{ marginBottom: 20 }}>
+                <h3 style={{ color: "var(--text-primary)", marginBottom: 8 }}>
+                  📁 Drive Folder Structure
+                </h3>
+                <p
+                  style={{
+                    color: "var(--text-muted)",
+                    fontSize: 13,
+                    marginBottom: 14,
+                  }}
+                >
+                  Auto-created — you never need to touch anything
+                </p>
+                <div
+                  style={{
+                    background: "var(--bg-elevated)",
+                    borderRadius: 10,
+                    padding: "14px 18px",
+                    fontFamily: "monospace",
+                    fontSize: 12,
+                    color: "var(--text-secondary)",
+                    lineHeight: 2,
+                  }}
+                >
+                  OneDrive / OmniHub / 2026 / March / Week-2 / 13-Mar-2026.json
+                  <br />
+                  OneDrive / OmniHub / 2026 / April / Week-1 / 01-Apr-2026.json
+                  <br />
+                  OneDrive / OmniHub / 2027 / January / Week-1 / 01-Jan-2027.json
+                </div>
+              </div>
+            </div>
+          )}
+
+          {message && (activeTab === "backup") && (
             <div
               style={{
                 padding: "12px 16px",
@@ -520,37 +571,11 @@ const SettingsPage: React.FC = () => {
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 12 }}>
-            <button
-              className="btn btn-primary"
-              style={{ flex: 1 }}
-              onClick={() =>
-                setMessage({
-                  text: "✅ Backup settings saved!",
-                  type: "success",
-                })
-              }
-            >
-              💾 Save Settings
-            </button>
-            <button
-              className="btn btn-secondary"
-              onClick={async () => {
-                setMessage(null);
-                try {
-                  await api.post("/backup/run");
-                  setMessage({
-                    text: "✅ Backup started successfully!",
-                    type: "success",
-                  });
-                } catch {
-                  setMessage({ text: "❌ Backup failed.", type: "error" });
-                }
-              }}
-            >
-              ☁️ Run Backup Now
-            </button>
-          </div>
+          {showHistory && (
+            <div style={{ marginTop: 12, animation: "fadeIn 0.3s" }}>
+              <BackupPage />
+            </div>
+          )}
         </>
       )}
     </div>

@@ -14,6 +14,7 @@ public class BackupLog {
     private String fileName;
     private String drivePath;
     private String status;
+    @Column(columnDefinition = "TEXT")
     private String errorMessage;
     private Long fileSizeBytes;
     private int transactionCount;

@@ -2,7 +2,10 @@ package com.omnihub.backup.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.omnihub.backup.entity.BackupLog;
+import com.omnihub.backup.entity.BackupSettings;
 import com.omnihub.backup.repository.BackupLogRepository;
+import com.omnihub.backup.repository.BackupSettingsRepository;
+import com.omnihub.core.entity.User;
 import com.omnihub.finance.entity.Budget;
 import com.omnihub.finance.entity.Transaction;
 import com.omnihub.finance.repository.BudgetRepository;
@@ -21,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -30,6 +34,7 @@ public class OneDriveBackupService {
 
     @Autowired private OneDriveTokenService tokenService;
     @Autowired private BackupLogRepository backupLogRepository;
+    @Autowired private BackupSettingsRepository backupSettingsRepository;
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private BudgetRepository budgetRepository;
     @Autowired private WorkoutLogRepository workoutLogRepository;
@@ -39,10 +44,19 @@ public class OneDriveBackupService {
     private final RestTemplate restTemplate = new RestTemplate();
     private static final String GRAPH_BASE = "https://graph.microsoft.com/v1.0/me/drive/root:/";
 
-    @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Kolkata")
-    public void scheduledBackup() {
-        System.out.println("Starting scheduled OneDrive backup...");
-        performBackup();
+    @Scheduled(cron = "0 * * * * *")
+    public void checkScheduledBackups() {
+        LocalTime now = LocalTime.now(ZoneId.of("Asia/Kolkata"));
+        int hour = now.getHour();
+        int minute = now.getMinute();
+
+        List<BackupSettings> allSettings = backupSettingsRepository.findAllEnabledAtTime(hour, minute);
+        if (!allSettings.isEmpty()) {
+            System.out.println("Running scheduled OneDrive backups for " + allSettings.size() + " users...");
+            for (BackupSettings settings : allSettings) {
+                performBackup();
+            }
+        }
     }
 
     @Transactional

@@ -223,18 +223,27 @@ body {
   border-right: 1px solid var(--border);
   padding: 28px 0; display: flex; flex-direction: column;
   position: fixed; height: 100vh; z-index: 100;
-  transition: background 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.sidebar-logo { padding: 0 22px 26px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 18px; }
+.sidebar.collapsed { width: 80px; }
+
+.sidebar-logo { padding: 0 22px 26px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 18px; position: relative; }
+.sidebar.collapsed .sidebar-logo { padding: 0 0 26px; text-align: center; }
+
 .sidebar-logo h1 {
   font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700;
   background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  white-space: nowrap;
 }
-.sidebar-logo span { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2.5px; font-weight: 500; }
+.sidebar-logo span { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2.5px; font-weight: 500; white-space: nowrap; }
+
+.sidebar.collapsed .sidebar-logo h1 span:not(.logo-emoji) { display: none; }
+.sidebar.collapsed .sidebar-logo span:not(h1 span) { display: none; }
 
 .sidebar nav { flex: 1; padding: 0 10px; overflow-y: auto; }
+.sidebar.collapsed nav { padding: 0 15px; }
 
 .nav-link {
   display: flex; align-items: center; gap: 10px;
@@ -242,15 +251,28 @@ body {
   text-decoration: none; font-size: 13.5px; font-weight: 500;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: var(--radius-sm); margin-bottom: 2px;
+  white-space: nowrap;
 }
+.sidebar.collapsed .nav-link { justify-content: center; padding: 12px; gap: 0; }
+.sidebar.collapsed .nav-link span { display: none; }
+
 .nav-link:hover { color: var(--text-primary); background: var(--bg-hover); transform: translateX(3px); }
+.sidebar.collapsed .nav-link:hover { transform: scale(1.1); }
+
 .nav-link.active { color: var(--primary-light); background: var(--primary-dim); }
 [data-theme="light"] .nav-link.active { color: var(--primary-dark); }
-.nav-link svg { width: 15px; height: 15px; flex-shrink: 0; }
+.nav-link svg { width: 18px; height: 18px; flex-shrink: 0; }
 
 .sidebar-user { padding: 18px 22px; border-top: 1px solid var(--border-subtle); margin-top: auto; }
+.sidebar.collapsed .sidebar-user { padding: 18px 0; text-align: center; }
+
 .sidebar-user-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .sidebar-user-email { font-size: 11px; color: var(--text-muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sidebar.collapsed .sidebar-user-name { font-size: 16px; background: var(--primary-dim); width: 40px; height: 40px; line-height: 40px; border-radius: 50%; margin: 0 auto; color: var(--primary-light); }
+.sidebar.collapsed .sidebar-user-email { display: none; }
+.sidebar.collapsed .logout-btn { width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; margin: 10px auto 0; border-radius: 50%; }
+.sidebar.collapsed .logout-btn span { display: none; }
 
 .logout-btn {
   margin-top: 10px; background: none; border: 1px solid var(--border);
@@ -260,6 +282,17 @@ body {
 }
 .logout-btn:hover { border-color: var(--danger); color: var(--danger); background: rgba(192,57,43,0.06); }
 
+/* Sidebar Toggle Button */
+.sidebar-toggle {
+  position: absolute; right: -12px; top: 32px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-secondary); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 101; transition: all 0.2s; box-shadow: var(--shadow);
+}
+.sidebar-toggle:hover { border-color: var(--primary); color: var(--primary-light); }
+
 /* ─── MAIN CONTENT ───────────────────────────── */
 .main-content {
   margin-left: 256px; flex: 1; padding: 44px 52px;
@@ -268,7 +301,12 @@ body {
   background-image:
     radial-gradient(ellipse at 85% 5%, rgba(138,159,74,0.05) 0%, transparent 45%),
     radial-gradient(ellipse at 15% 95%, rgba(138,159,74,0.03) 0%, transparent 40%);
-  transition: background 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed + .main-content {
+  margin-left: 80px;
+  max-width: calc(100vw - 80px);
 }
 
 /* ─── PAGE HEADER ────────────────────────────── */
