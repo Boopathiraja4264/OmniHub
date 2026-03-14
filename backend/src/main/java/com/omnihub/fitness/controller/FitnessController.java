@@ -59,6 +59,20 @@ public class FitnessController {
         return ResponseEntity.ok().build();
     }
 
+    // achivable weight goal weeks
+    @GetMapping("/weight/achieved-weeks")
+    public ResponseEntity<?> getAchievedWeeks(@RequestHeader("Authorization") String auth) {
+        return ResponseEntity.ok(fitnessService.getAchievedWeeks(getEmail(auth)));
+    }
+
+    @PostMapping("/weight/achieved-weeks")
+    public ResponseEntity<?> saveAchievedWeeks(@RequestHeader("Authorization") String auth,
+            @RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Integer> weeks = (List<Integer>) body.get("achievedWeeks");
+        return ResponseEntity.ok(fitnessService.saveAchievedWeeks(getEmail(auth), weeks));
+    }
+
     // ── WORKOUTS ───────────────────────────────────────────────────────────────
     @GetMapping("/workouts")
     public ResponseEntity<?> getWorkouts(@RequestHeader("Authorization") String auth) {

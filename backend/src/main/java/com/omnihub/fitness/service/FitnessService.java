@@ -13,6 +13,8 @@ import java.util.*;
 public class FitnessService {
 
     @Autowired
+    private WeightGoalWeekRepository weightGoalWeekRepository;
+    @Autowired
     private ExerciseRepository exerciseRepository;
     @Autowired
     private WeeklyPlanRepository weeklyPlanRepository;
@@ -248,10 +250,10 @@ public class FitnessService {
             throw new RuntimeException("Weight value is required");
         }
         log.setWeight(Double.valueOf(wVal.toString().trim()));
-
         log.setNotes(req.get("notes") != null ? req.get("notes").toString() : "");
         log.setUser(user);
         weightLogRepository.save(log);
+
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", log.getId());
         m.put("date", log.getDate().toString());
@@ -283,14 +285,18 @@ public class FitnessService {
     // ── WEIGHT SETUP ───────────────────────────────────────────────────────────
     public Map<String, Object> saveWeightSetup(String email, Map<String, Object> req) {
         User user = getUser(email);
-        if (req.get("heightCm") != null)
+        if (req.get("heightCm") != null && !req.get("heightCm").toString().equals("NaN"))
             user.setHeightCm(Double.valueOf(req.get("heightCm").toString()));
-        if (req.get("goalWeight") != null)
+        if (req.get("goalWeight") != null && !req.get("goalWeight").toString().equals("NaN"))
             user.setGoalWeight(Double.valueOf(req.get("goalWeight").toString()));
-        if (req.get("weeklyLossRate") != null)
+        if (req.get("weeklyLossRate") != null && !req.get("weeklyLossRate").toString().equals("NaN"))
             user.setWeeklyLossRate(Double.valueOf(req.get("weeklyLossRate").toString()));
-        if (req.get("startWeight") != null)
+        if (req.get("startWeight") != null && !req.get("startWeight").toString().equals("NaN"))
             user.setStartWeight(Double.valueOf(req.get("startWeight").toString()));
+        if (req.get("scheduleStartDate") != null && !req.get("scheduleStartDate").toString().isEmpty())
+            user.setScheduleStartDate(req.get("scheduleStartDate").toString());
+        if (req.get("scheduleStartWeight") != null && !req.get("scheduleStartWeight").toString().equals("NaN"))
+            user.setScheduleStartWeight(Double.valueOf(req.get("scheduleStartWeight").toString()));
         userRepository.save(user);
         return getWeightSetup(email);
     }
@@ -302,34 +308,63 @@ public class FitnessService {
         m.put("goalWeight", user.getGoalWeight());
         m.put("weeklyLossRate", user.getWeeklyLossRate());
         m.put("startWeight", user.getStartWeight());
+        m.put("scheduleStartDate", user.getScheduleStartDate());
+        m.put("scheduleStartWeight", user.getScheduleStartWeight());
         return m;
+    }
+
+    // ── ACHIEVED WEEKS ─────────────────────────────────────────────────────────
+    public Map<String, Object> getAchievedWeeks(String email) {
+        User user = getUser(email);
+        List<Integer> weeks = new ArrayList<>();
+        for (WeightGoalWeek w : weightGoalWeekRepository.findByUserId(user.getId())) {
+            if (w.getAchieved())
+                weeks.add(w.getWeekNumber());
+        }
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("achievedWeeks", weeks);
+        return m;
+    }
+
+    public Map<String, Object> saveAchievedWeeks(String email, List<Integer> weekNumbers) {
+        User user = getUser(email);
+        for (Integer weekNum : weekNumbers) {
+            WeightGoalWeek w = weightGoalWeekRepository
+                    .findByUserIdAndWeekNumber(user.getId(), weekNum)
+                    .orElse(new WeightGoalWeek());
+            w.setWeekNumber(weekNum);
+            w.setAchieved(true);
+            w.setUser(user);
+            weightGoalWeekRepository.save(w);
+        }
+        for (WeightGoalWeek w : weightGoalWeekRepository.findByUserId(user.getId())) {
+            if (!weekNumbers.contains(w.getWeekNumber())) {
+                w.setAchieved(false);
+                weightGoalWeekRepository.save(w);
+            }
+        }
+        return getAchievedWeeks(email);
     }
 
     // ── WEIGHT STATS ───────────────────────────────────────────────────────────
     public Map<String, Object> getWeightStats(String email, String monthStr) {
         User user = getUser(email);
 
-        // parse month e.g. "2026-03"
         java.time.YearMonth ym = java.time.YearMonth.parse(monthStr);
         LocalDate firstDay = ym.atDay(1);
         LocalDate lastDay = ym.atEndOfMonth();
 
-        // fetch all logs for this month
         List<WeightLog> logs = weightLogRepository
                 .findByUserIdAndDateBetweenOrderByDate(user.getId(), firstDay, lastDay);
 
-        // index by date for quick lookup
         Map<LocalDate, Double> logMap = new LinkedHashMap<>();
         for (WeightLog l : logs)
             logMap.put(l.getDate(), l.getWeight());
 
-        // calculate weekly targets from startWeight + weeklyLossRate
-        // startWeight × (1 - rate/100) ^ weekNumber
         Double startWeight = user.getStartWeight();
         Double goalWeight = user.getGoalWeight();
-        Double rate = user.getWeeklyLossRate(); // e.g. 0.9
+        Double rate = user.getWeeklyLossRate();
 
-        // build daily rows — all days of month
         List<Map<String, Object>> days = new ArrayList<>();
         Double prevWeight = null;
 
@@ -341,7 +376,6 @@ public class FitnessService {
             Double weight = logMap.get(date);
             row.put("weight", weight);
 
-            // change vs previous logged day
             if (weight != null && prevWeight != null) {
                 double change = Math.round((weight - prevWeight) * 10.0) / 10.0;
                 row.put("change", change);
@@ -351,17 +385,13 @@ public class FitnessService {
                 row.put("changeDirection", null);
             }
 
-            // weekly target — which week of the journey is this date?
             Double weeklyTarget = null;
             if (startWeight != null && rate != null) {
-                // weeks since start of journey (use startWeight date as week 0)
-                // approximate: use day of month / 7
                 int weekNum = (d - 1) / 7;
                 weeklyTarget = Math.round(startWeight * Math.pow(1 - rate / 100, weekNum) * 10.0) / 10.0;
             }
             row.put("weeklyTarget", weeklyTarget);
 
-            // to go
             if (weight != null && goalWeight != null) {
                 row.put("toGo", Math.round((weight - goalWeight) * 10.0) / 10.0);
             } else {
@@ -369,13 +399,11 @@ public class FitnessService {
             }
 
             row.put("weekNumber", (d - 1) / 7 + 1);
-
             if (weight != null)
                 prevWeight = weight;
             days.add(row);
         }
 
-        // weekly averages (only logged days)
         Map<Integer, List<Double>> weekGroups = new LinkedHashMap<>();
         for (Map<String, Object> row : days) {
             if (row.get("weight") != null) {
@@ -386,14 +414,11 @@ public class FitnessService {
         }
         Map<Integer, Double> weeklyAverages = new LinkedHashMap<>();
         for (Map.Entry<Integer, List<Double>> e : weekGroups.entrySet()) {
-            double avg = e.getValue().stream()
-                    .mapToDouble(Double::doubleValue).average().orElse(0);
+            double avg = e.getValue().stream().mapToDouble(Double::doubleValue).average().orElse(0);
             weeklyAverages.put(e.getKey(), Math.round(avg * 10.0) / 10.0);
         }
 
-        // summary stats
-        List<WeightLog> allLogs = weightLogRepository
-                .findByUserIdOrderByDateDesc(user.getId());
+        List<WeightLog> allLogs = weightLogRepository.findByUserIdOrderByDateDesc(user.getId());
         Double latestWeight = allLogs.isEmpty() ? null : allLogs.get(0).getWeight();
         Double firstWeight = allLogs.isEmpty() ? null : allLogs.get(allLogs.size() - 1).getWeight();
 
@@ -406,7 +431,6 @@ public class FitnessService {
             percentToGoal = totalToLose > 0 ? Math.round((lost / totalToLose) * 1000.0) / 10.0 : 0;
         }
 
-        // BMI + ideal weight
         Double bmi = null;
         String idealWeightRange = null;
         if (latestWeight != null && user.getHeightCm() != null) {
@@ -417,7 +441,6 @@ public class FitnessService {
             idealWeightRange = idealLow + " - " + idealHigh + " kg";
         }
 
-        // weeks remaining estimate
         Integer weeksRemaining = null;
         if (latestWeight != null && goalWeight != null && rate != null && rate > 0) {
             double diff = latestWeight - goalWeight;

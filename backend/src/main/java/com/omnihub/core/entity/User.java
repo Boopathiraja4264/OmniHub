@@ -24,9 +24,13 @@ public class User {
     @Column
     private Double goalWeight;
     @Column
-    private Double weeklyLossRate; // e.g. 0.9 means 0.9% per week
+    private Double weeklyLossRate;
     @Column
-    private Double startWeight; // first recorded weight for % calculations
+    private Double startWeight;
+    @Column
+    private String scheduleStartDate;
+    @Column
+    private Double scheduleStartWeight;
 
     public User() {
     }
@@ -154,5 +158,21 @@ public class User {
 
     public void setStartWeight(Double v) {
         startWeight = v;
+    }
+
+    public String getScheduleStartDate() {
+        return scheduleStartDate;
+    }
+
+    public void setScheduleStartDate(String v) {
+        scheduleStartDate = v;
+    }
+
+    public Double getScheduleStartWeight() {
+        return scheduleStartWeight;
+    }
+
+    public void setScheduleStartWeight(Double v) {
+        scheduleStartWeight = v;
     }
 }
