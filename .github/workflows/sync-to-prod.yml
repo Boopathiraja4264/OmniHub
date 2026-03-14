@@ -2,7 +2,7 @@ name: Sync to Prod Repo
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   sync:
@@ -29,7 +29,7 @@ jobs:
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git remote add prod https://x-access-token:${PAT}@github.com/Boopathiraja4264/omnihub-prod.git
-          git push prod main:dev --force
+          git remote add prod "https://x-access-token:${PAT}@github.com/Boopathiraja4264/omnihub-prod"
+          git push -u prod main:dev --force
         env:
           PAT: ${{ secrets.PROD_REPO_PAT }}
