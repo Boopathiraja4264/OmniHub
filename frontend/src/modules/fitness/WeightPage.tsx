@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -13,7 +13,6 @@ import api from "../../services/api";
 
 const WeightPage: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
-  const [setup, setSetup] = useState<any>(null);
   const [allLogs, setAllLogs] = useState<any[]>([]);
   const [showSchedule, setShowSchedule] = useState(false);
   const [scheduleStartDate, setScheduleStartDate] = useState("");
@@ -41,23 +40,22 @@ const WeightPage: React.FC = () => {
     scheduleStartWeight: "",
   });
 
-  const loadStats = (month: string) =>
+  const loadStats = useCallback((month: string) =>
     api
       .get(`/fitness/weight/stats?month=${month}`)
       .then((r) => setStats(r.data))
-      .catch(() => {});
+      .catch(() => {}), []);
 
-  const loadAllLogs = () =>
+  const loadAllLogs = useCallback(() =>
     api
       .get("/fitness/weight")
       .then((r) => setAllLogs(r.data))
-      .catch(() => {});
+      .catch(() => {}), []);
 
-  const loadSetup = () =>
+  const loadSetup = useCallback(() =>
     api
       .get("/fitness/weight/setup")
       .then((r) => {
-        setSetup(r.data);
         setSetupForm({
           heightCm: r.data.heightCm || "",
           goalWeight: r.data.goalWeight || "",
@@ -74,9 +72,9 @@ const WeightPage: React.FC = () => {
         else if (r.data.startWeight)
           setScheduleStartWeight(String(r.data.startWeight));
       })
-      .catch(() => {});
+      .catch(() => {}), []);
 
-  const loadAchievedWeeks = () =>
+  const loadAchievedWeeks = useCallback(() =>
     api
       .get("/fitness/weight/achieved-weeks")
       .then((r) => {
@@ -86,18 +84,14 @@ const WeightPage: React.FC = () => {
         });
         setAchievedWeeks(map);
       })
-      .catch(() => {});
+      .catch(() => {}), []);
 
   useEffect(() => {
     loadStats(currentMonth);
     loadSetup();
     loadAllLogs();
     loadAchievedWeeks();
-  }, []);
-
-  useEffect(() => {
-    loadStats(currentMonth);
-  }, [currentMonth]);
+  }, [currentMonth, loadStats, loadSetup, loadAllLogs, loadAchievedWeeks]);
 
   const saveSetup = async () => {
     await api.post("/fitness/weight/setup", {
@@ -112,16 +106,6 @@ const WeightPage: React.FC = () => {
     loadSetup();
     loadStats(currentMonth);
     setShowSetup(false);
-  };
-
-  const saveScheduleToBackend = (date: string, weight: string) => {
-    if (!date || !weight) return;
-    api
-      .post("/fitness/weight/setup", {
-        scheduleStartDate: date,
-        scheduleStartWeight: parseFloat(weight),
-      })
-      .catch(() => {});
   };
 
   const addWeight = async () => {

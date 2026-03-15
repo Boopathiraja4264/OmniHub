@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { budgetApi } from "../../services/api";
 import { Budget, EXPENSE_CATEGORIES } from "../../types";
 
@@ -21,12 +21,12 @@ const BudgetsPage: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  const load = () =>
-    budgetApi.getForMonth(month, year).then((r) => setBudgets(r.data));
+  const load = useCallback(() =>
+    budgetApi.getForMonth(month, year).then((r) => setBudgets(r.data)), [month, year]);
 
   useEffect(() => {
     load();
-  }, [month, year]);
+  }, [load]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
