@@ -20,13 +20,14 @@ public class AuthService {
     @Autowired private JwtUtil jwtUtil;
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = request.getEmail().toLowerCase().trim();
+        if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email already in use");
         }
 
         User user = User.builder()
                 .fullName(request.getFullName())
-                .email(request.getEmail())
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .build();
 
@@ -38,12 +39,13 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        String email = request.getEmail().toLowerCase().trim();
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
+                new UsernamePasswordAuthenticationToken(email, request.getPassword()));
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
         String token = jwtUtil.generateToken(userDetails);
-        User user = userRepository.findByEmail(request.getEmail()).orElseThrow();
+        User user = userRepository.findByEmail(email).orElseThrow();
         return new AuthResponse(token, user.getEmail(), user.getFullName());
     }
 }
