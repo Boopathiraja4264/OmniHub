@@ -116,12 +116,17 @@ public class EmailService {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-        ResponseEntity<Void> response = restTemplate.postForEntity(GRAPH_SENDMAIL_URL, request, Void.class);
+        try {
+            ResponseEntity<Void> response = restTemplate.postForEntity(GRAPH_SENDMAIL_URL, request, Void.class);
 
-        if (response.getStatusCode().is2xxSuccessful()) {
-            System.out.println("Email sent successfully via Graph API to: " + toEmail);
-        } else {
-            throw new RuntimeException("Failed to send email via Graph API. Status: " + response.getStatusCode());
+            if (response.getStatusCode().is2xxSuccessful()) {
+                System.out.println("Email sent successfully via Graph API to: " + toEmail);
+            } else {
+                throw new RuntimeException("Failed to send email via Graph API. Status: " + response.getStatusCode());
+            }
+        } catch (org.springframework.web.client.HttpClientErrorException e) {
+            System.err.println("Graph API Error: " + e.getResponseBodyAsString());
+            throw new RuntimeException("Graph API Error: " + e.getResponseBodyAsString());
         }
     }
 

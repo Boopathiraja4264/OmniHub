@@ -39,19 +39,25 @@ public class OneDriveTokenService {
             body.add("scope", "offline_access Files.ReadWrite Mail.Send");
 
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
-            ResponseEntity<Map> response = restTemplate.postForEntity(
-                    "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-                    request, Map.class);
+            try {
+                ResponseEntity<Map> response = restTemplate.postForEntity(
+                        "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+                        request, Map.class);
 
-            currentAccessToken = (String) response.getBody().get("access_token");
-            String newRefreshToken = (String) response.getBody().get("refresh_token");
-            if (newRefreshToken != null)
-                currentRefreshToken = newRefreshToken;
+                currentAccessToken = (String) response.getBody().get("access_token");
+                String newRefreshToken = (String) response.getBody().get("refresh_token");
+                if (newRefreshToken != null)
+                    currentRefreshToken = newRefreshToken;
 
-            System.out.println("OneDrive token refreshed successfully");
-            return currentAccessToken;
+                System.out.println("OneDrive token refreshed successfully");
+                return currentAccessToken;
+            } catch (org.springframework.web.client.HttpClientErrorException e) {
+                System.err.println("Microsoft Auth Error: " + e.getResponseBodyAsString());
+                throw new RuntimeException("Microsoft Auth Error: " + e.getResponseBodyAsString());
+            }
 
         } catch (Exception e) {
+            System.err.println("OneDrive token refresh failed: " + e.getMessage());
             throw new RuntimeException("OneDrive token refresh failed: " + e.getMessage());
         }
     }
