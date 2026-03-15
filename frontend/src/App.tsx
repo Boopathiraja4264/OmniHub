@@ -24,6 +24,8 @@ const ThemeToggle: React.FC<{ theme: string; toggle: () => void }> = ({ theme, t
 
 const ProtectedLayout: React.FC<{ theme: string; toggleTheme: () => void }> = ({ theme, toggleTheme }) => {
   const { user, loading } = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'var(--text-muted)' }}>
       Loading...
@@ -33,8 +35,19 @@ const ProtectedLayout: React.FC<{ theme: string; toggleTheme: () => void }> = ({
 
   return (
     <div className="app-layout">
+      <header className="mobile-header">
+        <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div className="mobile-logo">🌴 OmniHub</div>
+        <ThemeToggle theme={theme} toggle={toggleTheme} />
+      </header>
+      
       <ThemeToggle theme={theme} toggle={toggleTheme} />
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Dashboard />} />
