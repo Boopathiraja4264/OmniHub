@@ -99,10 +99,12 @@ const WeightPage: React.FC = () => {
   );
 
   useEffect(() => {
-    loadStats(currentMonth);
-    loadSetup();
-    loadAllLogs();
-    loadAchievedWeeks();
+    Promise.all([
+      loadStats(currentMonth),
+      loadSetup(),
+      loadAllLogs(),
+      loadAchievedWeeks(),
+    ]);
   }, [currentMonth, loadStats, loadSetup, loadAllLogs, loadAchievedWeeks]);
 
   const saveSetup = async () => {
@@ -497,7 +499,13 @@ const WeightPage: React.FC = () => {
               To change these values, use the ⚙ Setup button above
             </p>
             {scheduleStartWeight ? (
-              <div style={{ overflowX: "auto", width: "100%", WebkitOverflowScrolling: "touch" }}>
+              <div
+                style={{
+                  overflowX: "auto",
+                  width: "100%",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
                 <table className="table" style={{ minWidth: "600px" }}>
                   <thead>
                     <tr>
@@ -575,7 +583,9 @@ const WeightPage: React.FC = () => {
                               >
                                 {row.avgWeight} kg
                                 <span style={{ fontSize: 10, marginLeft: 4 }}>
-                                  {row.avgWeight <= row.targetWeight ? "✓" : "↑"}
+                                  {row.avgWeight <= row.targetWeight
+                                    ? "✓"
+                                    : "↑"}
                                 </span>
                               </span>
                             ) : (
@@ -778,7 +788,13 @@ const WeightPage: React.FC = () => {
             </div>
           )}
 
-        <div style={{ overflowX: "auto", width: "100%", WebkitOverflowScrolling: "touch" }}>
+        <div
+          style={{
+            overflowX: "auto",
+            width: "100%",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
           <table className="table" style={{ minWidth: "500px" }}>
             <thead>
               <tr>
@@ -795,7 +811,9 @@ const WeightPage: React.FC = () => {
                 <tr
                   key={d.date}
                   style={{
-                    background: d.weight ? "transparent" : "var(--bg-secondary)",
+                    background: d.weight
+                      ? "transparent"
+                      : "var(--bg-secondary)",
                     opacity: d.weight ? 1 : 0.5,
                     borderTop:
                       d.date.endsWith("-01") ||
