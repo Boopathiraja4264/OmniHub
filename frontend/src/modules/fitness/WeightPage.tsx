@@ -936,7 +936,6 @@ const WeightPage: React.FC = () => {
                     <th>Date</th>
                     <th>Weight</th>
                     <th>Change</th>
-                    <th>Weekly Target</th>
                     <th>To Go</th>
                     <th></th>
                   </tr>
@@ -1004,9 +1003,6 @@ const WeightPage: React.FC = () => {
                         {d.change !== null
                           ? `${changeArrow(d.changeDirection)} ${Math.abs(d.change)} kg`
                           : "—"}
-                      </td>
-                      <td style={{ color: "var(--gold)", fontSize: 13 }}>
-                        {d.weeklyTarget ? `${d.weeklyTarget} kg` : "—"}
                       </td>
                       <td
                         style={{

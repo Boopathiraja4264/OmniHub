@@ -22,6 +22,7 @@ const WorkoutPage      = lazy(() => import('./modules/fitness/WorkoutPage'));
 const ExercisesPage    = lazy(() => import('./modules/fitness/ExercisesPage'));
 const WeeklyPlanPage   = lazy(() => import('./modules/fitness/WeeklyPlanPage'));
 const WeightPage       = lazy(() => import('./modules/fitness/WeightPage'));
+const StepsPage        = lazy(() => import('./modules/fitness/StepsPage'));
 const SettingsPage     = lazy(() => import('./modules/settings/SettingsPage'));
 const BackupPage       = lazy(() => import('./modules/settings/BackupPage'));
 
@@ -57,6 +58,7 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/fitness/exercises" element={<ExercisesPage />} />
             <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />
             <Route path="/fitness/weight" element={<WeightPage />} />
+            <Route path="/fitness/steps" element={<StepsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/backup" element={<BackupPage />} />
           </Routes>

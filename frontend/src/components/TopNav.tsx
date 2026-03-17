@@ -36,6 +36,7 @@ const TopNav: React.FC = () => {
     { to: '/fitness/exercises', label: t('nav.exercises'), icon: '⚡', end: false },
     { to: '/fitness/weekly-plan', label: t('nav.weeklyPlan'), icon: '📅', end: false },
     { to: '/fitness/weight', label: t('nav.weightTracker'), icon: '⚖️', end: false },
+    { to: '/fitness/steps', label: t('nav.stepsRun'), icon: '👟', end: false },
   ];
 
   return (

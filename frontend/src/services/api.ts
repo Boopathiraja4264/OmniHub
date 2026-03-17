@@ -56,4 +56,28 @@ export const notificationApi = {
   sendTest: () => api.post("/notifications/email-settings/test"),
 };
 
+export const smsApi = {
+  getSettings: () => api.get("/notifications/sms-settings"),
+  updateSettings: (data: any) => api.put("/notifications/sms-settings", data),
+  sendTest: () => api.post("/notifications/sms-settings/test"),
+};
+
+export const stepsApi = {
+  getLogs: () => api.get("/fitness/steps"),
+  getToday: () => api.get("/fitness/steps/today"),
+  addLog: (data: any) => api.post("/fitness/steps", data),
+  updateLog: (id: number, data: any) => api.put(`/fitness/steps/${id}`, data),
+  deleteLog: (id: number) => api.delete(`/fitness/steps/${id}`),
+  getTargets: () => api.get("/fitness/steps/targets"),
+  addTarget: (data: any) => api.post("/fitness/steps/target", data),
+  updateTarget: (id: number, data: any) => api.put(`/fitness/steps/target/${id}`, data),
+  deleteTarget: (id: number) => api.delete(`/fitness/steps/target/${id}`),
+};
+
+export const slackApi = {
+  getSettings: () => api.get("/notifications/slack-settings"),
+  updateSettings: (data: any) => api.put("/notifications/slack-settings", data),
+  sendTest: () => api.post("/notifications/slack-settings/test"),
+};
+
 export default api;

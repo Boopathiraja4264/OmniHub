@@ -166,6 +166,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 </svg>
                 {!isCollapsed && <span>Weight</span>}
               </NavLink>
+              <NavLink title="Steps & Run" to="/fitness/steps" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => onClose && onClose()}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M13 4v4l3 3-3 3v4M5 8l3 3-3 3"/>
+                </svg>
+                {!isCollapsed && <span>Steps & Run</span>}
+              </NavLink>
             </>
           )}
 
