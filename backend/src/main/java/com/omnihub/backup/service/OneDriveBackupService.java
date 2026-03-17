@@ -45,6 +45,7 @@ public class OneDriveBackupService {
     private static final String GRAPH_BASE = "https://graph.microsoft.com/v1.0/me/drive/root:/";
 
     @Scheduled(cron = "0 * * * * *")
+    @Transactional
     public void checkScheduledBackups() {
         LocalTime now = LocalTime.now(ZoneId.of("Asia/Kolkata"));
         List<BackupSettings> allSettings = backupSettingsRepository.findAllEnabledAtTime(now.getHour(), now.getMinute());
