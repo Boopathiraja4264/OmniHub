@@ -5,13 +5,15 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 @Entity
-@Table(name = "workout_logs")
+@Table(name = "workout_logs", indexes = {
+    @Index(name = "idx_workoutlog_user_date", columnList = "user_id, date DESC")
+})
 public class WorkoutLog {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false) private LocalDate date;
     private String notes;
-    @OneToMany(mappedBy = "workoutLog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "workoutLog", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ExerciseSet> sets = new ArrayList<>();
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

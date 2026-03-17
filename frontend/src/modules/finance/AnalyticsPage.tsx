@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale,
   LinearScale, BarElement, LineElement, PointElement, Title
@@ -40,15 +40,15 @@ const AnalyticsPage: React.FC = () => {
     transactionApi.getMonthly('EXPENSE', year).then(r => setMonthlyExpenses(r.data));
   }, [month, year]);
 
-  const categoryLabels = Object.keys(byCategory);
-  const categoryValues = Object.values(byCategory).map(Number);
+  const categoryLabels = useMemo(() => Object.keys(byCategory), [byCategory]);
+  const categoryValues = useMemo(() => Object.values(byCategory).map(Number), [byCategory]);
 
-  const doughnutData = {
+  const doughnutData = useMemo(() => ({
     labels: categoryLabels,
     datasets: [{ data: categoryValues, backgroundColor: COLORS, borderWidth: 0 }]
-  };
+  }), [categoryLabels, categoryValues]);
 
-  const barData = {
+  const barData = useMemo(() => ({
     labels: MONTHS,
     datasets: [
       {
@@ -60,9 +60,9 @@ const AnalyticsPage: React.FC = () => {
         backgroundColor: 'rgba(224, 92, 106, 0.7)', borderRadius: 4
       }
     ]
-  };
+  }), [monthlyIncome, monthlyExpenses]);
 
-  const lineData = {
+  const lineData = useMemo(() => ({
     labels: MONTHS,
     datasets: [
       {
@@ -71,7 +71,7 @@ const AnalyticsPage: React.FC = () => {
         borderColor: '#c9a84c', backgroundColor: 'rgba(201, 168, 76, 0.1)', tension: 0.4
       }
     ]
-  };
+  }), [monthlyIncome, monthlyExpenses]);
 
   return (
     <div>

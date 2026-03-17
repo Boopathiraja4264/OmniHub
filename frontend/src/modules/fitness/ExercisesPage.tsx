@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import api from '../../services/api';
 
 const MUSCLES = ['Chest','Back','Shoulders','Biceps','Triceps','Legs','Core','Cardio','Full Body'];
@@ -29,11 +29,14 @@ const ExercisesPage: React.FC = () => {
   };
 
   const seed = async () => {
-    for (const e of DEFAULTS) { try { await api.post('/fitness/exercises', e); } catch {} }
+    await Promise.allSettled(DEFAULTS.map(e => api.post('/fitness/exercises', e)));
     load();
   };
 
-  const filtered = filter === 'All' ? exercises : exercises.filter(e => e.muscleGroup === filter);
+  const filtered = useMemo(
+    () => filter === 'All' ? exercises : exercises.filter(e => e.muscleGroup === filter),
+    [exercises, filter]
+  );
 
   return (
     <div>

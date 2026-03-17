@@ -2,7 +2,9 @@ package com.omnihub.fitness.entity;
 import jakarta.persistence.*;
 import com.omnihub.core.entity.User;
 @Entity
-@Table(name = "exercises")
+@Table(name = "exercises", indexes = {
+    @Index(name = "idx_exercise_user_id", columnList = "user_id")
+})
 public class Exercise {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

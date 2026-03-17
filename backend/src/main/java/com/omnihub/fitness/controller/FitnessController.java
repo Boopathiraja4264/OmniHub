@@ -83,7 +83,7 @@ public class FitnessController {
     public ResponseEntity<?> getWorkoutByDate(@RequestHeader("Authorization") String auth,
             @PathVariable String date) {
         Object result = fitnessService.getWorkoutByDate(getEmail(auth), LocalDate.parse(date));
-        return result != null ? ResponseEntity.ok(result) : ResponseEntity.notFound().build();
+        return ResponseEntity.ok(result != null ? result : Collections.emptyMap());
     }
 
     @PostMapping("/workouts")

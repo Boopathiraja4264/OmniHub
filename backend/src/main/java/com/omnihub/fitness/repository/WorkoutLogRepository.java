@@ -7,4 +7,6 @@ import java.util.Optional;
 public interface WorkoutLogRepository extends JpaRepository<WorkoutLog, Long> {
     List<WorkoutLog> findByUserIdOrderByDateDesc(Long userId);
     Optional<WorkoutLog> findByUserIdAndDate(Long userId, LocalDate date);
+    long countByUserId(Long userId);
+    long countByUserIdAndDateBetween(Long userId, LocalDate start, LocalDate end);
 }

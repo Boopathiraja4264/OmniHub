@@ -9,11 +9,11 @@ import com.omnihub.finance.repository.TransactionRepository;
 import com.omnihub.core.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +30,7 @@ public class BudgetService {
         return userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    @Transactional
     public BudgetResponse create(String email, BudgetRequest req) {
         User user = getUser(email);
 
@@ -41,15 +42,24 @@ public class BudgetService {
                 .user(user)
                 .build();
 
-        return toResponse(budgetRepository.save(budget), user.getId());
+        return toResponse(budgetRepository.save(budget), BigDecimal.ZERO);
     }
 
+    @Transactional(readOnly = true)
     public List<BudgetResponse> getForMonth(String email, int month, int year) {
         User user = getUser(email);
-        return budgetRepository.findByUserIdAndMonthNumberAndYear(user.getId(), month, year)
-                .stream().map(b -> toResponse(b, user.getId())).collect(Collectors.toList());
+        List<Budget> budgets = budgetRepository.findByUserIdAndMonthNumberAndYear(user.getId(), month, year);
+        if (budgets.isEmpty()) return List.of();
+        // Single batch query for all category spending — eliminates N+1
+        Map<String, BigDecimal> spentByCategory = transactionRepository
+                .sumExpensesByCategoryForMonth(user.getId(), month, year)
+                .stream().collect(Collectors.toMap(row -> (String) row[0], row -> (BigDecimal) row[1]));
+        return budgets.stream()
+                .map(b -> toResponse(b, spentByCategory.getOrDefault(b.getCategory(), BigDecimal.ZERO)))
+                .collect(Collectors.toList());
     }
 
+    @Transactional
     public void delete(String email, Long id) {
         User user = getUser(email);
         Budget b = budgetRepository.findById(id).orElseThrow(() -> new RuntimeException("Budget not found"));
@@ -58,15 +68,7 @@ public class BudgetService {
         budgetRepository.delete(b);
     }
 
-    private BudgetResponse toResponse(Budget b, Long userId) {
-        LocalDate start = YearMonth.of(b.getYear(), b.getMonthNumber()).atDay(1);
-        LocalDate end = YearMonth.of(b.getYear(), b.getMonthNumber()).atEndOfMonth();
-        List<?> txns = transactionRepository.findByUserIdAndCategoryAndDateBetween(userId, b.getCategory(), start, end);
-
-        BigDecimal spent = txns.stream()
-                .map(t -> ((com.omnihub.finance.entity.Transaction) t).getAmount())
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
+    private BudgetResponse toResponse(Budget b, BigDecimal spent) {
         BudgetResponse r = new BudgetResponse();
         r.setId(b.getId());
         r.setCategory(b.getCategory());

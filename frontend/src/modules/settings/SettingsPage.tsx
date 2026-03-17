@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../../services/api";
 import BackupPage from "./BackupPage";
+import { useTheme } from "../../context/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const Toggle: React.FC<{ value: boolean; onChange: () => void }> = ({
   value,
@@ -36,10 +38,13 @@ const Toggle: React.FC<{ value: boolean; onChange: () => void }> = ({
   </div>
 );
 
-type Tab = "email" | "backup";
+type Tab = "appearance" | "email" | "backup";
 
 const SettingsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>("email");
+  const { theme, toggleTheme } = useTheme();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
+  const [activeTab, setActiveTab] = useState<Tab>("appearance");
   const [settings, setSettings] = useState({
     enabled: false,
     sendTime: "08:00",
@@ -139,27 +144,16 @@ const SettingsPage: React.FC = () => {
     );
 
   const tabs: { key: Tab; icon: string; label: string; desc: string }[] = [
-    {
-      key: "email",
-      icon: "📧",
-      label: "Email Notifications",
-      desc: "Daily summary emails",
-    },
-    {
-      key: "backup",
-      icon: "☁️",
-      label: "Backup",
-      desc: "OneDrive auto-backup",
-    },
+    { key: "appearance", icon: "🎨", label: t('settings.appearance'), desc: t('settings.appearanceDesc') },
+    { key: "email",      icon: "📧", label: t('settings.email'),      desc: t('settings.emailDesc') },
+    { key: "backup",     icon: "☁️", label: t('settings.backup'),     desc: t('settings.backupDesc') },
   ];
 
   return (
     <div>
       <div style={{ marginBottom: 32 }}>
-        <h1 className="page-title">Settings</h1>
-        <p className="page-subtitle">
-          Manage your notifications and backup preferences
-        </p>
+        <h1 className="page-title">{t('settings.title')}</h1>
+        <p className="page-subtitle">{t('settings.subtitle')}</p>
       </div>
 
       {/* Tab cards */}
@@ -209,6 +203,58 @@ const SettingsPage: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* Appearance tab */}
+      {activeTab === "appearance" && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h3 style={{ color: "var(--text-primary)", marginBottom: 20 }}>{t('settings.theme')}</h3>
+
+          {/* Theme toggle */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 18 }}>{theme === "dark" ? "🌙" : "☀️"}</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>
+                  {theme === "dark" ? t('settings.darkMode') : t('settings.lightMode')}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                  {t('settings.savedAutomatically')}
+                </div>
+              </div>
+            </div>
+            <Toggle value={theme === "dark"} onChange={toggleTheme} />
+          </div>
+
+          {/* Language selector */}
+          <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: 20 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>
+              {t('settings.language')}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 14 }}>
+              {t('settings.languageDesc')}
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              {(['en', 'ta'] as const).map(l => (
+                <button
+                  key={l}
+                  onClick={() => i18n.changeLanguage(l)}
+                  style={{
+                    padding: "8px 20px", borderRadius: 8, border: "1.5px solid",
+                    borderColor: lang === l ? "var(--primary)" : "var(--border)",
+                    background: lang === l ? "var(--primary-dim)" : "var(--bg-elevated)",
+                    color: lang === l ? "var(--primary-light)" : "var(--text-secondary)",
+                    fontWeight: 600, fontSize: 13, cursor: "pointer",
+                    fontFamily: l === 'ta' ? "'Noto Sans Tamil', 'Latha', sans-serif" : "inherit",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {l === 'en' ? t('settings.langEn') : t('settings.langTa')}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Email tab */}
       {activeTab === "email" && (

@@ -47,20 +47,17 @@ public class OneDriveBackupService {
     @Scheduled(cron = "0 * * * * *")
     public void checkScheduledBackups() {
         LocalTime now = LocalTime.now(ZoneId.of("Asia/Kolkata"));
-        int hour = now.getHour();
-        int minute = now.getMinute();
-
-        List<BackupSettings> allSettings = backupSettingsRepository.findAllEnabledAtTime(hour, minute);
+        List<BackupSettings> allSettings = backupSettingsRepository.findAllEnabledAtTime(now.getHour(), now.getMinute());
         if (!allSettings.isEmpty()) {
-            System.out.println("Running scheduled OneDrive backups for " + allSettings.size() + " users...");
             for (BackupSettings settings : allSettings) {
-                performBackup();
+                performBackup(settings.getUser().getId());
             }
         }
     }
 
+    // Manual backup triggered from controller — pass userId from authenticated user
     @Transactional
-    public BackupLog performBackup() {
+    public BackupLog performBackup(Long userId) {
         BackupLog log = new BackupLog();
         log.setBackedUpAt(LocalDateTime.now(ZoneId.of("Asia/Kolkata")));
         try {
@@ -68,10 +65,11 @@ public class OneDriveBackupService {
             String dataDate = yesterday.format(DateTimeFormatter.ofPattern("dd-MMM-yyyy"));
             String fileName = dataDate + ".json";
 
-            List<Transaction> transactions = transactionRepository.findAll();
-            List<Budget> budgets = budgetRepository.findAll();
-            List<WorkoutLog> workouts = workoutLogRepository.findAll();
-            List<WeightLog> weights = weightLogRepository.findAll();
+            // Filter by userId — never load other users' data
+            List<Transaction> transactions = transactionRepository.findByUserIdOrderByDateDesc(userId);
+            List<Budget> budgets = budgetRepository.findByUserId(userId);
+            List<WorkoutLog> workouts = workoutLogRepository.findByUserIdOrderByDateDesc(userId);
+            List<WeightLog> weights = weightLogRepository.findByUserIdOrderByDateDesc(userId);
 
             // Build safe DTOs — no circular refs, no lazy proxies
             List<Map<String, Object>> txDTOs = new ArrayList<>();

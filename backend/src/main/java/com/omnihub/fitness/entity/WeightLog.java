@@ -5,7 +5,9 @@ import com.omnihub.core.entity.User;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "weight_logs")
+@Table(name = "weight_logs", indexes = {
+    @Index(name = "idx_weightlog_user_date", columnList = "user_id, date DESC")
+})
 public class WeightLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

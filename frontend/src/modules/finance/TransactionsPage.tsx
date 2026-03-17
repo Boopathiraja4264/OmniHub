@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { transactionApi } from '../../services/api';
 import { Transaction, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../types';
 
@@ -54,7 +54,10 @@ const TransactionsPage: React.FC = () => {
     load();
   };
 
-  const filtered = transactions.filter(t => filter === 'ALL' || t.type === filter);
+  const filtered = useMemo(
+    () => transactions.filter(t => filter === 'ALL' || t.type === filter),
+    [transactions, filter]
+  );
 
   return (
     <div>

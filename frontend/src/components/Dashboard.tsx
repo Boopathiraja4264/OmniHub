@@ -14,8 +14,8 @@ const Dashboard: React.FC = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    transactionApi.getSummary().then((r: { data: Summary }) => setSummary(r.data));
-    transactionApi.getAll().then((r: { data: Transaction[] }) => setRecent(r.data.slice(0, 8)));
+    transactionApi.getSummary().then((r: { data: Summary }) => setSummary(r.data)).catch(() => {});
+    transactionApi.getRecent().then((r: { data: Transaction[] }) => setRecent(r.data)).catch(() => {});
   }, []);
 
   const now = new Date();

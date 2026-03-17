@@ -36,8 +36,10 @@ public class BackupController {
     }
 
     @PostMapping("/run")
-    public ResponseEntity<BackupLog> runBackup() {
-        return ResponseEntity.ok(backupService.performBackup());
+    public ResponseEntity<BackupLog> runBackup(Authentication auth) {
+        User user = userRepository.findByEmail(auth.getName())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(backupService.performBackup(user.getId()));
     }
 
     @GetMapping("/download/{id}")

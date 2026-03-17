@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,6 +11,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [, startTransition] = useTransition();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const isFitnessRoute = location.pathname.startsWith('/fitness');
@@ -22,15 +23,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   }, [location.pathname]);
 
   const handleSectionChange = (s: 'finance' | 'fitness') => {
-    setSection(s);
-    if (s === 'finance') navigate('/');
-    else navigate('/fitness');
+    startTransition(() => {
+      setSection(s);
+      if (s === 'finance') navigate('/');
+      else navigate('/fitness');
+    });
     if (onClose) onClose();
   };
 
   const handleLogout = () => {
-    logout();
-    navigate('/login');
+    startTransition(() => {
+      logout();
+      navigate('/login');
+    });
     if (onClose) onClose();
   };
 

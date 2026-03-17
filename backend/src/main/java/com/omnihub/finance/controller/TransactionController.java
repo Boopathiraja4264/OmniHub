@@ -31,6 +31,11 @@ public class TransactionController {
         return ResponseEntity.ok(transactionService.getAll(user.getUsername()));
     }
 
+    @GetMapping("/recent")
+    public ResponseEntity<List<TransactionResponse>> getRecent(@AuthenticationPrincipal UserDetails user) {
+        return ResponseEntity.ok(transactionService.getRecent(user.getUsername()));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<TransactionResponse> update(@AuthenticationPrincipal UserDetails user,
                                                        @PathVariable Long id,

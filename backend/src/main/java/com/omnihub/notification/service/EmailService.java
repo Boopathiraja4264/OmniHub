@@ -183,12 +183,14 @@ public class EmailService {
             try {
                 var budgets = budgetRepository.findByUserIdAndMonthNumberAndYear(user.getId(), month, year);
                 if (!budgets.isEmpty()) {
+                    // Single batch query for all category spending
+                    Map<String, BigDecimal> spentByCategory = new HashMap<>();
+                    for (Object[] row : transactionRepository.sumExpensesByCategoryForMonth(user.getId(), month, year)) {
+                        spentByCategory.put((String) row[0], (BigDecimal) row[1]);
+                    }
                     html.append("<div class='section'><h2>🎯 Budget Alerts</h2>");
                     for (var budget : budgets) {
-                        BigDecimal spent = transactionRepository.sumByUserIdAndTypeAndMonthAndYear(user.getId(),
-                                TransactionType.EXPENSE, month, year);
-                        if (spent == null)
-                            spent = BigDecimal.ZERO;
+                        BigDecimal spent = spentByCategory.getOrDefault(budget.getCategory(), BigDecimal.ZERO);
                         double pct = budget.getLimitAmount().compareTo(BigDecimal.ZERO) > 0
                                 ? spent.divide(budget.getLimitAmount(), 2, java.math.RoundingMode.HALF_UP).doubleValue()
                                         * 100
@@ -208,9 +210,9 @@ public class EmailService {
 
         if (settings.isIncludeFitness()) {
             try {
-                long totalWorkouts = workoutLogRepository.findByUserIdOrderByDateDesc(user.getId()).size();
-                var weights = weightLogRepository.findByUserIdOrderByDateDesc(user.getId());
-                String weight = weights.isEmpty() ? "No data" : weights.get(0).getWeight() + " kg";
+                long totalWorkouts = workoutLogRepository.countByUserId(user.getId());
+                String weight = weightLogRepository.findTopByUserIdOrderByDateDesc(user.getId())
+                        .map(w -> w.getWeight() + " kg").orElse("No data");
                 html.append("<div class='section'><h2>💪 Fitness Summary</h2>")
                         .append("<div class='row'><span>Total Workouts</span><span class='blue'>").append(totalWorkouts)
                         .append("</span></div>")

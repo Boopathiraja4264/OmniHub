@@ -9,6 +9,10 @@ import java.util.Optional;
 public interface WeightLogRepository extends JpaRepository<WeightLog, Long> {
     List<WeightLog> findByUserIdOrderByDateDesc(Long userId);
 
+    Optional<WeightLog> findTopByUserIdOrderByDateDesc(Long userId);
+
+    Optional<WeightLog> findTopByUserIdOrderByDateAsc(Long userId);
+
     Optional<WeightLog> findByUserIdAndDate(Long userId, LocalDate date);
 
     List<WeightLog> findByUserIdAndDateBetweenOrderByDate(

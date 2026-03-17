@@ -8,6 +8,7 @@ import com.omnihub.finance.repository.TransactionRepository;
 import com.omnihub.core.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,6 +26,7 @@ public class TransactionService {
         return userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    @Transactional
     public TransactionResponse create(String email, TransactionRequest req) {
         User user = getUser(email);
         Transaction t = Transaction.builder()
@@ -39,12 +41,21 @@ public class TransactionService {
         return toResponse(transactionRepository.save(t));
     }
 
+    @Transactional(readOnly = true)
     public List<TransactionResponse> getAll(String email) {
         User user = getUser(email);
         return transactionRepository.findByUserIdOrderByDateDesc(user.getId())
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<TransactionResponse> getRecent(String email) {
+        User user = getUser(email);
+        return transactionRepository.findTop10ByUserIdOrderByDateDesc(user.getId())
+                .stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    @Transactional
     public TransactionResponse update(String email, Long id, TransactionRequest req) {
         User user = getUser(email);
         Transaction t = transactionRepository.findById(id)
@@ -60,6 +71,7 @@ public class TransactionService {
         return toResponse(transactionRepository.save(t));
     }
 
+    @Transactional
     public void delete(String email, Long id) {
         User user = getUser(email);
         Transaction t = transactionRepository.findById(id)
@@ -68,6 +80,7 @@ public class TransactionService {
         transactionRepository.delete(t);
     }
 
+    @Transactional(readOnly = true)
     public SummaryResponse getSummary(String email) {
         User user = getUser(email);
         Long userId = user.getId();
@@ -92,6 +105,7 @@ public class TransactionService {
         return resp;
     }
 
+    @Transactional(readOnly = true)
     public Map<String, BigDecimal> getExpensesByCategory(String email, int month, int year) {
         User user = getUser(email);
         List<Object[]> results = transactionRepository.sumExpensesByCategoryForMonth(user.getId(), month, year);
@@ -101,6 +115,7 @@ public class TransactionService {
         ));
     }
 
+    @Transactional(readOnly = true)
     public Map<Integer, BigDecimal> getMonthlyTotals(String email, TransactionType type, int year) {
         User user = getUser(email);
         List<Object[]> results = transactionRepository.monthlyTotalsByType(user.getId(), type, year);

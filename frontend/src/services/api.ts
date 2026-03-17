@@ -32,6 +32,7 @@ export const authApi = {
 
 export const transactionApi = {
   getAll: () => api.get("/transactions"),
+  getRecent: () => api.get("/transactions/recent"),
   create: (data: any) => api.post("/transactions", data),
   update: (id: number, data: any) => api.put(`/transactions/${id}`, data),
   delete: (id: number) => api.delete(`/transactions/${id}`),

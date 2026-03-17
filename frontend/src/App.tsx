@@ -1,33 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import TransactionsPage from './modules/finance/TransactionsPage';
-import BudgetsPage from './modules/finance/BudgetsPage';
-import AnalyticsPage from './modules/finance/AnalyticsPage';
+import { ThemeProvider } from './context/ThemeContext';
+import TopNav from './components/TopNav';
 import AuthPage from './modules/auth/AuthPage';
-import FitnessDashboard from './modules/fitness/FitnessDashboard';
-import WorkoutPage from './modules/fitness/WorkoutPage';
-import ExercisesPage from './modules/fitness/ExercisesPage';
-import WeeklyPlanPage from './modules/fitness/WeeklyPlanPage';
-import WeightPage from './modules/fitness/WeightPage';
-import SettingsPage from './modules/settings/SettingsPage';
-import BackupPage from './modules/settings/BackupPage';
+import HomePage from './modules/home/HomePage';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
+import { initSentry, Sentry } from './monitoring/sentry';
+import './i18n/i18n';
 import './index.css';
 
-const ThemeToggle: React.FC<{ theme: string; toggle: () => void }> = ({ theme, toggle }) => (
-  <button className="theme-toggle" onClick={toggle} title="Toggle theme">
-    {theme === 'dark' ? '☀️' : '🌙'}
-  </button>
+initSentry();
+
+const TransactionsPage = lazy(() => import('./modules/finance/TransactionsPage'));
+const BudgetsPage      = lazy(() => import('./modules/finance/BudgetsPage'));
+const AnalyticsPage    = lazy(() => import('./modules/finance/AnalyticsPage'));
+const Dashboard        = lazy(() => import('./components/Dashboard'));
+const FitnessDashboard = lazy(() => import('./modules/fitness/FitnessDashboard'));
+const WorkoutPage      = lazy(() => import('./modules/fitness/WorkoutPage'));
+const ExercisesPage    = lazy(() => import('./modules/fitness/ExercisesPage'));
+const WeeklyPlanPage   = lazy(() => import('./modules/fitness/WeeklyPlanPage'));
+const WeightPage       = lazy(() => import('./modules/fitness/WeightPage'));
+const SettingsPage     = lazy(() => import('./modules/settings/SettingsPage'));
+const BackupPage       = lazy(() => import('./modules/settings/BackupPage'));
+
+const PageFallback = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--text-muted)' }}>
+    Loading...
+  </div>
 );
 
-const ProtectedLayout: React.FC<{ theme: string; toggleTheme: () => void }> = ({ theme, toggleTheme }) => {
+const ProtectedLayout: React.FC = () => {
   const { user, loading } = useAuth();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   if (loading) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color:'var(--text-muted)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text-muted)' }}>
       Loading...
     </div>
   );
@@ -35,65 +43,56 @@ const ProtectedLayout: React.FC<{ theme: string; toggleTheme: () => void }> = ({
 
   return (
     <div className="app-layout">
-      <header className="mobile-header">
-        <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
-          </svg>
-        </button>
-        <div className="mobile-logo">🌴 OmniHub</div>
-        <ThemeToggle theme={theme} toggle={toggleTheme} />
-      </header>
-      
-      <ThemeToggle theme={theme} toggle={toggleTheme} />
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-      
+      <TopNav />
       <main className="main-content">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/transactions" element={<TransactionsPage />} />
-          <Route path="/budgets" element={<BudgetsPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/fitness" element={<FitnessDashboard />} />
-          <Route path="/fitness/workout" element={<WorkoutPage />} />
-          <Route path="/fitness/exercises" element={<ExercisesPage />} />
-          <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />
-          <Route path="/fitness/weight" element={<WeightPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/backup" element={<BackupPage />} />
-        </Routes>
+        <Suspense fallback={<PageFallback />}>
+          <Routes>
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/budgets" element={<BudgetsPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/fitness" element={<FitnessDashboard />} />
+            <Route path="/fitness/workout" element={<WorkoutPage />} />
+            <Route path="/fitness/exercises" element={<ExercisesPage />} />
+            <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />
+            <Route path="/fitness/weight" element={<WeightPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/backup" element={<BackupPage />} />
+          </Routes>
+        </Suspense>
       </main>
     </div>
   );
 };
 
-const AppRoutes: React.FC<{ theme: string; toggleTheme: () => void }> = ({ theme, toggleTheme }) => {
+const AppRoutes: React.FC = () => {
   const { user } = useAuth();
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
-      <Route path="/*" element={<ProtectedLayout theme={theme} toggleTheme={toggleTheme} />} />
+      <Route path="/login" element={user ? <Navigate to="/home" replace /> : <AuthPage />} />
+      <Route path="/*" element={<ProtectedLayout />} />
     </Routes>
   );
 };
 
-const App: React.FC = () => {
-  const [theme, setTheme] = useState<string>(() => localStorage.getItem('theme') || 'dark');
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
-
-  return (
-    <AuthProvider>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <AppRoutes theme={theme} toggleTheme={toggleTheme} />
-      </BrowserRouter>
-    </AuthProvider>
-  );
-};
+const App: React.FC = () => (
+  <Sentry.ErrorBoundary fallback={
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text-muted)', flexDirection: 'column', gap: 12 }}>
+      <p style={{ fontSize: 18 }}>Something went wrong.</p>
+      <button onClick={() => window.location.reload()} style={{ padding: '8px 20px', borderRadius: 8, cursor: 'pointer' }}>Reload</button>
+    </div>
+  }>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
+    <Analytics />
+    <SpeedInsights />
+  </Sentry.ErrorBoundary>
+);
 
 export default App;
