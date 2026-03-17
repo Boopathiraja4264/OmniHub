@@ -378,18 +378,32 @@ public class SlackService {
         String todayDay = today.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH).toUpperCase();
         String dayDisplay = todayDay.charAt(0) + todayDay.substring(1).toLowerCase();
 
-        String planDesc = weeklyPlanRepository.findByUserIdAndDayOfWeek(userId, todayDay)
-                .map(WeeklyPlan::getPlanDescription)
-                .orElse(null);
+        var planOpt = weeklyPlanRepository.findByUserIdAndDayOfWeek(userId, todayDay);
+        if (planOpt.isEmpty()) {
+            return "*💪 Today's Workout (" + dayDisplay + ")*\nRest day 🛌";
+        }
+        WeeklyPlan plan = planOpt.get();
+        String planDesc = plan.getPlanDescription();
 
         boolean workoutDone = workoutLogRepository.findByUserIdAndDate(userId, today).isPresent();
         String status = workoutDone ? "✅ Logged" : "⏳ Not logged yet";
 
-        if (planDesc == null || planDesc.isBlank()) {
-            return "*💪 Today's Workout (" + dayDisplay + ")*\nRest day 🛌\n" + status;
+        StringBuilder sb = new StringBuilder("*💪 Today's Workout (" + dayDisplay + ")*\n");
+        if (planDesc != null && !planDesc.isBlank()) sb.append("_").append(planDesc).append("_\n");
+
+        if (!plan.getExercises().isEmpty()) {
+            for (var wpe : plan.getExercises()) {
+                sb.append("• ").append(wpe.getExerciseName());
+                if (wpe.getPlannedSets() != null) sb.append("  ").append(wpe.getPlannedSets()).append(" sets");
+                if (wpe.getPlannedReps() != null) sb.append(" × ").append(wpe.getPlannedReps()).append(" reps");
+                sb.append("\n");
+            }
+        } else if (planDesc == null || planDesc.isBlank()) {
+            sb.append("Rest day 🛌\n");
         }
 
-        return "*💪 Today's Workout (" + dayDisplay + ")*\n" + planDesc + "\n" + status;
+        sb.append(status);
+        return sb.toString().trim();
     }
 
     // ── Block Kit helpers ────────────────────────────────────────────────────

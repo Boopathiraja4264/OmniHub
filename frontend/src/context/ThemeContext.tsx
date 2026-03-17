@@ -15,8 +15,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   useLayoutEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    const root = document.documentElement;
+    root.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
+    // Remove the no-transition class added by the inline script in index.html.
+    // Double rAF ensures the initial paint completes before transitions are enabled.
+    if (root.classList.contains('no-transition')) {
+      requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('no-transition')));
+    }
   }, [theme]);
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');

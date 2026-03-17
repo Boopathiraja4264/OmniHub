@@ -6,9 +6,10 @@ public class ExerciseSet {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Integer sets;
-    private Integer reps;
+    private String reps;
     private Double weight;
     private String notes;
+    private String exerciseName;
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "exercise_id")
     private Exercise exercise;
@@ -19,12 +20,14 @@ public class ExerciseSet {
     public Long getId() { return id; }
     public Integer getSets() { return sets; }
     public void setSets(Integer v) { sets = v; }
-    public Integer getReps() { return reps; }
-    public void setReps(Integer v) { reps = v; }
+    public String getReps() { return reps; }
+    public void setReps(String v) { reps = v; }
     public Double getWeight() { return weight; }
     public void setWeight(Double v) { weight = v; }
     public String getNotes() { return notes; }
     public void setNotes(String v) { notes = v; }
+    public String getExerciseName() { return exerciseName; }
+    public void setExerciseName(String v) { exerciseName = v; }
     public Exercise getExercise() { return exercise; }
     public void setExercise(Exercise v) { exercise = v; }
     public WorkoutLog getWorkoutLog() { return workoutLog; }

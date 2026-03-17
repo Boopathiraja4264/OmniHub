@@ -33,76 +33,68 @@ public class FitnessService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    // ── EXERCISES ──────────────────────────────────────────────────────────────
-    @Transactional(readOnly = true)
-    public List<Map<String, Object>> getExercises(String email) {
-        User user = getUser(email);
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Exercise e : exerciseRepository.findByUserId(user.getId())) {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", e.getId());
-            m.put("name", e.getName());
-            m.put("muscleGroup", e.getMuscleGroup());
-            m.put("description", e.getDescription());
-            result.add(m);
-        }
-        return result;
-    }
-
-    @Transactional
-    public Map<String, Object> saveExercise(String email, Map<String, String> req) {
-        User user = getUser(email);
-        Exercise e = new Exercise();
-        e.setName(req.get("name"));
-        e.setMuscleGroup(req.get("muscleGroup"));
-        e.setDescription(req.get("description"));
-        e.setUser(user);
-        exerciseRepository.save(e);
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("id", e.getId());
-        m.put("name", e.getName());
-        m.put("muscleGroup", e.getMuscleGroup());
-        m.put("description", e.getDescription());
-        return m;
-    }
-
-    @Transactional
-    public void deleteExercise(String email, Long id) {
-        Exercise e = exerciseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Not found"));
-        exerciseRepository.delete(e);
-    }
-
     // ── WEEKLY PLAN ────────────────────────────────────────────────────────────
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getWeeklyPlan(String email) {
         User user = getUser(email);
         List<Map<String, Object>> result = new ArrayList<>();
         for (WeeklyPlan p : weeklyPlanRepository.findByUserId(user.getId())) {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", p.getId());
-            m.put("dayOfWeek", p.getDayOfWeek());
-            m.put("planDescription", p.getPlanDescription());
-            result.add(m);
+            result.add(weeklyPlanToMap(p));
         }
         return result;
     }
 
-    @Transactional
-    public Map<String, Object> saveWeeklyPlan(String email, Map<String, String> req) {
-        User user = getUser(email);
-        String day = req.get("dayOfWeek");
-        WeeklyPlan p = weeklyPlanRepository.findByUserIdAndDayOfWeek(user.getId(), day)
-                .orElse(new WeeklyPlan());
-        p.setDayOfWeek(day);
-        p.setPlanDescription(req.get("planDescription"));
-        p.setUser(user);
-        weeklyPlanRepository.save(p);
+    private Map<String, Object> weeklyPlanToMap(WeeklyPlan p) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", p.getId());
         m.put("dayOfWeek", p.getDayOfWeek());
         m.put("planDescription", p.getPlanDescription());
+        List<Map<String, Object>> exList = new ArrayList<>();
+        for (WeeklyPlanExercise wpe : p.getExercises()) {
+            Map<String, Object> ex = new LinkedHashMap<>();
+            ex.put("id", wpe.getId());
+            ex.put("exerciseName", wpe.getExerciseName());
+            ex.put("muscleGroup", wpe.getMuscleGroup());
+            ex.put("plannedSets", wpe.getPlannedSets());
+            ex.put("plannedReps", wpe.getPlannedReps());
+            ex.put("sortOrder", wpe.getSortOrder());
+            exList.add(ex);
+        }
+        m.put("exercises", exList);
         return m;
+    }
+
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> saveWeeklyPlan(String email, Map<String, Object> req) {
+        User user = getUser(email);
+        String day = (String) req.get("dayOfWeek");
+        WeeklyPlan p = weeklyPlanRepository.findByUserIdAndDayOfWeek(user.getId(), day)
+                .orElse(new WeeklyPlan());
+        p.setDayOfWeek(day);
+        p.setPlanDescription((String) req.get("planDescription"));
+        p.setUser(user);
+
+        p.getExercises().clear();
+        List<Map<String, Object>> exercises = (List<Map<String, Object>>) req.getOrDefault("exercises", List.of());
+        int order = 0;
+        for (Map<String, Object> exReq : exercises) {
+            String exerciseName = (String) exReq.get("exerciseName");
+            if (exerciseName == null || exerciseName.isBlank()) continue;
+            WeeklyPlanExercise wpe = new WeeklyPlanExercise();
+            wpe.setWeeklyPlan(p);
+            wpe.setExerciseName(exerciseName);
+            wpe.setMuscleGroup((String) exReq.get("muscleGroup"));
+            wpe.setPlannedSets(exReq.get("plannedSets") != null
+                    ? Integer.valueOf(exReq.get("plannedSets").toString()) : null);
+            wpe.setPlannedReps(exReq.get("plannedReps") != null
+                    ? exReq.get("plannedReps").toString() : null);
+            wpe.setSortOrder(order++);
+            p.getExercises().add(wpe);
+        }
+
+        weeklyPlanRepository.save(p);
+        return weeklyPlanToMap(p);
     }
 
     @Transactional
@@ -148,19 +140,22 @@ public class FitnessService {
 
                 ExerciseSet set = new ExerciseSet();
                 Object exIdObj = sd.get("exerciseId");
-                if (exIdObj == null || exIdObj.toString().trim().isEmpty())
-                    continue;
-
-                Long exId;
-                try {
-                    exId = Long.valueOf(exIdObj.toString().trim().split("\\.")[0]);
-                } catch (Exception e) {
+                Object exNameObj = sd.get("exerciseName");
+                if (exIdObj != null && !exIdObj.toString().trim().isEmpty()) {
+                    try {
+                        Long exId = Long.valueOf(exIdObj.toString().trim().split("\\.")[0]);
+                        Exercise ex = exerciseRepository.findById(exId)
+                                .orElseThrow(() -> new RuntimeException("Exercise not found with id: " + exId));
+                        set.setExercise(ex);
+                        set.setExerciseName(ex.getName());
+                    } catch (Exception e) {
+                        continue;
+                    }
+                } else if (exNameObj != null && !exNameObj.toString().trim().isEmpty()) {
+                    set.setExerciseName(exNameObj.toString().trim());
+                } else {
                     continue;
                 }
-
-                Exercise ex = exerciseRepository.findById(exId)
-                        .orElseThrow(() -> new RuntimeException("Exercise not found with id: " + exId));
-                set.setExercise(ex);
 
                 Object sVal = sd.get("sets") != null ? sd.get("sets") : sd.get("setNumber");
                 if (sVal != null && !sVal.toString().trim().isEmpty()) {
@@ -174,15 +169,8 @@ public class FitnessService {
                 }
 
                 Object rVal = sd.get("reps");
-                if (rVal != null && !rVal.toString().trim().isEmpty()) {
-                    try {
-                        set.setReps(Integer.valueOf(rVal.toString().trim().split("\\.")[0]));
-                    } catch (Exception e) {
-                        set.setReps(0);
-                    }
-                } else {
-                    set.setReps(0);
-                }
+                set.setReps(rVal != null && !rVal.toString().trim().isEmpty()
+                        ? rVal.toString().trim() : null);
 
                 Object wVal = sd.get("weight");
                 if (wVal != null && !wVal.toString().trim().isEmpty()) {
@@ -231,7 +219,9 @@ public class FitnessService {
             Map<String, Object> sm = new LinkedHashMap<>();
             sm.put("id", s.getId());
             sm.put("exerciseId", s.getExercise() != null ? s.getExercise().getId() : null);
-            sm.put("exerciseName", s.getExercise() != null ? s.getExercise().getName() : "");
+            sm.put("exerciseName", s.getExerciseName() != null && !s.getExerciseName().isEmpty()
+                    ? s.getExerciseName()
+                    : (s.getExercise() != null ? s.getExercise().getName() : ""));
             sm.put("sets", s.getSets());
             sm.put("reps", s.getReps());
             sm.put("weight", s.getWeight());

@@ -33,7 +33,6 @@ const TopNav: React.FC = () => {
   const fitnessLinks = [
     { to: '/fitness', label: t('nav.dashboard'), icon: '🏠', end: true },
     { to: '/fitness/workout', label: t('nav.workout'), icon: '🏋️', end: false },
-    { to: '/fitness/exercises', label: t('nav.exercises'), icon: '⚡', end: false },
     { to: '/fitness/weekly-plan', label: t('nav.weeklyPlan'), icon: '📅', end: false },
     { to: '/fitness/weight', label: t('nav.weightTracker'), icon: '⚖️', end: false },
     { to: '/fitness/steps', label: t('nav.stepsRun'), icon: '👟', end: false },

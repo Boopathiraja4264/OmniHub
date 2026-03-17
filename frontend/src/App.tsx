@@ -19,7 +19,6 @@ const AnalyticsPage    = lazy(() => import('./modules/finance/AnalyticsPage'));
 const Dashboard        = lazy(() => import('./components/Dashboard'));
 const FitnessDashboard = lazy(() => import('./modules/fitness/FitnessDashboard'));
 const WorkoutPage      = lazy(() => import('./modules/fitness/WorkoutPage'));
-const ExercisesPage    = lazy(() => import('./modules/fitness/ExercisesPage'));
 const WeeklyPlanPage   = lazy(() => import('./modules/fitness/WeeklyPlanPage'));
 const WeightPage       = lazy(() => import('./modules/fitness/WeightPage'));
 const StepsPage        = lazy(() => import('./modules/fitness/StepsPage'));
@@ -55,7 +54,6 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/fitness" element={<FitnessDashboard />} />
             <Route path="/fitness/workout" element={<WorkoutPage />} />
-            <Route path="/fitness/exercises" element={<ExercisesPage />} />
             <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />
             <Route path="/fitness/weight" element={<WeightPage />} />
             <Route path="/fitness/steps" element={<StepsPage />} />

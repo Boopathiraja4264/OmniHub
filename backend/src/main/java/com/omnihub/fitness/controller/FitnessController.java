@@ -3,8 +3,10 @@ package com.omnihub.fitness.controller;
 import com.omnihub.fitness.service.FitnessService;
 import com.omnihub.core.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import java.time.LocalDate;
 import java.util.*;
 
@@ -17,27 +19,39 @@ public class FitnessController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Value("${exercise.api-key:}")
+    private String exerciseApiKey;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
     private String getEmail(String authHeader) {
         return jwtUtil.extractUsername(authHeader.substring(7));
     }
 
     // ── EXERCISES ──────────────────────────────────────────────────────────────
-    @GetMapping("/exercises")
-    public ResponseEntity<?> getExercises(@RequestHeader("Authorization") String auth) {
-        return ResponseEntity.ok(fitnessService.getExercises(getEmail(auth)));
-    }
 
-    @PostMapping("/exercises")
-    public ResponseEntity<?> saveExercise(@RequestHeader("Authorization") String auth,
-            @RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(fitnessService.saveExercise(getEmail(auth), body));
-    }
+    // Search exercises from API Ninjas — proxied to keep API key secret
+    @GetMapping("/exercises/search")
+    public ResponseEntity<?> searchExercises(
+            @RequestParam(required = false) String muscle,
+            @RequestParam(required = false) String name) {
+        if (exerciseApiKey == null || exerciseApiKey.isBlank()) {
+            return ResponseEntity.status(503).body("Exercise API key not configured");
+        }
+        try {
+            StringBuilder url = new StringBuilder("https://api.api-ninjas.com/v1/exercises?limit=15");
+            if (muscle != null && !muscle.isBlank()) url.append("&muscle=").append(muscle.toLowerCase().replace(" ", "_"));
+            if (name   != null && !name.isBlank())   url.append("&name=").append(name.trim());
 
-    @DeleteMapping("/exercises/{id}")
-    public ResponseEntity<?> deleteExercise(@RequestHeader("Authorization") String auth,
-            @PathVariable Long id) {
-        fitnessService.deleteExercise(getEmail(auth), id);
-        return ResponseEntity.ok().build();
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("X-Api-Key", exerciseApiKey);
+            HttpEntity<Void> req = new HttpEntity<>(headers);
+
+            ResponseEntity<Object[]> resp = restTemplate.exchange(url.toString(), HttpMethod.GET, req, Object[].class);
+            return ResponseEntity.ok(resp.getBody());
+        } catch (Exception e) {
+            return ResponseEntity.status(502).body("Failed to fetch exercises: " + e.getMessage());
+        }
     }
 
     // ── WEEKLY PLAN ────────────────────────────────────────────────────────────
@@ -48,7 +62,7 @@ public class FitnessController {
 
     @PostMapping("/weekly-plan")
     public ResponseEntity<?> saveWeeklyPlan(@RequestHeader("Authorization") String auth,
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, Object> body) {
         return ResponseEntity.ok(fitnessService.saveWeeklyPlan(getEmail(auth), body));
     }
 
