@@ -2,6 +2,9 @@
 .DS_Store
 **/.DS_Store
 
+# Personal data files
+*.csv
+
 # Logs
 *.log
 backend_live.log
@@ -31,6 +34,8 @@ frontend/.env.local
 backend/target/
 
 # Node
+node_modules/
+package-lock.json
 frontend/node_modules/
 
 # Docker
