@@ -95,6 +95,11 @@
         <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
         <version>7.14.0</version>
     </dependency>
+    <dependency>
+        <groupId>org.apache.poi</groupId>
+        <artifactId>poi-ooxml</artifactId>
+        <version>5.3.0</version>
+    </dependency>
     </dependencies>
     <build>
         <plugins>

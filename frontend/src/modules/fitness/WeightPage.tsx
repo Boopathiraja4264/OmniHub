@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import api from "../../services/api";
+import FilterDropdown from "../../components/FilterDropdown";
 
 const WeightPage: React.FC = () => {
   const [rawStats, setRawStats] = useState<any>(null);
@@ -875,18 +876,12 @@ const WeightPage: React.FC = () => {
           <h3 style={{ color: "var(--text-primary)", margin: 0 }}>
             Monthly Log
           </h3>
-          <select
-            className="input"
-            style={{ width: "auto", padding: "8px 14px" }}
+          <FilterDropdown
             value={currentMonth}
-            onChange={(e) => setCurrentMonth(e.target.value)}
-          >
-            {monthOptions.map((o) => (
-              <option key={o.val} value={o.val}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+            options={monthOptions.map(o => ({ label: o.label, value: o.val }))}
+            onChange={v => setCurrentMonth(v as string)}
+            minWidth={160}
+          />
         </div>
 
         <>

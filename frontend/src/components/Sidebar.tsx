@@ -117,11 +117,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 </svg>
                 {!isCollapsed && <span>Transactions</span>}
               </NavLink>
-              <NavLink title="Budgets" to="/budgets" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => onClose && onClose()}>
+              <NavLink title="Budget & Spend" to="/budgets" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => onClose && onClose()}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                 </svg>
-                {!isCollapsed && <span>Budgets</span>}
+                {!isCollapsed && <span>Budget & Spend</span>}
               </NavLink>
               <NavLink title="Analytics" to="/analytics" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`} onClick={() => onClose && onClose()}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

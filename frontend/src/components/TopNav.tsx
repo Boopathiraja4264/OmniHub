@@ -26,8 +26,12 @@ const TopNav: React.FC = () => {
   const financeLinks = [
     { to: '/', label: t('nav.dashboard'), icon: '📊', end: true },
     { to: '/transactions', label: t('nav.transactions'), icon: '💸', end: false },
-    { to: '/budgets', label: t('nav.budgets'), icon: '🎯', end: false },
+    { to: '/budgets', label: t('nav.budgets'), icon: '🎯', end: true },
     { to: '/analytics', label: t('nav.analytics'), icon: '📈', end: false },
+    { to: '/finance/categories', label: 'Categories & Items', icon: '🏷️', end: false },
+    { to: '/accounts', label: 'Accounts', icon: '🏦', end: false },
+    { to: '/vehicles', label: 'Vehicle Log', icon: '🚗', end: false },
+    { to: '/finance/import-export', label: 'Import / Export', icon: '📥', end: false },
   ];
 
   const fitnessLinks = [

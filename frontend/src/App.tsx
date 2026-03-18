@@ -13,9 +13,15 @@ import './index.css';
 
 initSentry();
 
-const TransactionsPage = lazy(() => import('./modules/finance/TransactionsPage'));
-const BudgetsPage      = lazy(() => import('./modules/finance/BudgetsPage'));
-const AnalyticsPage    = lazy(() => import('./modules/finance/AnalyticsPage'));
+const TransactionsPage          = lazy(() => import('./modules/finance/TransactionsPage'));
+const BudgetsPage               = lazy(() => import('./modules/finance/BudgetsPage'));
+const AnalyticsPage             = lazy(() => import('./modules/finance/AnalyticsPage'));
+const CategoryItemSettingsPage  = lazy(() => import('./modules/finance/CategoryItemSettingsPage'));
+const AccountsPage              = lazy(() => import('./modules/finance/AccountsPage'));
+const BankAccountDetailPage     = lazy(() => import('./modules/finance/BankAccountDetailPage'));
+const CreditCardDetailPage      = lazy(() => import('./modules/finance/CreditCardDetailPage'));
+const VehicleLogPage            = lazy(() => import('./modules/finance/VehicleLogPage'));
+const ImportExportPage          = lazy(() => import('./modules/finance/ImportExportPage'));
 const Dashboard        = lazy(() => import('./components/Dashboard'));
 const FitnessDashboard = lazy(() => import('./modules/fitness/FitnessDashboard'));
 const WorkoutPage      = lazy(() => import('./modules/fitness/WorkoutPage'));
@@ -52,6 +58,12 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/transactions" element={<TransactionsPage />} />
             <Route path="/budgets" element={<BudgetsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/finance/categories" element={<CategoryItemSettingsPage />} />
+            <Route path="/accounts" element={<AccountsPage />} />
+            <Route path="/accounts/bank/:id" element={<BankAccountDetailPage />} />
+            <Route path="/accounts/card/:id" element={<CreditCardDetailPage />} />
+            <Route path="/vehicles" element={<VehicleLogPage />} />
+            <Route path="/finance/import-export" element={<ImportExportPage />} />
             <Route path="/fitness" element={<FitnessDashboard />} />
             <Route path="/fitness/workout" element={<WorkoutPage />} />
             <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />

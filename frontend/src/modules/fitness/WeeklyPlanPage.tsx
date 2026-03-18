@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import api from '../../services/api';
+import FilterDropdown from '../../components/FilterDropdown';
 
 const DAYS = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'];
 const DAY_FULL = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -298,10 +299,12 @@ const WeeklyPlanPage: React.FC = () => {
             <div className="form-group" style={{ marginBottom: 8 }}>
               <label className="form-label">Search Exercises</label>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                <select className="input" style={{ maxWidth: 150, flex: '0 0 auto' }}
-                  value={muscleFilter} onChange={e => { setMuscleFilter(e.target.value); searchExercises(nameSearch, e.target.value); }}>
-                  {MUSCLES.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
+                <FilterDropdown
+                  value={muscleFilter}
+                  options={MUSCLES}
+                  onChange={v => { setMuscleFilter(v as string); searchExercises(nameSearch, v as string); }}
+                  minWidth={150}
+                />
                 <div ref={searchRef} style={{ flex: 1, minWidth: 160, position: 'relative' }}>
                   <input className="input" value={nameSearch}
                     onChange={e => handleNameChange(e.target.value)}

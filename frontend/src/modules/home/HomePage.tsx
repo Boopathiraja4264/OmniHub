@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../types';
 import { fetchFitnessDashboard, fetchExercises, logWeight, logWorkout, addTransaction } from './homeApi';
+import FilterDropdown from '../../components/FilterDropdown';
 import { getDailyKuralNum, getCachedKural, fetchKural, pickNewKuralNum, setCachedDailyNum, getExplanation } from '../../services/external/thirukkuralApi';
 import { loadBharathiPoems, getDailyBharathiIdx, pickNewBharathiIdx, setCachedDailyBharathiIdx, BharathiPoem } from '../../services/external/bharathiyarApi';
 
@@ -320,11 +321,13 @@ const HomePage: React.FC = () => {
                   <div style={{ background: 'var(--bg-elevated)', borderRadius: 10, padding: '14px' }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 10, letterSpacing: 0.5 }}>{t('drawer.addSet')}</div>
                     <div className="form-group" style={{ marginBottom: 10 }}>
-                      <select className="input" value={newSet.exerciseId}
-                        onChange={e => setNewSet(p => ({ ...p, exerciseId: e.target.value }))}>
-                        <option value="">{t('drawer.selectExercise')}</option>
-                        {exercises.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                      </select>
+                      <FilterDropdown
+                        value={newSet.exerciseId}
+                        options={exercises.map(e => ({ label: e.name, value: String(e.id) }))}
+                        onChange={v => setNewSet(p => ({ ...p, exerciseId: String(v) }))}
+                        placeholder={t('drawer.selectExercise')}
+                        fullWidth
+                      />
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                       <div>
@@ -373,11 +376,13 @@ const HomePage: React.FC = () => {
                   </div>
                   <div className="form-group">
                     <label className="form-label">{t('drawer.category')}</label>
-                    <select className="input" value={txForm.category}
-                      onChange={e => setTxForm(p => ({ ...p, category: e.target.value }))}>
-                      <option value="">{t('drawer.selectCategory')}</option>
-                      {txCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    <FilterDropdown
+                      value={txForm.category}
+                      options={txCategories.map(c => ({ label: c, value: c }))}
+                      onChange={v => setTxForm(p => ({ ...p, category: v as string }))}
+                      placeholder={t('drawer.selectCategory')}
+                      fullWidth
+                    />
                   </div>
                   <div className="form-group">
                     <label className="form-label">{t('drawer.date')}</label>

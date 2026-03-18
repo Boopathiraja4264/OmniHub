@@ -67,4 +67,39 @@ public class TransactionController {
                                                                 @RequestParam int year) {
         return ResponseEntity.ok(transactionService.getMonthlyTotals(user.getUsername(), type, year));
     }
+
+    @GetMapping("/analytics/top-items")
+    public ResponseEntity<java.util.Map<String, java.math.BigDecimal>> getTopItems(
+            @AuthenticationPrincipal UserDetails user,
+            @RequestParam int month, @RequestParam int year) {
+        java.util.Map<String, java.math.BigDecimal> result = new java.util.LinkedHashMap<>();
+        transactionService.getTopItems(user.getUsername(), month, year)
+                .forEach(row -> result.put((String) row[0], (java.math.BigDecimal) row[1]));
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/analytics/card-spend")
+    public ResponseEntity<java.util.Map<Long, java.math.BigDecimal>> getCardSpend(
+            @AuthenticationPrincipal UserDetails user,
+            @RequestParam int month, @RequestParam int year) {
+        return ResponseEntity.ok(transactionService.getSpendByCard(user.getUsername(), month, year));
+    }
+
+    @GetMapping("/analytics/pivot")
+    public ResponseEntity<PivotResponse> getPivot(@AuthenticationPrincipal UserDetails user,
+                                                   @RequestParam int year) {
+        return ResponseEntity.ok(transactionService.getPivotData(user.getUsername(), year));
+    }
+
+    @GetMapping("/by-bank-account/{accountId}")
+    public ResponseEntity<List<TransactionResponse>> getByBankAccount(
+            @AuthenticationPrincipal UserDetails user, @PathVariable Long accountId) {
+        return ResponseEntity.ok(transactionService.getByBankAccount(user.getUsername(), accountId));
+    }
+
+    @GetMapping("/by-card/{cardId}")
+    public ResponseEntity<List<TransactionResponse>> getByCard(
+            @AuthenticationPrincipal UserDetails user, @PathVariable Long cardId) {
+        return ResponseEntity.ok(transactionService.getByCard(user.getUsername(), cardId));
+    }
 }

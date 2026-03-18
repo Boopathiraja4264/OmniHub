@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import api from '../../services/api';
+import FilterDropdown from '../../components/FilterDropdown';
 
 const MUSCLES = ['Chest','Back','Shoulders','Biceps','Triceps','Legs','Core','Cardio','Full Body'];
 const DEFAULTS = [
@@ -85,9 +86,12 @@ const ExercisesPage: React.FC = () => {
             <h3 className="modal-title">Add Exercise</h3>
             <div className="form-group"><label className="form-label">NAME</label><input className="input" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Bench Press" /></div>
             <div className="form-group"><label className="form-label">MUSCLE GROUP</label>
-              <select className="input" value={form.muscleGroup} onChange={e => setForm(p => ({ ...p, muscleGroup: e.target.value }))}>
-                {MUSCLES.map(m => <option key={m}>{m}</option>)}
-              </select>
+              <FilterDropdown
+                value={form.muscleGroup}
+                options={MUSCLES.map(m => ({ label: m, value: m }))}
+                onChange={v => setForm(p => ({ ...p, muscleGroup: v as string }))}
+                fullWidth
+              />
             </div>
             <div className="form-group"><label className="form-label">DESCRIPTION</label><textarea className="input" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2} /></div>
             <div style={{ display: 'flex', gap: 12 }}>

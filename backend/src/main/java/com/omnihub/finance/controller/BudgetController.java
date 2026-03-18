@@ -10,6 +10,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/budgets")
@@ -34,5 +35,25 @@ public class BudgetController {
     public ResponseEntity<Void> delete(@AuthenticationPrincipal UserDetails user, @PathVariable Long id) {
         budgetService.delete(user.getUsername(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<BudgetResponse> updateLimit(@AuthenticationPrincipal UserDetails user,
+                                                       @PathVariable Long id,
+                                                       @Valid @RequestBody BudgetUpdateRequest req) {
+        return ResponseEntity.ok(budgetService.updateLimit(user.getUsername(), id, req.getLimitAmount()));
+    }
+
+    @GetMapping("/annual")
+    public ResponseEntity<AnnualBudgetResponse> getAnnual(@AuthenticationPrincipal UserDetails user,
+                                                           @RequestParam int year) {
+        return ResponseEntity.ok(budgetService.getAnnual(user.getUsername(), year));
+    }
+
+    @PostMapping("/annual")
+    public ResponseEntity<Void> setAnnual(@AuthenticationPrincipal UserDetails user,
+                                           @Valid @RequestBody AnnualBudgetRequest req) {
+        budgetService.setAnnualBudget(user.getUsername(), req);
+        return ResponseEntity.ok().build();
     }
 }

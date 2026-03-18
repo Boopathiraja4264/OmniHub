@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "../../services/api";
 import { smsApi, slackApi } from "../../services/api";
+import FilterDropdown from "../../components/FilterDropdown";
 import BackupPage from "./BackupPage";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -725,16 +726,16 @@ const SettingsPage: React.FC = () => {
                   onChange={(e) => setSlackSettings((p) => ({ ...p, sendTime1: e.target.value }))}
                   style={{ maxWidth: 160 }}
                 />
-                <select
-                  className="input"
+                <FilterDropdown
                   value={slackSettings.template1}
-                  onChange={(e) => setSlackSettings((p) => ({ ...p, template1: e.target.value }))}
-                  style={{ maxWidth: 220 }}
-                >
-                  <option value="MORNING">🌅 Morning Summary</option>
-                  <option value="FINANCE">💰 Finance Summary</option>
-                  <option value="FULL">📊 Full Summary</option>
-                </select>
+                  options={[
+                    { label: '🌅 Morning Summary', value: 'MORNING' },
+                    { label: '💰 Finance Summary', value: 'FINANCE' },
+                    { label: '📊 Full Summary', value: 'FULL' },
+                  ]}
+                  onChange={(v) => setSlackSettings((p) => ({ ...p, template1: v as string }))}
+                  minWidth={200}
+                />
               </div>
               <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 6 }}>
                 Morning: weight goal + full week plan + steps &nbsp;|&nbsp; Finance: income + budgets &nbsp;|&nbsp; Full: everything
@@ -766,16 +767,16 @@ const SettingsPage: React.FC = () => {
                     onChange={(e) => setSlackSettings((p) => ({ ...p, sendTime2: e.target.value }))}
                     style={{ maxWidth: 160 }}
                   />
-                  <select
-                    className="input"
+                  <FilterDropdown
                     value={slackSettings.template2}
-                    onChange={(e) => setSlackSettings((p) => ({ ...p, template2: e.target.value }))}
-                    style={{ maxWidth: 220 }}
-                  >
-                    <option value="MORNING">🌅 Morning Summary</option>
-                    <option value="FINANCE">💰 Finance Summary</option>
-                    <option value="FULL">📊 Full Summary</option>
-                  </select>
+                    options={[
+                      { label: '🌅 Morning Summary', value: 'MORNING' },
+                      { label: '💰 Finance Summary', value: 'FINANCE' },
+                      { label: '📊 Full Summary', value: 'FULL' },
+                    ]}
+                    onChange={(v) => setSlackSettings((p) => ({ ...p, template2: v as string }))}
+                    minWidth={200}
+                  />
                 </div>
               </div>
             )}

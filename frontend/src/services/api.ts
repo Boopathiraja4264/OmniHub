@@ -41,6 +41,54 @@ export const transactionApi = {
     api.get("/transactions/analytics/by-category", { params: { month, year } }),
   getMonthly: (type: string, year: number) =>
     api.get("/transactions/analytics/monthly", { params: { type, year } }),
+  getTopItems: (month: number, year: number) =>
+    api.get("/transactions/analytics/top-items", { params: { month, year } }),
+  getCardSpend: (month: number, year: number) =>
+    api.get("/transactions/analytics/card-spend", { params: { month, year } }),
+  getPivot: (year: number) =>
+    api.get("/transactions/analytics/pivot", { params: { year } }),
+  getByBankAccount: (accountId: number) =>
+    api.get(`/transactions/by-bank-account/${accountId}`),
+  getByCard: (cardId: number) =>
+    api.get(`/transactions/by-card/${cardId}`),
+};
+
+export const creditCardApi = {
+  getAll: () => api.get("/cards"),
+  create: (data: any) => api.post("/cards", data),
+  delete: (id: number) => api.delete(`/cards/${id}`),
+};
+
+export const bankAccountApi = {
+  getAll: () => api.get("/bank-accounts"),
+  create: (data: any) => api.post("/bank-accounts", data),
+  delete: (id: number) => api.delete(`/bank-accounts/${id}`),
+  setDefault: (id: number) => api.patch(`/bank-accounts/${id}/default`),
+};
+
+export const vehicleApi = {
+  getAll: () => api.get("/vehicles"),
+  create: (data: any) => api.post("/vehicles", data),
+  delete: (id: number) => api.delete(`/vehicles/${id}`),
+  getLogs: (vehicleId?: number) => api.get("/vehicles/logs", { params: vehicleId ? { vehicleId } : {} }),
+  addLog: (data: any) => api.post("/vehicles/logs", data),
+  deleteLog: (id: number) => api.delete(`/vehicles/logs/${id}`),
+};
+
+export const importExportApi = {
+  exportAll: () =>
+    api.get("/finance/export/all", { responseType: "blob" }),
+  exportSummary: (year: number) =>
+    api.get("/finance/export/summary", { params: { year }, responseType: "blob" }),
+  exportTransactions: (month: number, year: number) =>
+    api.get("/finance/export", { params: { month, year }, responseType: "blob" }),
+  downloadTemplate: () =>
+    api.get("/finance/template", { responseType: "blob" }),
+  importTransactions: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api.post("/finance/import", form, { headers: { "Content-Type": "multipart/form-data" } });
+  },
 };
 
 export const budgetApi = {
@@ -48,6 +96,24 @@ export const budgetApi = {
     api.get("/budgets", { params: { month, year } }),
   create: (data: any) => api.post("/budgets", data),
   delete: (id: number) => api.delete(`/budgets/${id}`),
+  updateLimit: (id: number, limitAmount: number) =>
+    api.put(`/budgets/${id}`, { limitAmount }),
+  getAnnual: (year: number) => api.get("/budgets/annual", { params: { year } }),
+  setAnnual: (data: { category: string; monthlyBudget: number; year: number }) =>
+    api.post("/budgets/annual", data),
+};
+
+export const categoryItemApi = {
+  getAll: () => api.get("/finance/items"),
+  getCategories: () => api.get("/finance/categories"),
+  getItems: (categoryId: number) =>
+    api.get("/finance/items", { params: { categoryId } }),
+  addCategory: (name: string) => api.post("/finance/categories", { name }),
+  deleteCategory: (id: number) => api.delete(`/finance/categories/${id}`),
+  addItem: (name: string, categoryId: number) =>
+    api.post("/finance/items", { name, categoryId }),
+  deleteItem: (id: number) => api.delete(`/finance/items/${id}`),
+  reset: () => api.post("/finance/categories/reset"),
 };
 
 export const notificationApi = {
