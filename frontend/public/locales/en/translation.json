@@ -11,6 +11,7 @@
   "home.logWeight": "+ Log Weight",
   "home.logWorkout": "+ Log Workout",
   "home.addTransaction": "+ Add Transaction",
+  "home.addExpense": "+ Add Expense",
 
   "drawer.weight.title": "Log Weight",
   "drawer.workout.title": "Log Workout",
@@ -45,7 +46,7 @@
   "nav.fitness": "Fitness",
   "nav.dashboard": "Dashboard",
   "nav.transactions": "Transactions",
-  "nav.budgets": "Budgets",
+  "nav.budgets": "Budget & Spend",
   "nav.analytics": "Analytics",
   "nav.workout": "Workout Log",
   "nav.exercises": "Exercises",

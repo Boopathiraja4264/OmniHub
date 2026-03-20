@@ -17,7 +17,9 @@ public class DTOs {
         @NotBlank
         private String email;
         @NotBlank
-        @Size(min = 6)
+        @Size(min = 8, message = "Password must be at least 8 characters")
+        @Pattern(regexp = "^(?=.*[A-Z])(?=.*\\d).{8,}$",
+                 message = "Password must contain at least one uppercase letter and one digit")
         private String password;
 
         public String getFullName() {
@@ -70,25 +72,96 @@ public class DTOs {
     }
 
     public static class AuthResponse {
-        private String token, email, fullName;
+        private String token, email, fullName, twoFactorMethod, tempToken, challengeToken;
+        private boolean requiresEmailVerification;
+        private boolean twoFactorRequired;
 
         public AuthResponse(String token, String email, String fullName) {
-            this.token = token;
-            this.email = email;
-            this.fullName = fullName;
+            this.token = token; this.email = email; this.fullName = fullName;
         }
 
-        public String getToken() {
-            return token;
+        public AuthResponse(String token, String email, String fullName,
+                            boolean requiresEmailVerification, boolean twoFactorRequired,
+                            String twoFactorMethod, String tempToken, String challengeToken) {
+            this.token = token; this.email = email; this.fullName = fullName;
+            this.requiresEmailVerification = requiresEmailVerification;
+            this.twoFactorRequired = twoFactorRequired;
+            this.twoFactorMethod = twoFactorMethod;
+            this.tempToken = tempToken;
+            this.challengeToken = challengeToken;
         }
 
-        public String getEmail() {
-            return email;
-        }
+        public String getToken() { return token; }
+        public String getEmail() { return email; }
+        public String getFullName() { return fullName; }
+        public boolean isRequiresEmailVerification() { return requiresEmailVerification; }
+        public boolean isTwoFactorRequired() { return twoFactorRequired; }
+        public String getTwoFactorMethod() { return twoFactorMethod; }
+        public String getTempToken() { return tempToken; }
+        public String getChallengeToken() { return challengeToken; }
+    }
 
-        public String getFullName() {
-            return fullName;
-        }
+    public static class VerifyEmailRequest {
+        @Email @NotBlank private String email;
+        @NotBlank private String otp;
+        public String getEmail() { return email; }
+        public void setEmail(String v) { email = v; }
+        public String getOtp() { return otp; }
+        public void setOtp(String v) { otp = v; }
+    }
+
+    public static class ForgotPasswordRequest {
+        @Email @NotBlank private String email;
+        public String getEmail() { return email; }
+        public void setEmail(String v) { email = v; }
+    }
+
+    public static class ResetPasswordRequest {
+        @NotBlank private String token;
+        @NotBlank @Size(min = 8, message = "Password must be at least 8 characters")
+        @Pattern(regexp = "^(?=.*[A-Z])(?=.*\\d).{8,}$",
+                 message = "Password must contain at least one uppercase letter and one digit")
+        private String newPassword;
+        public String getToken() { return token; }
+        public void setToken(String v) { token = v; }
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String v) { newPassword = v; }
+    }
+
+    public static class ChangePasswordRequest {
+        @NotBlank private String currentPassword;
+        @NotBlank @Size(min = 8, message = "Password must be at least 8 characters")
+        @Pattern(regexp = "^(?=.*[A-Z])(?=.*\\d).{8,}$",
+                 message = "Password must contain at least one uppercase letter and one digit")
+        private String newPassword;
+        public String getCurrentPassword() { return currentPassword; }
+        public void setCurrentPassword(String v) { currentPassword = v; }
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String v) { newPassword = v; }
+    }
+
+    public static class TwoFactorChallengeRequest {
+        private String tempToken, code, method, challengeToken;
+        public String getTempToken() { return tempToken; }
+        public void setTempToken(String v) { tempToken = v; }
+        public String getCode() { return code; }
+        public void setCode(String v) { code = v; }
+        public String getMethod() { return method; }
+        public void setMethod(String v) { method = v; }
+        public String getChallengeToken() { return challengeToken; }
+        public void setChallengeToken(String v) { challengeToken = v; }
+    }
+
+    public static class Enable2FARequest {
+        @NotBlank private String method;
+        public String getMethod() { return method; }
+        public void setMethod(String v) { method = v; }
+    }
+
+    public static class Verify2FASetupRequest {
+        @NotBlank private String code;
+        public String getCode() { return code; }
+        public void setCode(String v) { code = v; }
     }
 
     public static class TransactionRequest {

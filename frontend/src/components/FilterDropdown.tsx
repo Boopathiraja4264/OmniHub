@@ -14,8 +14,11 @@ interface Props {
 
 const FilterDropdown: React.FC<Props> = ({ value, options, onChange, placeholder = 'All', minWidth = 130, disabled = false, fullWidth = false }) => {
   const [open, setOpen] = useState(false);
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
+  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -24,6 +27,24 @@ const FilterDropdown: React.FC<Props> = ({ value, options, onChange, placeholder
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // Recalculate panel position when open (fixed, escapes overflow clipping)
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const panelHeight = Math.min(240, options.length * 38 + 12);
+    const showAbove = spaceBelow < panelHeight + 10 && rect.top > panelHeight + 10;
+    setPanelStyle({
+      position: 'fixed',
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+      ...(showAbove
+        ? { bottom: window.innerHeight - rect.top + 4 }
+        : { top: rect.bottom + 4 }),
+    });
+  }, [open, options.length]);
+
   const selected = options.find(o => o.value === value);
   const label = selected ? selected.label : placeholder;
 
@@ -31,6 +52,7 @@ const FilterDropdown: React.FC<Props> = ({ value, options, onChange, placeholder
     <div ref={ref} style={{ position: 'relative', display: fullWidth ? 'block' : 'inline-block', minWidth: fullWidth ? undefined : minWidth, width: fullWidth ? '100%' : undefined }}>
       {/* Trigger */}
       <button
+        ref={btnRef}
         onClick={() => { if (!disabled) setOpen(o => !o); }}
         disabled={disabled}
         style={{
@@ -56,19 +78,21 @@ const FilterDropdown: React.FC<Props> = ({ value, options, onChange, placeholder
         </svg>
       </button>
 
-      {/* Panel */}
+      {/* Panel — fixed position so it escapes overflow:auto parents (drawers, modals) */}
       {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 200,
+        <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()} style={{
+          ...panelStyle,
           background: 'var(--bg-card)',
           border: '1px solid var(--border)',
           borderRadius: 12,
           boxShadow: 'var(--shadow-float)',
-          minWidth: '100%',
           maxHeight: 240,
           overflowY: 'auto',
           padding: '6px',
         }}>
+          {options.length === 0 && (
+            <div style={{ padding: '8px 12px', fontSize: 13, color: 'var(--text-muted)' }}>No options</div>
+          )}
           {options.map(opt => {
             const active = opt.value === value;
             return (

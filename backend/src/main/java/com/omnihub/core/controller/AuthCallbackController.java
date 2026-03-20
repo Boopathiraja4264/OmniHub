@@ -1,6 +1,9 @@
 package com.omnihub.core.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -11,7 +14,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 
 @RestController
+@Profile("!production")
 public class AuthCallbackController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthCallbackController.class);
 
     @Value("${microsoft.client.id}")
     private String clientId;
@@ -69,21 +75,18 @@ public class AuthCallbackController {
             );
 
             String refreshToken = (String) response.getBody().get("refresh_token");
-            String accessToken = (String) response.getBody().get("access_token");
-
             TokenStore.refreshToken = refreshToken;
 
-            System.out.println("===========================================");
-            System.out.println("REFRESH TOKEN: " + refreshToken);
-            System.out.println("===========================================");
+            log.info("Microsoft OAuth callback completed — update MICROSOFT_REFRESH_TOKEN env var");
 
             return ResponseEntity.ok(
-                "<h2>Success!</h2><p><b>Refresh Token:</b><br/><textarea style='width:100%;height:100px;'>" + refreshToken + "</textarea></p>"
-                + "<p>Update your <b>MICROSOFT_REFRESH_TOKEN</b> environment variable with this value.</p>"
+                "<h2>Success!</h2><p>Microsoft token obtained. Copy the refresh token from server logs (INFO level) " +
+                "and update your <b>MICROSOFT_REFRESH_TOKEN</b> environment variable.</p>"
             );
 
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+            log.error("Microsoft OAuth callback failed", e);
+            return ResponseEntity.status(500).body("Error obtaining token. Check server logs.");
         }
     }
 }

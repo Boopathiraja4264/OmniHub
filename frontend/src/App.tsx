@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import TopNav from './components/TopNav';
 import AuthPage from './modules/auth/AuthPage';
+import OAuthCallbackPage from './modules/auth/OAuthCallbackPage';
+import ResetPasswordPage from './modules/auth/ResetPasswordPage';
 import HomePage from './modules/home/HomePage';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -83,6 +85,8 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/home" replace /> : <AuthPage />} />
+      <Route path="/oauth-callback" element={<OAuthCallbackPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/*" element={<ProtectedLayout />} />
     </Routes>
   );

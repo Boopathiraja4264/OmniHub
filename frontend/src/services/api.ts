@@ -28,6 +28,29 @@ export const authApi = {
     api.post("/auth/login", { email, password }),
   register: (fullName: string, email: string, password: string) =>
     api.post("/auth/register", { fullName, email, password }),
+  verifyEmail: (email: string, otp: string) =>
+    api.post("/auth/verify-email", { email, otp }),
+  resendVerification: (email: string) =>
+    api.post("/auth/resend-verification", { email }),
+  forgotPassword: (email: string) =>
+    api.post("/auth/forgot-password", { email }),
+  resetPassword: (token: string, newPassword: string) =>
+    api.post("/auth/reset-password", { token, newPassword }),
+  verify2FA: (tempToken: string, code: string, method: string, challengeToken?: string) =>
+    api.post("/auth/2fa/verify", { tempToken, code, method, challengeToken }),
+  getMe: () => api.get("/auth/me"),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api.post("/auth/change-password", { currentPassword, newPassword }),
+  get2FAStatus: () => api.get("/auth/2fa/status"),
+  setupTotp: () => api.post("/auth/2fa/setup/totp"),
+  verifyTotpSetup: (code: string) => api.post("/auth/2fa/setup/verify", { code }),
+  setupEmailOtp: () => api.post("/auth/2fa/setup/email-otp"),
+  setupSmsOtp: () => api.post("/auth/2fa/setup/sms-otp"),
+  setupPush: () => api.post("/auth/2fa/setup/push"),
+  disable2FA: () => api.delete("/auth/2fa/disable"),
+  pollPush: (challengeToken: string) => api.get(`/auth/2fa/push/poll/${challengeToken}`),
+  approvePush: (challengeToken: string) => api.post(`/auth/2fa/push/approve/${challengeToken}`),
+  denyPush: (challengeToken: string) => api.post(`/auth/2fa/push/deny/${challengeToken}`),
 };
 
 export const transactionApi = {

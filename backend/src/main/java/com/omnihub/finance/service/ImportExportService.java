@@ -406,6 +406,21 @@ public class ImportExportService {
 
     @Transactional
     public int importTransactions(String email, MultipartFile file) throws Exception {
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new IllegalArgumentException("File size exceeds the 5 MB limit");
+        }
+        try {
+            org.apache.tika.Tika tika = new org.apache.tika.Tika();
+            String mimeType = tika.detect(file.getInputStream());
+            if (!mimeType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                    && !mimeType.equals("application/vnd.ms-excel")) {
+                throw new IllegalArgumentException("Only Excel (.xlsx) files are accepted");
+            }
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Unable to validate file type");
+        }
         User user = getUser(email);
         List<Transaction> toSave = new ArrayList<>();
         try (InputStream is = file.getInputStream(); XSSFWorkbook wb = new XSSFWorkbook(is)) {

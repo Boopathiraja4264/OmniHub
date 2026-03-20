@@ -40,8 +40,8 @@ public class FitnessController {
         }
         try {
             StringBuilder url = new StringBuilder("https://api.api-ninjas.com/v1/exercises?limit=15");
-            if (muscle != null && !muscle.isBlank()) url.append("&muscle=").append(muscle.toLowerCase().replace(" ", "_"));
-            if (name   != null && !name.isBlank())   url.append("&name=").append(name.trim());
+            if (muscle != null && !muscle.isBlank()) url.append("&muscle=").append(java.net.URLEncoder.encode(muscle.toLowerCase().replace(" ", "_"), java.nio.charset.StandardCharsets.UTF_8));
+            if (name   != null && !name.isBlank())   url.append("&name=").append(java.net.URLEncoder.encode(name.trim(), java.nio.charset.StandardCharsets.UTF_8));
 
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Api-Key", exerciseApiKey);

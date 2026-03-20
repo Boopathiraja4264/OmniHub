@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface BackupLogRepository extends JpaRepository<BackupLog, Long> {
     List<BackupLog> findAllByOrderByBackedUpAtDesc();
     Optional<BackupLog> findTopByOrderByBackedUpAtDesc();
+    List<BackupLog> findByUserIdOrderByBackedUpAtDesc(Long userId);
+    Optional<BackupLog> findTopByUserIdOrderByBackedUpAtDesc(Long userId);
 }

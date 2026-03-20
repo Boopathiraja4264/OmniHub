@@ -100,6 +100,44 @@
         <artifactId>poi-ooxml</artifactId>
         <version>5.3.0</version>
     </dependency>
+    <!-- OAuth2 SSO (Google, GitHub, Microsoft, LinkedIn) -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-oauth2-client</artifactId>
+    </dependency>
+    <!-- TOTP 2FA -->
+    <dependency>
+        <groupId>dev.samstevens.totp</groupId>
+        <artifactId>totp</artifactId>
+        <version>1.7.1</version>
+    </dependency>
+    <!-- QR code generation for TOTP setup -->
+    <dependency>
+        <groupId>com.google.zxing</groupId>
+        <artifactId>core</artifactId>
+        <version>3.5.3</version>
+    </dependency>
+    <dependency>
+        <groupId>com.google.zxing</groupId>
+        <artifactId>javase</artifactId>
+        <version>3.5.3</version>
+    </dependency>
+    <!-- In-memory cache for OTPs and rate limiting -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-cache</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>3.1.8</version>
+    </dependency>
+    <!-- Apache Tika for MIME type detection on file uploads -->
+    <dependency>
+        <groupId>org.apache.tika</groupId>
+        <artifactId>tika-core</artifactId>
+        <version>2.9.2</version>
+    </dependency>
     </dependencies>
     <build>
         <plugins>

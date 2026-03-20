@@ -1,36 +1,26 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { transactionApi, categoryItemApi, creditCardApi, bankAccountApi } from '../../services/api';
 import FilterDropdown from '../../components/FilterDropdown';
-import { Transaction, CreditCard, BankAccount, ExpenseCategory, ExpenseItem, INCOME_CATEGORIES } from '../../types';
+import AddTransactionModal from '../../components/AddTransactionModal';
+import { Transaction, BankAccount } from '../../types';
 
 const formatCurrency = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
 
 const today = () => new Date().toISOString().split('T')[0];
 
-const emptyForm = {
-  amount: '', type: 'EXPENSE' as 'INCOME' | 'EXPENSE',
-  category: '', categoryId: '', itemName: '',
-  date: today(), notes: '',
-  paymentSource: 'BANK', cardId: '', bankAccountId: ''
-};
-
 const emptyTransfer = {
-  amount: '', date: today(), fromAccountId: '', toAccountId: '', notes: ''
+  amount: '', date: today(), fromAccountId: '', toAccountId: '', notes: '',
 };
 
 const TransactionsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
-  const [items, setItems] = useState<ExpenseItem[]>([]);
-  const [cards, setCards] = useState<CreditCard[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [defaultBankId, setDefaultBankId] = useState<number | null>(null);
 
   const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
   const [editing, setEditing] = useState<Transaction | null>(null);
-  const [form, setForm] = useState({ ...emptyForm });
-  const [loading, setLoading] = useState(false);
 
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferForm, setTransferForm] = useState({ ...emptyTransfer });
@@ -42,75 +32,19 @@ const TransactionsPage: React.FC = () => {
 
   useEffect(() => {
     load();
-    categoryItemApi.getCategories().then(r => {
-      const seen = new Set<string>();
-      setExpenseCategories(r.data.filter((c: ExpenseCategory) => seen.has(c.name) ? false : !!seen.add(c.name)));
-    });
-    creditCardApi.getAll().then(r => setCards(r.data));
+    creditCardApi.getAll().catch(() => {});
     bankAccountApi.getAll().then(r => {
       setBankAccounts(r.data);
       const def = r.data.find((b: BankAccount) => b.isDefault);
       if (def) setDefaultBankId(def.id);
-    });
+    }).catch(() => {});
+    categoryItemApi.getCategories().catch(() => {});
   }, []);
 
   const handleOpen = (type: 'INCOME' | 'EXPENSE', t?: Transaction) => {
-    setItems([]);
-    if (t) {
-      setEditing(t);
-      const cat = expenseCategories.find(c => c.name === t.category);
-      const catId = cat ? String(cat.id) : '';
-      if (catId) categoryItemApi.getItems(parseInt(catId)).then(r => setItems(r.data));
-      setForm({
-        amount: String(t.amount), type: t.type,
-        category: t.category, categoryId: catId, itemName: t.itemName || '',
-        date: t.date, notes: t.notes || '',
-        paymentSource: t.paymentSource || 'BANK',
-        cardId: t.cardId ? String(t.cardId) : '',
-        bankAccountId: t.bankAccountId ? String(t.bankAccountId) : ''
-      });
-    } else {
-      setEditing(null);
-      setForm({
-        ...emptyForm,
-        type,
-        paymentSource: type === 'INCOME' ? 'BANK' : 'BANK',
-        bankAccountId: defaultBankId ? String(defaultBankId) : '',
-      });
-    }
+    setModalType(type);
+    setEditing(t || null);
     setShowModal(true);
-  };
-
-  const handleCategoryChange = (catId: string) => {
-    const cat = expenseCategories.find(c => String(c.id) === catId);
-    setForm(f => ({ ...f, category: cat?.name || '', categoryId: catId, itemName: '' }));
-    setItems([]);
-    if (catId) categoryItemApi.getItems(parseInt(catId)).then(r => setItems(r.data));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.category) { alert('Please select a category.'); return; }
-    setLoading(true);
-    try {
-      const payload = {
-        ...form,
-        description: form.itemName ? `${form.category} – ${form.itemName}` : form.category,
-        amount: parseFloat(form.amount),
-        itemName: form.itemName || undefined,
-        paymentSource: form.type === 'INCOME' ? 'BANK' : (form.paymentSource || undefined),
-        cardId: form.cardId ? parseInt(form.cardId) : undefined,
-        bankAccountId: form.bankAccountId ? parseInt(form.bankAccountId) : undefined,
-      };
-      if (editing) await transactionApi.update(editing.id, payload);
-      else await transactionApi.create(payload);
-      setShowModal(false);
-      load();
-    } catch {
-      alert('Failed to save. Please try again.');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleTransferSubmit = async (e: React.FormEvent) => {
@@ -122,7 +56,6 @@ const TransactionsPage: React.FC = () => {
     setTransferLoading(true);
     try {
       const amt = parseFloat(transferForm.amount);
-      // Debit from source
       await transactionApi.create({
         description: 'Account Transfer Out',
         amount: amt, type: 'EXPENSE', category: 'Transfer Out',
@@ -130,7 +63,6 @@ const TransactionsPage: React.FC = () => {
         paymentSource: 'BANK',
         bankAccountId: parseInt(transferForm.fromAccountId),
       });
-      // Credit to destination
       await transactionApi.create({
         description: 'Account Transfer In',
         amount: amt, type: 'INCOME', category: 'Transfer In',
@@ -244,146 +176,16 @@ const TransactionsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Add Expense / Income Modal ── */}
-      {showModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
-          <div className="modal">
-            <div className="modal-header">
-              <h3 className="modal-title" style={{ color: form.type === 'INCOME' ? 'var(--income)' : 'var(--expense)' }}>
-                {editing ? 'Edit' : 'New'} {form.type === 'INCOME' ? 'Income' : 'Expense'}
-              </h3>
-              <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="form-grid" style={{ marginBottom: 16 }}>
+      {/* Shared Add/Edit modal */}
+      <AddTransactionModal
+        open={showModal}
+        onClose={() => { setShowModal(false); setEditing(null); }}
+        onSaved={load}
+        initialType={modalType}
+        editing={editing}
+      />
 
-                {/* Amount | Date */}
-                <div className="form-group">
-                  <label>Amount (₹)</label>
-                  <input type="number" step="0.01" min="0"
-                    value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} required />
-                </div>
-                <div className="form-group">
-                  <label>Date</label>
-                  <input type="date" value={form.date}
-                    onChange={e => setForm({ ...form, date: e.target.value })} required />
-                </div>
-
-                {/* EXPENSE: Category | Item */}
-                {form.type === 'EXPENSE' && (<>
-                  <div className="form-group">
-                    <label>Category <span style={{ color: 'var(--expense)' }}>*</span></label>
-                    <FilterDropdown
-                      value={form.categoryId}
-                      options={expenseCategories.map(c => ({ label: c.name, value: String(c.id) }))}
-                      onChange={v => handleCategoryChange(v as string)}
-                      placeholder="Select category..."
-                      fullWidth
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Item <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
-                    <FilterDropdown
-                      value={form.itemName}
-                      options={items.map(i => ({ label: i.name, value: i.name }))}
-                      onChange={v => setForm(f => ({ ...f, itemName: v as string }))}
-                      placeholder="Select item..."
-                      disabled={!form.categoryId || items.length === 0}
-                      fullWidth
-                    />
-                  </div>
-                </>)}
-
-                {/* INCOME: Category | Bank Account (side by side) */}
-                {form.type === 'INCOME' && (<>
-                  <div className="form-group">
-                    <label>Category <span style={{ color: 'var(--expense)' }}>*</span></label>
-                    <FilterDropdown
-                      value={form.category}
-                      options={INCOME_CATEGORIES.map(c => ({ label: c, value: c }))}
-                      onChange={v => setForm(f => ({ ...f, category: v as string }))}
-                      placeholder="Select category..."
-                      fullWidth
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Deposit to Account</label>
-                    <FilterDropdown
-                      value={form.bankAccountId}
-                      options={bankAccounts.map(b => ({ label: b.name + (b.bankName ? ` (${b.bankName})` : ''), value: String(b.id) }))}
-                      onChange={v => setForm(f => ({ ...f, bankAccountId: v as string }))}
-                      placeholder="Select account..."
-                      fullWidth
-                    />
-                  </div>
-                </>)}
-
-                {/* EXPENSE: Payment Source | Account or Card */}
-                {form.type === 'EXPENSE' && (<>
-                  <div className="form-group">
-                    <label>Payment Source</label>
-                    <FilterDropdown
-                      value={form.paymentSource}
-                      options={[{ label: 'Cash', value: 'CASH' }, { label: 'Bank / UPI', value: 'BANK' }, { label: 'Credit Card', value: 'CREDIT_CARD' }]}
-                      onChange={v => {
-                        const src = v as string;
-                        setForm(f => ({
-                          ...f, paymentSource: src, cardId: '',
-                          bankAccountId: src === 'BANK' ? String(defaultBankId || '') : '',
-                        }));
-                      }}
-                      fullWidth
-                    />
-                  </div>
-
-                  {form.paymentSource === 'BANK' && (
-                    <div className="form-group">
-                      <label>Bank Account</label>
-                      <FilterDropdown
-                        value={form.bankAccountId}
-                        options={bankAccounts.map(b => ({ label: b.name + (b.bankName ? ` (${b.bankName})` : ''), value: String(b.id) }))}
-                        onChange={v => setForm({ ...form, bankAccountId: v as string })}
-                        placeholder="Select account..."
-                        fullWidth
-                      />
-                    </div>
-                  )}
-
-                  {form.paymentSource === 'CREDIT_CARD' && (
-                    <div className="form-group">
-                      <label>Credit Card</label>
-                      <FilterDropdown
-                        value={form.cardId}
-                        options={cards.map(c => ({ label: c.lastFourDigits ? `${c.name} ••••${c.lastFourDigits}` : c.name, value: String(c.id) }))}
-                        onChange={v => setForm({ ...form, cardId: v as string })}
-                        placeholder="Select card..."
-                        fullWidth
-                      />
-                    </div>
-                  )}
-
-                  {form.paymentSource === 'CASH' && <div />}
-                </>)}
-
-                {/* Notes */}
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label>Notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
-                  <input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-                </div>
-
-              </div>
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Saving...' : editing ? 'Update' : (form.type === 'INCOME' ? 'Add Income' : 'Add Expense')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── Transfer Modal ── */}
+      {/* Transfer Modal */}
       {showTransferModal && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowTransferModal(false)}>
           <div className="modal">

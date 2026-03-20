@@ -3,6 +3,7 @@ import api from "../../services/api";
 import { smsApi, slackApi } from "../../services/api";
 import FilterDropdown from "../../components/FilterDropdown";
 import BackupPage from "./BackupPage";
+import AuthenticationPage from "./AuthenticationPage";
 import { useTheme } from "../../context/ThemeContext";
 import { useTranslation } from "react-i18next";
 
@@ -40,7 +41,7 @@ const Toggle: React.FC<{ value: boolean; onChange: () => void }> = ({
   </div>
 );
 
-type Tab = "appearance" | "email" | "sms" | "slack" | "backup";
+type Tab = "appearance" | "authentication" | "email" | "sms" | "slack" | "backup";
 
 const SettingsPage: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -278,11 +279,12 @@ const SettingsPage: React.FC = () => {
     );
 
   const tabs: { key: Tab; icon: string; label: string; desc: string }[] = [
-    { key: "appearance", icon: "🎨", label: t('settings.appearance'), desc: t('settings.appearanceDesc') },
-    { key: "email",      icon: "📧", label: t('settings.email'),      desc: t('settings.emailDesc') },
-    { key: "sms",        icon: "💬", label: "SMS",                    desc: "Daily summary to your phone" },
-    { key: "slack",      icon: "🟣", label: "Slack",                  desc: "Daily summary to Slack channel" },
-    { key: "backup",     icon: "☁️", label: t('settings.backup'),     desc: t('settings.backupDesc') },
+    { key: "appearance",     icon: "🎨", label: t('settings.appearance'), desc: t('settings.appearanceDesc') },
+    { key: "authentication", icon: "🔐", label: "Authentication",          desc: "Password & 2FA settings" },
+    { key: "email",          icon: "📧", label: t('settings.email'),       desc: t('settings.emailDesc') },
+    { key: "sms",            icon: "💬", label: "SMS",                     desc: "Daily summary to your phone" },
+    { key: "slack",          icon: "🟣", label: "Slack",                   desc: "Daily summary to Slack channel" },
+    { key: "backup",         icon: "☁️", label: t('settings.backup'),      desc: t('settings.backupDesc') },
   ];
 
   return (
@@ -391,6 +393,9 @@ const SettingsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Authentication tab */}
+      {activeTab === "authentication" && <AuthenticationPage />}
 
       {/* Email tab */}
       {activeTab === "email" && (
@@ -917,7 +922,7 @@ const SettingsPage: React.FC = () => {
                     label: "Transactions",
                     desc: "All income and expense records",
                   },
-                  { icon: "🎯", label: "Budgets", desc: "Monthly budget limits" },
+                  { icon: "🎯", label: "Budget & Spend", desc: "Monthly budget limits" },
                   {
                     icon: "💪",
                     label: "Workout Logs",

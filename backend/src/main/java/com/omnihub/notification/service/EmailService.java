@@ -12,6 +12,9 @@ import com.omnihub.fitness.repository.WorkoutLogRepository;
 import com.omnihub.notification.entity.EmailSettings;
 import com.omnihub.notification.repository.EmailSettingsRepository;
 // import jakarta.mail.internet.MimeMessage;
+import com.omnihub.core.util.LogMaskUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 // import org.springframework.mail.javamail.JavaMailSender;
@@ -29,6 +32,8 @@ import java.util.*;
 
 @Service
 public class EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     // @Autowired
     // private JavaMailSender mailSender;
@@ -58,16 +63,15 @@ public class EmailService {
         
         List<EmailSettings> settings = emailSettingsRepository.findAllEnabledAtTime(hour, minute);
         if (!settings.isEmpty()) {
-            System.out.println("Found " + settings.size() + " enabled email schedules at " + hour + ":" + minute);
+            log.info("Found {} enabled email schedules at {}:{}", settings.size(), hour, minute);
         }
 
         for (EmailSettings setting : settings) {
             try {
-                System.out.println("Sending scheduled email to: " + setting.getUser().getEmail());
+                log.info("Sending scheduled email to: {}", LogMaskUtil.maskEmail(setting.getUser().getEmail()));
                 sendDailyEmail(setting);
             } catch (Exception e) {
-                System.err
-                        .println("Failed to send email for: " + setting.getUser().getEmail() + " - " + e.getMessage());
+                log.error("Failed to send email for: {} - {}", LogMaskUtil.maskEmail(setting.getUser().getEmail()), e.getMessage());
             }
         }
     }
@@ -120,14 +124,19 @@ public class EmailService {
             ResponseEntity<Void> response = restTemplate.postForEntity(GRAPH_SENDMAIL_URL, request, Void.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
-                System.out.println("Email sent successfully via Graph API to: " + toEmail);
+                log.info("Email sent successfully via Graph API to: {}", LogMaskUtil.maskEmail(toEmail));
             } else {
                 throw new RuntimeException("Failed to send email via Graph API. Status: " + response.getStatusCode());
             }
         } catch (org.springframework.web.client.HttpClientErrorException e) {
-            System.err.println("Graph API Error: " + e.getResponseBodyAsString());
+            log.error("Graph API Error: {}", e.getResponseBodyAsString());
             throw new RuntimeException("Graph API Error: " + e.getResponseBodyAsString());
         }
+    }
+
+    private static String esc(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     private String buildEmailHtml(User user, EmailSettings settings) {
@@ -198,7 +207,7 @@ public class EmailService {
                         String cssClass = pct >= 80 ? "alert" : "good";
                         String icon = pct >= 80 ? "⚠️" : "✅";
                         html.append("<div class='").append(cssClass).append("'>")
-                                .append(icon).append(" <strong>").append(budget.getCategory()).append("</strong>: ₹")
+                                .append(icon).append(" <strong>").append(esc(budget.getCategory())).append("</strong>: ₹")
                                 .append(spent).append(" / ₹").append(budget.getLimitAmount())
                                 .append(" (").append(String.format("%.0f", pct)).append("%)</div>");
                     }
@@ -229,8 +238,8 @@ public class EmailService {
                 String day = today.getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH).toUpperCase();
                 Optional<WeeklyPlan> plan = weeklyPlanRepository.findByUserIdAndDayOfWeek(user.getId(), day);
                 if (plan.isPresent()) {
-                    html.append("<div class='section'><h2>📅 Today's Plan (").append(day).append(")</h2>")
-                            .append("<div class='plan'>").append(plan.get().getPlanDescription()).append("</div>")
+                    html.append("<div class='section'><h2>📅 Today's Plan (").append(esc(day)).append(")</h2>")
+                            .append("<div class='plan'>").append(esc(plan.get().getPlanDescription())).append("</div>")
                             .append("</div>");
                 }
             } catch (Exception ignored) {

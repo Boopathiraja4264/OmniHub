@@ -14,9 +14,6 @@ const fmtFull = (n: number) =>
 const statusColor = (pct: number) =>
   pct >= 100 ? 'var(--expense)' : pct >= 80 ? '#e0a030' : 'var(--income)';
 
-const pctBg = (pct: number) =>
-  pct >= 100 ? 'rgba(224,92,106,0.08)' : pct >= 80 ? 'rgba(224,160,48,0.08)' : '';
-
 // ─── Monthly Tab ──────────────────────────────────────────────────────────────
 
 interface MonthlyTabProps {

@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale,
-  LinearScale, BarElement, LineElement, PointElement, Title
+  LinearScale, BarElement, Title
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { Doughnut, Bar, Line } from 'react-chartjs-2';
+import { Doughnut, Bar } from 'react-chartjs-2';
 import { transactionApi } from '../../services/api';
 import FilterDropdown from '../../components/FilterDropdown';
 import { PivotResponse } from '../../types';
 
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, ChartDataLabels);
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, ChartDataLabels);
 
 const COLORS = ['#c9a84c','#4caf82','#e05c6a','#6a8fe8','#a874d4','#e09c5c','#5cc4e0','#e0d45c','#a8e05c','#e07a5c'];
 const SALMON = '#C0504D';
@@ -26,13 +26,6 @@ const chartOptions = {
   }
 };
 
-const doughnutOptions = {
-  responsive: true,
-  plugins: {
-    legend: { position: 'bottom' as const, labels: { color: '#8c8a96', padding: 16 } },
-    datalabels: { display: false }
-  }
-};
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -40,14 +33,12 @@ const AnalyticsPage: React.FC = () => {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
-  const [byCategory, setByCategory] = useState<Record<string, number>>({});
   const [monthlyIncome, setMonthlyIncome] = useState<Record<number, number>>({});
   const [monthlyExpenses, setMonthlyExpenses] = useState<Record<number, number>>({});
   const [topItems, setTopItems] = useState<Record<string, number>>({});
   const [pivot, setPivot] = useState<PivotResponse | null>(null);
 
   useEffect(() => {
-    transactionApi.getByCategory(month, year).then(r => setByCategory(r.data));
     transactionApi.getMonthly('INCOME', year).then(r => setMonthlyIncome(r.data));
     transactionApi.getMonthly('EXPENSE', year).then(r => setMonthlyExpenses(r.data));
     transactionApi.getTopItems(month, year).then(r => setTopItems(r.data));
@@ -76,9 +67,9 @@ const AnalyticsPage: React.FC = () => {
 
   const annualDonutOptions = useMemo(() => ({
     responsive: true,
-    cutout: '50%',
+    cutout: '52%',
     plugins: {
-      legend: { position: 'right' as const, labels: { color: '#8c8a96', padding: 12, font: { size: 11 } } },
+      legend: { display: false },
       datalabels: {
         display: true,
         color: '#fff',
@@ -129,14 +120,6 @@ const AnalyticsPage: React.FC = () => {
     layout: { padding: { top: 20 } }
   }), []);
 
-  const categoryLabels = useMemo(() => Object.keys(byCategory), [byCategory]);
-  const categoryValues = useMemo(() => Object.values(byCategory).map(Number), [byCategory]);
-
-  const doughnutData = useMemo(() => ({
-    labels: categoryLabels,
-    datasets: [{ data: categoryValues, backgroundColor: COLORS, borderWidth: 0 }]
-  }), [categoryLabels, categoryValues]);
-
   const barData = useMemo(() => ({
     labels: MONTHS,
     datasets: [
@@ -147,17 +130,6 @@ const AnalyticsPage: React.FC = () => {
       {
         label: 'Expenses', data: MONTHS.map((_, i) => Number(monthlyExpenses[i + 1] || 0)),
         backgroundColor: 'rgba(224, 92, 106, 0.7)', borderRadius: 4
-      }
-    ]
-  }), [monthlyIncome, monthlyExpenses]);
-
-  const lineData = useMemo(() => ({
-    labels: MONTHS,
-    datasets: [
-      {
-        label: 'Net Savings', fill: true,
-        data: MONTHS.map((_, i) => Number(monthlyIncome[i + 1] || 0) - Number(monthlyExpenses[i + 1] || 0)),
-        borderColor: '#c9a84c', backgroundColor: 'rgba(201, 168, 76, 0.1)', tension: 0.4
       }
     ]
   }), [monthlyIncome, monthlyExpenses]);
@@ -182,20 +154,34 @@ const AnalyticsPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="charts-grid">
-        <div className="card">
-          <h3 style={{ fontSize: 16, marginBottom: 20 }}>Expenses by Category</h3>
-          {categoryLabels.length > 0
-            ? <Doughnut data={doughnutData} options={doughnutOptions} />
-            : <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '60px 0' }}>No expense data</div>
-          }
-        </div>
+      {/* ── Expenses by Category + Expenses by Month – first ── */}
+      {pivot && pivot.categories.length > 0 && (
+        <div className="charts-grid">
+          <div className="card">
+            <h3 style={{ fontSize: 15, marginBottom: 20 }}>Expenses by Category — {year}</h3>
+            <Doughnut data={annualDonutData} options={annualDonutOptions} />
+            {/* Custom flat legend below the tilted chart */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 16px', marginTop: 20, justifyContent: 'center' }}>
+              {annualCatLabels.map((label, i) => {
+                const pct = annualTotal > 0 ? ((annualCatValues[i] / annualTotal) * 100).toFixed(1) : '0';
+                const color = (COLORS.concat(COLORS))[i];
+                return (
+                  <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#8c8a96' }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: color, flexShrink: 0 }} />
+                    {label} <span style={{ color: '#c0bccc' }}>{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
-        <div className="card">
-          <h3 style={{ fontSize: 16, marginBottom: 20 }}>Net Savings — {year}</h3>
-          <Line data={lineData} options={chartOptions} />
+          <div className="card">
+            <h3 style={{ fontSize: 15, marginBottom: 20 }}>Expenses by Month — {year}</h3>
+            <Bar data={annualBarData} options={annualBarOptions} />
+          </div>
         </div>
-      </div>
+      )}
+
 
       <div className="card">
         <h3 style={{ fontSize: 16, marginBottom: 20 }}>Income vs Expenses — {year}</h3>
@@ -213,31 +199,6 @@ const AnalyticsPage: React.FC = () => {
             options={{ ...chartOptions, indexAxis: 'y' as const, plugins: { ...chartOptions.plugins, legend: { display: false } } }}
           />
         </div>
-      )}
-
-      {/* ── Annual Summary Charts ── */}
-      {pivot && pivot.categories.length > 0 && (
-        <>
-          <div style={{ margin: '32px 0 16px', borderTop: '1px solid var(--border)', paddingTop: 28 }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-              Annual Summary — {year}
-            </h3>
-          </div>
-
-          <div className="charts-grid">
-            {/* Donut – Expenses by Category */}
-            <div className="card">
-              <h3 style={{ fontSize: 15, marginBottom: 20 }}>Expenses by Category</h3>
-              <Doughnut data={annualDonutData} options={annualDonutOptions} />
-            </div>
-
-            {/* Column – Expenses by Month */}
-            <div className="card">
-              <h3 style={{ fontSize: 15, marginBottom: 20 }}>Expenses by Month</h3>
-              <Bar data={annualBarData} options={annualBarOptions} />
-            </div>
-          </div>
-        </>
       )}
     </div>
   );

@@ -2,10 +2,22 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types';
 import { authApi } from '../services/api';
 
+export interface AuthResponse {
+  token?: string;
+  email: string;
+  fullName: string;
+  requiresEmailVerification?: boolean;
+  twoFactorRequired?: boolean;
+  twoFactorMethod?: string;
+  tempToken?: string;
+  challengeToken?: string;
+}
+
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (fullName: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<AuthResponse>;
+  register: (fullName: string, email: string, password: string) => Promise<AuthResponse>;
+  loginWithToken: (data: AuthResponse) => void;
   logout: () => void;
   loading: boolean;
 }
@@ -26,20 +38,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<AuthResponse> => {
     const { data } = await authApi.login(email, password);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('email', data.email);
-    localStorage.setItem('fullName', data.fullName);
-    setUser(data);
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('email', data.email);
+      localStorage.setItem('fullName', data.fullName);
+      setUser({ token: data.token, email: data.email, fullName: data.fullName });
+    }
+    return data;
   };
 
-  const register = async (fullName: string, email: string, password: string) => {
+  const register = async (fullName: string, email: string, password: string): Promise<AuthResponse> => {
     const { data } = await authApi.register(fullName, email, password);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('email', data.email);
-    localStorage.setItem('fullName', data.fullName);
-    setUser(data);
+    return data;
+  };
+
+  const loginWithToken = (data: AuthResponse) => {
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('email', data.email);
+      localStorage.setItem('fullName', data.fullName);
+      setUser({ token: data.token, email: data.email, fullName: data.fullName });
+    }
   };
 
   const logout = () => {
@@ -48,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, loginWithToken, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -11,6 +11,7 @@
   "home.logWeight": "+ எடை பதிவு",
   "home.logWorkout": "+ பயிற்சி பதிவு",
   "home.addTransaction": "+ பரிவர்த்தனை சேர்",
+  "home.addExpense": "+ செலவு சேர்",
 
   "drawer.weight.title": "எடை பதிவு",
   "drawer.workout.title": "பயிற்சி பதிவு",
@@ -45,7 +46,7 @@
   "nav.fitness": "உடல் நலம்",
   "nav.dashboard": "முகப்பு",
   "nav.transactions": "பரிவர்த்தனைகள்",
-  "nav.budgets": "நிதி திட்டம்",
+  "nav.budgets": "பட்ஜெட் & செலவு",
   "nav.analytics": "பகுப்பாய்வு",
   "nav.workout": "பயிற்சி பதிவு",
   "nav.exercises": "பயிற்சிகள்",

@@ -10,8 +10,11 @@ import com.omnihub.fitness.repository.StepsTargetRepository;
 import com.omnihub.fitness.repository.WeeklyPlanRepository;
 import com.omnihub.fitness.repository.WeightLogRepository;
 import com.omnihub.fitness.repository.WorkoutLogRepository;
+import com.omnihub.core.util.LogMaskUtil;
 import com.omnihub.notification.entity.SlackSettings;
 import com.omnihub.notification.repository.SlackSettingsRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -28,6 +31,8 @@ import java.util.*;
 
 @Service
 public class SlackService {
+
+    private static final Logger log = LoggerFactory.getLogger(SlackService.class);
 
     @Autowired private SlackSettingsRepository slackSettingsRepository;
     @Autowired private TransactionRepository transactionRepository;
@@ -67,7 +72,7 @@ public class SlackService {
                 Map<String, Object> payload = buildDeadlinePayload(s.getUser());
                 if (payload != null) sendWebhook(s.getWebhookUrl(), payload);
             } catch (Exception e) {
-                System.err.println("Slack deadline alert failed for " + s.getUser().getEmail() + ": " + e.getMessage());
+                log.error("Slack deadline alert failed for {}: {}", LogMaskUtil.maskEmail(s.getUser().getEmail()), e.getMessage());
             }
         }
     }
@@ -81,7 +86,7 @@ public class SlackService {
         String template = settings.getTemplate1() != null ? settings.getTemplate1() : "MORNING";
         Map<String, Object> payload = buildPayloadForTemplate(settings.getUser(), settings, template);
         sendWebhook(settings.getWebhookUrl(), payload);
-        System.out.println("Slack message sent for user: " + settings.getUser().getEmail());
+        log.info("Slack message sent for user: {}", LogMaskUtil.maskEmail(settings.getUser().getEmail()));
     }
 
     // ── Internal dispatch ────────────────────────────────────────────────────
@@ -90,9 +95,9 @@ public class SlackService {
         try {
             Map<String, Object> payload = buildPayloadForTemplate(s.getUser(), s, template);
             sendWebhook(s.getWebhookUrl(), payload);
-            System.out.println("Slack [" + template + "] sent for: " + s.getUser().getEmail());
+            log.info("Slack [{}] sent for: {}", template, LogMaskUtil.maskEmail(s.getUser().getEmail()));
         } catch (Exception e) {
-            System.err.println("Slack failed for " + s.getUser().getEmail() + ": " + e.getMessage());
+            log.error("Slack failed for {}: {}", LogMaskUtil.maskEmail(s.getUser().getEmail()), e.getMessage());
         }
     }
 

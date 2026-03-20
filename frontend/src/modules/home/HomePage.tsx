@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../../types';
-import { fetchFitnessDashboard, fetchExercises, logWeight, logWorkout, addTransaction } from './homeApi';
+import { fetchFitnessDashboard, fetchExercises, logWeight, logWorkout } from './homeApi';
+import { transactionApi, categoryItemApi, creditCardApi, bankAccountApi } from '../../services/api';
 import FilterDropdown from '../../components/FilterDropdown';
 import { getDailyKuralNum, getCachedKural, fetchKural, pickNewKuralNum, setCachedDailyNum, getExplanation } from '../../services/external/thirukkuralApi';
 import { loadBharathiPoems, getDailyBharathiIdx, pickNewBharathiIdx, setCachedDailyBharathiIdx, BharathiPoem } from '../../services/external/bharathiyarApi';
+import { ExpenseCategory, ExpenseItem, CreditCard, BankAccount } from '../../types';
 
-type DrawerType = 'weight' | 'workout' | 'transaction' | null;
+type DrawerType = 'weight' | 'workout' | 'expense' | null;
 const todayStr = () => new Date().toISOString().split('T')[0];
+
+const emptyExpense = {
+  amount: '', categoryId: '', categoryName: '', itemName: '',
+  paymentSource: 'BANK', bankAccountId: '', cardId: '',
+  date: todayStr(), notes: '',
+};
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
@@ -37,11 +44,13 @@ const HomePage: React.FC = () => {
   const [sets, setSets] = useState<any[]>([]);
   const [newSet, setNewSet] = useState({ exerciseId: '', sets: '3', reps: '', weight: '' });
 
-  // Transaction form
-  const [txForm, setTxForm] = useState({
-    description: '', amount: '', type: 'EXPENSE' as 'INCOME' | 'EXPENSE',
-    category: '', date: todayStr(), notes: '',
-  });
+  // Expense form
+  const [eForm, setEForm] = useState({ ...emptyExpense });
+  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
+  const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [cards, setCards] = useState<CreditCard[]>([]);
+  const [defaultBankId, setDefaultBankId] = useState<string>('');
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? t('greeting.morning') : hour < 17 ? t('greeting.afternoon') : t('greeting.evening');
@@ -62,6 +71,18 @@ const HomePage: React.FC = () => {
       })
       .catch(() => setBharathiError(true))
       .finally(() => setBharathiLoading(false));
+
+    // Pre-load expense data so drawer opens instantly
+    categoryItemApi.getCategories().then(r => {
+      const seen = new Set<string>();
+      setExpenseCategories(r.data.filter((c: ExpenseCategory) => seen.has(c.name) ? false : !!seen.add(c.name)));
+    }).catch(() => {});
+    creditCardApi.getAll().then(r => setCards(r.data)).catch(() => {});
+    bankAccountApi.getAll().then(r => {
+      setBankAccounts(r.data);
+      const def = r.data.find((b: BankAccount) => b.isDefault) || r.data[0];
+      if (def) setDefaultBankId(String(def.id));
+    }).catch(() => {});
   }, []);
 
   const loadKural = (num: number) => {
@@ -85,6 +106,13 @@ const HomePage: React.FC = () => {
     setBharathiPoem(bharathiPoems[idx]);
   };
 
+  // If bank accounts finish loading while expense drawer is already open, fill in the default
+  useEffect(() => {
+    if (drawer === 'expense' && eForm.paymentSource === 'BANK' && !eForm.bankAccountId && defaultBankId) {
+      setEForm(f => ({ ...f, bankAccountId: defaultBankId }));
+    }
+  }, [defaultBankId, drawer, eForm.paymentSource, eForm.bankAccountId]);
+
   const openDrawer = (type: DrawerType) => {
     setDrawerMsg(null); setSaving(false);
     if (type === 'weight') setWForm({ weight: '', date: todayStr(), notes: '' });
@@ -94,9 +122,18 @@ const HomePage: React.FC = () => {
       if (exercises.length === 0)
         fetchExercises().then(r => setExercises(r.data)).catch(() => {});
     }
-    if (type === 'transaction')
-      setTxForm({ description: '', amount: '', type: 'EXPENSE', category: '', date: todayStr(), notes: '' });
+    if (type === 'expense') {
+      setEForm({ ...emptyExpense, date: todayStr(), bankAccountId: defaultBankId });
+      setExpenseItems([]);
+    }
     setDrawer(type);
+  };
+
+  const handleExpenseCategoryChange = (catId: string) => {
+    const cat = expenseCategories.find(c => String(c.id) === catId);
+    setEForm(f => ({ ...f, categoryId: catId, categoryName: cat?.name || '', itemName: '' }));
+    setExpenseItems([]);
+    if (catId) categoryItemApi.getItems(parseInt(catId)).then(r => setExpenseItems(r.data)).catch(() => {});
   };
 
   const saveWeight = async () => {
@@ -132,20 +169,35 @@ const HomePage: React.FC = () => {
     finally { setSaving(false); }
   };
 
-  const saveTx = async () => {
-    if (!txForm.description || !txForm.amount) return;
+  const saveExpense = async () => {
+    if (!eForm.amount || !eForm.categoryName) return;
     setSaving(true); setDrawerMsg(null);
     try {
-      await addTransaction({ ...txForm, amount: parseFloat(txForm.amount) });
-      setDrawerMsg(t('drawer.savedTransaction'));
-      setTxForm({ description: '', amount: '', type: 'EXPENSE', category: '', date: todayStr(), notes: '' });
+      await transactionApi.create({
+        type: 'EXPENSE',
+        description: eForm.itemName ? `${eForm.categoryName} – ${eForm.itemName}` : eForm.categoryName,
+        category: eForm.categoryName,
+        itemName: eForm.itemName || undefined,
+        amount: parseFloat(eForm.amount),
+        date: eForm.date,
+        notes: eForm.notes || undefined,
+        paymentSource: eForm.paymentSource,
+        bankAccountId: eForm.paymentSource === 'BANK' && eForm.bankAccountId ? parseInt(eForm.bankAccountId) : undefined,
+        cardId: eForm.paymentSource === 'CREDIT_CARD' && eForm.cardId ? parseInt(eForm.cardId) : undefined,
+      });
+      setDrawerMsg('Expense saved!');
+      setEForm({ ...emptyExpense, date: todayStr(), bankAccountId: defaultBankId });
+      setExpenseItems([]);
     } catch { setDrawerMsg(t('drawer.failed')); }
     finally { setSaving(false); }
   };
 
+  const drawerTitle = drawer === 'weight' ? t('drawer.weight.title')
+    : drawer === 'workout' ? t('drawer.workout.title')
+    : 'Add Expense';
+
   const kuralLines: string[] = kuralData?.kural || [];
   const tamilExplanation = kuralData ? getExplanation(kuralData) : '';
-  const txCategories = txForm.type === 'INCOME' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   return (
     <div>
@@ -244,10 +296,10 @@ const HomePage: React.FC = () => {
       {/* Quick log links */}
       <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
         {([
-          { key: 'home.logWeight', type: 'weight' as DrawerType },
-          { key: 'home.logWorkout', type: 'workout' as DrawerType },
-          { key: 'home.addTransaction', type: 'transaction' as DrawerType },
-        ] as const).map((item, i, arr) => (
+          { label: t('home.logWeight'), type: 'weight' as DrawerType },
+          { label: t('home.logWorkout'), type: 'workout' as DrawerType },
+          { label: t('home.addExpense') || 'Add Expense', type: 'expense' as DrawerType },
+        ]).map((item, i, arr) => (
           <React.Fragment key={item.type}>
             <button
               onClick={() => openDrawer(item.type)}
@@ -255,7 +307,7 @@ const HomePage: React.FC = () => {
               onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary-light)')}
               onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
             >
-              {t(item.key)}
+              {item.label}
             </button>
             {i < arr.length - 1 && <span style={{ color: 'var(--border)', userSelect: 'none' }}>|</span>}
           </React.Fragment>
@@ -266,17 +318,18 @@ const HomePage: React.FC = () => {
       {drawer && (
         <>
           <div onClick={() => setDrawer(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 400, backdropFilter: 'blur(2px)' }} />
-          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(380px, 100vw)', background: 'var(--bg-card)', borderLeft: '1px solid var(--border)', zIndex: 401, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 40px rgba(0,0,0,0.25)', animation: 'slideInRight 0.22s ease' }}>
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(420px, 100vw)', background: 'var(--bg-card)', borderLeft: '1px solid var(--border)', zIndex: 401, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 40px rgba(0,0,0,0.25)', animation: 'slideInRight 0.22s ease' }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 22px', borderBottom: '1px solid var(--border)' }}>
               <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', fontFamily: lang === 'ta' ? "'Noto Sans Tamil', 'Latha', sans-serif" : 'inherit' }}>
-                {drawer === 'weight' ? t('drawer.weight.title') : drawer === 'workout' ? t('drawer.workout.title') : t('drawer.transaction.title')}
+                {drawerTitle}
               </span>
               <button onClick={() => setDrawer(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
             </div>
 
             {/* Body */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '22px' }}>
+
               {/* Weight */}
               {drawer === 'weight' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -353,41 +406,84 @@ const HomePage: React.FC = () => {
                 </div>
               )}
 
-              {/* Transaction */}
-              {drawer === 'transaction' && (
+              {/* Expense */}
+              {drawer === 'expense' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {(['EXPENSE', 'INCOME'] as const).map(tp => (
-                      <button key={tp} onClick={() => setTxForm(p => ({ ...p, type: tp, category: '' }))}
-                        style={{ flex: 1, padding: '8px', borderRadius: 8, border: '1.5px solid', borderColor: txForm.type === tp ? (tp === 'INCOME' ? 'var(--primary)' : 'var(--danger)') : 'var(--border)', background: txForm.type === tp ? (tp === 'INCOME' ? 'var(--primary-dim)' : 'rgba(192,57,43,0.08)') : 'var(--bg-elevated)', color: txForm.type === tp ? (tp === 'INCOME' ? 'var(--primary-light)' : 'var(--danger)') : 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'inherit' }}>
-                        {tp === 'INCOME' ? t('drawer.income') : t('drawer.expense')}
-                      </button>
-                    ))}
+                  <div className="form-group">
+                    <label className="form-label">AMOUNT (₹)</label>
+                    <input className="input" type="number" step="0.01" min="0" placeholder="0.00" autoFocus
+                      value={eForm.amount} onChange={e => setEForm(f => ({ ...f, amount: e.target.value }))} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">{t('drawer.description')}</label>
-                    <input className="input" placeholder={t('drawer.descriptionPlaceholder')} autoFocus
-                      value={txForm.description} onChange={e => setTxForm(p => ({ ...p, description: e.target.value }))} />
+                    <label className="form-label">DATE</label>
+                    <input className="input" type="date" value={eForm.date}
+                      onChange={e => setEForm(f => ({ ...f, date: e.target.value }))} />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">{t('drawer.amount')}</label>
-                    <input className="input" type="number" step="0.01" placeholder="0.00"
-                      value={txForm.amount} onChange={e => setTxForm(p => ({ ...p, amount: e.target.value }))} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">{t('drawer.category')}</label>
+                    <label className="form-label">CATEGORY <span style={{ color: 'var(--expense)' }}>*</span></label>
                     <FilterDropdown
-                      value={txForm.category}
-                      options={txCategories.map(c => ({ label: c, value: c }))}
-                      onChange={v => setTxForm(p => ({ ...p, category: v as string }))}
-                      placeholder={t('drawer.selectCategory')}
+                      value={eForm.categoryId}
+                      options={expenseCategories.map(c => ({ label: c.name, value: String(c.id) }))}
+                      onChange={v => handleExpenseCategoryChange(v as string)}
+                      placeholder="Select category..."
                       fullWidth
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">{t('drawer.date')}</label>
-                    <input className="input" type="date" value={txForm.date}
-                      onChange={e => setTxForm(p => ({ ...p, date: e.target.value }))} />
+                    <label className="form-label">ITEM <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(optional)</span></label>
+                    <FilterDropdown
+                      value={eForm.itemName}
+                      options={expenseItems.map(i => ({ label: i.name, value: i.name }))}
+                      onChange={v => setEForm(f => ({ ...f, itemName: v as string }))}
+                      placeholder="Select item..."
+                      disabled={!eForm.categoryId || expenseItems.length === 0}
+                      fullWidth
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">PAYMENT SOURCE</label>
+                    <FilterDropdown
+                      value={eForm.paymentSource}
+                      options={[
+                        { label: 'Cash', value: 'CASH' },
+                        { label: 'Bank / UPI', value: 'BANK' },
+                        { label: 'Credit Card', value: 'CREDIT_CARD' },
+                      ]}
+                      onChange={v => setEForm(f => ({
+                        ...f, paymentSource: v as string, cardId: '',
+                        bankAccountId: v === 'BANK' ? defaultBankId : '',
+                      }))}
+                      fullWidth
+                    />
+                  </div>
+                  {eForm.paymentSource === 'BANK' && (
+                    <div className="form-group">
+                      <label className="form-label">BANK ACCOUNT</label>
+                      <FilterDropdown
+                        value={eForm.bankAccountId}
+                        options={bankAccounts.map(b => ({ label: b.name + (b.bankName ? ` (${b.bankName})` : ''), value: String(b.id) }))}
+                        onChange={v => setEForm(f => ({ ...f, bankAccountId: v as string }))}
+                        placeholder="Select account..."
+                        fullWidth
+                      />
+                    </div>
+                  )}
+                  {eForm.paymentSource === 'CREDIT_CARD' && (
+                    <div className="form-group">
+                      <label className="form-label">CREDIT CARD</label>
+                      <FilterDropdown
+                        value={eForm.cardId}
+                        options={cards.map(c => ({ label: c.lastFourDigits ? `${c.name} ••••${c.lastFourDigits}` : c.name, value: String(c.id) }))}
+                        onChange={v => setEForm(f => ({ ...f, cardId: v as string }))}
+                        placeholder="Select card..."
+                        fullWidth
+                      />
+                    </div>
+                  )}
+                  <div className="form-group">
+                    <label className="form-label">NOTES <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 11 }}>(optional)</span></label>
+                    <input className="input" placeholder="Optional note..."
+                      value={eForm.notes} onChange={e => setEForm(f => ({ ...f, notes: e.target.value }))} />
                   </div>
                 </div>
               )}
@@ -403,10 +499,13 @@ const HomePage: React.FC = () => {
             <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)' }}>
               <button
                 className="btn btn-primary" style={{ width: '100%' }}
-                disabled={saving || (drawer === 'workout' && sets.length === 0)}
-                onClick={drawer === 'weight' ? saveWeight : drawer === 'workout' ? saveWorkout : saveTx}
+                disabled={saving || (drawer === 'workout' && sets.length === 0) || (drawer === 'expense' && (!eForm.amount || !eForm.categoryName))}
+                onClick={drawer === 'weight' ? saveWeight : drawer === 'workout' ? saveWorkout : saveExpense}
               >
-                {saving ? t('drawer.saving') : drawer === 'weight' ? t('drawer.saveWeight') : drawer === 'workout' ? `${t('drawer.saveWorkout')} (${sets.length})` : t('drawer.saveTransaction')}
+                {saving ? t('drawer.saving')
+                  : drawer === 'weight' ? t('drawer.saveWeight')
+                  : drawer === 'workout' ? `${t('drawer.saveWorkout')} (${sets.length})`
+                  : 'Save Expense'}
               </button>
             </div>
           </div>

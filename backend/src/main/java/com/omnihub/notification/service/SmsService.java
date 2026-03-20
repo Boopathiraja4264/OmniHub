@@ -7,8 +7,11 @@ import com.omnihub.finance.repository.TransactionRepository;
 import com.omnihub.fitness.repository.WeeklyPlanRepository;
 import com.omnihub.fitness.repository.WeightLogRepository;
 import com.omnihub.fitness.repository.WorkoutLogRepository;
+import com.omnihub.core.util.LogMaskUtil;
 import com.omnihub.notification.entity.SmsSettings;
 import com.omnihub.notification.repository.SmsSettingsRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -32,6 +35,8 @@ import java.util.Map;
 @Service
 public class SmsService {
 
+    private static final Logger log = LoggerFactory.getLogger(SmsService.class);
+
     @Value("${fast2sms.api-key:}")
     private String fast2SmsApiKey;
 
@@ -53,7 +58,7 @@ public class SmsService {
             try {
                 sendSms(settings);
             } catch (Exception e) {
-                System.err.println("SMS failed for user " + settings.getUser().getEmail() + ": " + e.getMessage());
+                log.error("SMS failed for user {}: {}", LogMaskUtil.maskEmail(settings.getUser().getEmail()), e.getMessage());
             }
         }
     }
@@ -149,6 +154,6 @@ public class SmsService {
         if (!response.getStatusCode().is2xxSuccessful()) {
             throw new RuntimeException("Fast2SMS error: " + response.getBody());
         }
-        System.out.println("SMS sent to " + phoneNumber + ": " + response.getBody());
+        log.info("SMS sent to {}", LogMaskUtil.maskPhone(phoneNumber));
     }
 }
