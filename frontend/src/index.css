@@ -503,12 +503,96 @@ select.input option { background: var(--bg-elevated); }
   color: #fff;
 }
 
+/* ─── HAMBURGER / MOBILE NAV ─────────────────── */
+.top-nav-hamburger {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 9px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+.top-nav-hamburger:hover { background: var(--bg-elevated); }
+
+.top-nav-mobile-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 498;
+  background: rgba(0,0,0,0.4);
+  animation: fadeIn 0.15s;
+}
+
+.top-nav-mobile-panel {
+  display: none;
+  position: fixed;
+  top: 58px; left: 0; right: 0; bottom: 0;
+  z-index: 499;
+  background: var(--bg-card);
+  overflow-y: auto;
+  padding: 8px 12px 40px;
+  transform: translateY(-10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.22s cubic-bezier(0.23,1,0.32,1), opacity 0.18s;
+}
+.top-nav-mobile-panel.open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.top-nav-mobile-section {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--text-muted); font-weight: 700;
+  padding: 16px 8px 8px;
+}
+
+.top-nav-mobile-link {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 10px; border-radius: 10px;
+  color: var(--text-secondary); font-size: 15px; font-weight: 500;
+  text-decoration: none; background: none; border: none;
+  width: 100%; cursor: pointer;
+  font-family: 'Space Grotesk', sans-serif;
+  transition: background 0.12s;
+}
+.top-nav-mobile-link:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.top-nav-mobile-link.active { background: var(--primary-dim); color: var(--primary-light); }
+[data-theme="light"] .top-nav-mobile-link.active { color: var(--primary-dark); }
+
+/* ─── RESPONSIVE TWO-COLUMN GRID ─────────────── */
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ─── PAGE HEADER ────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 /* ── Mobile responsive ──────────────────────────── */
 @media (max-width: 768px) {
+  /* TopNav */
+  .top-nav-links { display: none; }
+  .top-nav-user-desktop { display: none; }
+  .top-nav-hamburger { display: flex; }
+  .top-nav-mobile-overlay { display: block; }
+  .top-nav-mobile-panel { display: block; }
+
+  /* Layout */
+  .main-content { padding: 20px 12px; }
+
+  /* Page header */
   .page-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
   }
   .page-header > div {
     width: 100%;
@@ -516,30 +600,47 @@ select.input option { background: var(--bg-elevated); }
     flex-wrap: wrap;
     gap: 8px;
   }
-  .charts-grid {
-    grid-template-columns: 1fr !important;
-  }
+  .page-title { font-size: 22px; }
+
+  /* Cards */
+  .card { padding: 14px 12px; }
+  .card:hover { transform: none; box-shadow: var(--shadow); }
+  .stat-card:hover { transform: none; }
+
+  /* Stats */
+  .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .stat-card { padding: 14px; }
+  .stat-value { font-size: 22px; }
+
+  /* Charts */
+  .charts-grid { grid-template-columns: 1fr !important; }
+
+  /* Two-col grid stacks */
+  .two-col-grid { grid-template-columns: 1fr !important; }
+
+  /* Forms */
   .modal {
-    width: 96vw;
-    max-width: 96vw;
-    padding: 16px;
-    max-height: 96vh;
+    width: 96vw; max-width: 96vw;
+    padding: 16px 14px; max-height: 96vh;
+    border-radius: 16px;
   }
-  .form-grid {
-    grid-template-columns: 1fr !important;
-  }
-  .form-grid > [style*="gridColumn"] {
-    grid-column: 1 !important;
-  }
-  .card {
-    padding: 14px;
-  }
+  .form-grid { grid-template-columns: 1fr !important; }
+
+  /* Tables */
   .table-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .table th, .table td {
-    padding: 10px 10px;
-    font-size: 12px;
-  }
+  .table th, .table td { padding: 9px 10px; font-size: 12px; }
+  .table th:first-child, .table td:first-child { padding-left: 14px; }
+  .table th:last-child, .table td:last-child { padding-right: 14px; }
+
+  /* Buttons */
+  .btn { padding: 9px 16px; font-size: 13px; }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: 1fr; }
+  .top-nav-logo-text { display: none; }
 }

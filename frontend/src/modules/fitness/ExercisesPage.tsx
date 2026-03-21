@@ -20,7 +20,7 @@ const ExercisesPage: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: '', muscleGroup: 'Chest', description: '' });
 
-  const load = () => api.get('/fitness/exercises').then(r => setExercises(r.data)).catch(() => {});
+  const load = () => api.get('/fitness/exercises').then(r => setExercises(Array.isArray(r.data) ? r.data : [])).catch(() => {});
   useEffect(() => { load(); }, []);
 
   const add = async () => {

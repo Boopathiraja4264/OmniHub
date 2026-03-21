@@ -30,7 +30,7 @@ const MonthlyTab: React.FC<MonthlyTabProps> = ({ year, categories }) => {
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(() =>
-    budgetApi.getForMonth(month, year).then(r => setBudgets(r.data)),
+    budgetApi.getForMonth(month, year).then(r => setBudgets(Array.isArray(r.data) ? r.data : [])),
     [month, year]
   );
   useEffect(() => { load(); }, [load]);
@@ -100,7 +100,8 @@ const MonthlyTab: React.FC<MonthlyTabProps> = ({ year, categories }) => {
             No budgets for {MONTHS[month - 1]} {year}. Click "+ Set Budget" to start.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="table-container">
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
             <thead>
               <tr style={{ background: 'var(--bg-secondary)' }}>
                 {['Category', 'Planned', 'Utilized', 'Remaining', 'Progress', '%', ''].map((h, i) => (
@@ -156,6 +157,7 @@ const MonthlyTab: React.FC<MonthlyTabProps> = ({ year, categories }) => {
               </tr>
             </tfoot>
           </table>
+          </div>
         )}
       </div>
 
@@ -213,10 +215,10 @@ const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
   const [data, setData] = useState<PivotResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  // Per-month collapse: all months except current start collapsed
   const [collapsedMonths, setCollapsedMonths] = useState<Set<number>>(
     () => new Set(ALL_MONTHS.filter(m => m !== curMonth))
   );
+  const [colWidths, setColWidths] = useState({ category: 160, item: 160 });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -242,61 +244,153 @@ const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
       return next;
     });
 
+  const expandAllCats = () => setCollapsed(new Set());
+  const collapseAllCats = () => setCollapsed(new Set(
+    data!.categories
+      .filter(cat => cat.items.length > 1 || (cat.items.length === 1 && cat.items[0].name !== '(General)'))
+      .map(cat => cat.name)
+  ));
+  const expandAllMonths = () => setCollapsedMonths(new Set());
+  const collapseAllMonths = () => setCollapsedMonths(new Set(ALL_MONTHS));
+
+  const startResize = (col: 'category' | 'item', e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = colWidths[col];
+    const onMove = (ev: MouseEvent) =>
+      setColWidths(prev => ({ ...prev, [col]: Math.max(60, startW + ev.clientX - startX) }));
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+
+  // Header cells (month names, column labels)
   const thBase: React.CSSProperties = {
     padding: '9px 10px', fontSize: 11, fontWeight: 700,
-    background: 'var(--bg-elevated)', color: 'var(--text-primary)',
-    border: '1px solid var(--border)', whiteSpace: 'nowrap', textAlign: 'right',
+    background: 'var(--bg-elevated)', color: 'var(--text-muted)',
+    border: '1px solid var(--border)', borderBottom: '2px solid var(--primary)',
+    whiteSpace: 'nowrap', textAlign: 'right',
   };
+  // Sticky label column headers (Category / Item) — more prominent than month headers
+  const thLabel: React.CSSProperties = {
+    ...thBase,
+    background: 'var(--bg-card)',
+    color: 'var(--text-primary)',
+    fontWeight: 800,
+    fontSize: 12,
+    borderBottom: '2px solid var(--primary)',
+    borderRight: '2px solid var(--primary)',
+  };
+  // Data cells — actual number rows
   const td = (extra?: React.CSSProperties): React.CSSProperties => ({
     padding: '7px 10px', fontSize: 12, border: '1px solid var(--border)',
     whiteSpace: 'nowrap', textAlign: 'right', ...extra,
   });
+  // Category label row — group header, left-accent border
+  const tdCat = (extra?: React.CSSProperties): React.CSSProperties => ({
+    padding: '8px 10px', fontSize: 12, fontWeight: 700,
+    border: '1px solid var(--border)', borderLeft: '3px solid var(--primary)',
+    background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+    whiteSpace: 'nowrap', ...extra,
+  });
+  // Category total row
+  const tdTotal = (extra?: React.CSSProperties): React.CSSProperties => ({
+    padding: '6px 10px', fontSize: 11, fontWeight: 700,
+    border: '1px solid var(--border)', borderLeft: '3px solid var(--primary)',
+    background: 'var(--primary-dim)', color: 'var(--primary)',
+    whiteSpace: 'nowrap', textAlign: 'right', fontStyle: 'italic', ...extra,
+  });
+  // Collapsed month column cells — invisible strip, no box
   const tdCollapsed: React.CSSProperties = {
-    width: 26, maxWidth: 26, padding: 0,
-    border: '1px solid var(--border)', background: 'var(--bg-elevated)',
+    width: 18, maxWidth: 18, padding: 0,
+    border: 'none', borderRight: '1px solid var(--border)',
+    background: 'transparent',
   };
 
   if (loading) return (
     <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>Loading...</div>
   );
 
-  if (!data || data.categories.length === 0) return (
+  if (!data || !data.categories || data.categories.length === 0) return (
     <div className="card" style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
       No expense data for {year}.
     </div>
   );
 
-  const expandedCount = ALL_MONTHS.length - collapsedMonths.size;
-  const minWidth = 160 + 160 + expandedCount * 80 + collapsedMonths.size * 26 + 110;
+  const btnSm: React.CSSProperties = {
+    fontSize: 11, padding: '3px 8px', borderRadius: 5, border: '1px solid var(--border)',
+    background: 'var(--bg-secondary)', color: 'var(--text-muted)', cursor: 'pointer',
+  };
 
   return (
     <div className="card" style={{ padding: 0 }}>
+      {/* Toolbar */}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', padding: '8px 12px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 2 }}>Categories:</span>
+        <button style={btnSm} onClick={expandAllCats}>Expand All</button>
+        <button style={btnSm} onClick={collapseAllCats}>Collapse All</button>
+        <span style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 4px' }} />
+        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 2 }}>Months:</span>
+        <button style={btnSm} onClick={expandAllMonths}>Expand All</button>
+        <button style={btnSm} onClick={collapseAllMonths}>Collapse All</button>
+      </div>
       <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: Math.max(520, minWidth) }}>
+      <table style={{ borderCollapse: 'collapse', width: 'auto', minWidth: '100%' }}>
         <thead>
           <tr>
-            <th style={{ ...thBase, textAlign: 'left', minWidth: 160, position: 'sticky', left: 0, zIndex: 3 }}>
-              Category
+            <th style={{ ...thLabel, textAlign: 'left', width: colWidths.category, minWidth: colWidths.category, maxWidth: colWidths.category, position: 'sticky', left: 0, zIndex: 3, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>Category</span>
+                <div onMouseDown={e => startResize('category', e)}
+                  style={{ width: 4, cursor: 'col-resize', background: 'var(--primary)', borderRadius: 2, height: 14, flexShrink: 0, marginLeft: 4 }} />
+              </div>
             </th>
-            <th style={{ ...thBase, minWidth: 160, textAlign: 'left' }}>Item</th>
+            <th style={{ ...thLabel, textAlign: 'left', width: colWidths.item, minWidth: colWidths.item, maxWidth: colWidths.item, overflow: 'hidden', borderRight: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>Item</span>
+                <div onMouseDown={e => startResize('item', e)}
+                  style={{ width: 4, cursor: 'col-resize', background: 'var(--primary)', borderRadius: 2, height: 14, flexShrink: 0, marginLeft: 4 }} />
+              </div>
+            </th>
             {ALL_MONTHS.map(m => {
               const isCol = collapsedMonths.has(m);
+              const isCur = m === curMonth;
               return (
                 <th key={m} onClick={() => toggleMonth(m)}
                   style={{
                     ...thBase,
                     cursor: 'pointer', userSelect: 'none', textAlign: 'center',
-                    ...(isCol
-                      ? { width: 26, maxWidth: 26, padding: '9px 2px' }
-                      : { minWidth: 80 }),
+                    ...(isCol ? {
+                      width: 18, maxWidth: 18, padding: '6px 0',
+                      border: 'none', borderRight: '1px solid var(--border)',
+                      borderBottom: '2px solid var(--primary)',
+                      background: 'var(--bg-secondary)',
+                    } : {
+                      minWidth: 80,
+                      ...(isCur ? {
+                        background: 'var(--primary-dim)',
+                        color: 'var(--primary)',
+                        fontWeight: 800,
+                        borderBottom: '2px solid var(--primary)',
+                      } : {}),
+                    }),
                   }}
                 >
                   {isCol ? (
-                    <span style={{ background: 'var(--primary-dim)', color: 'var(--primary)', borderRadius: 4, padding: '1px 5px', fontWeight: 800, fontSize: 11 }}>+</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                      <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: 10 }}>+</span>
+                      <span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 8, color: 'var(--text-muted)', letterSpacing: 0.5, lineHeight: 1 }}>
+                        {MONTHS[m - 1].slice(0, 3)}
+                      </span>
+                    </div>
                   ) : (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       {MONTHS[m - 1]}
-                      <span style={{ background: 'var(--primary-dim)', color: 'var(--primary)', borderRadius: 4, padding: '0 4px', fontWeight: 800, fontSize: 11 }}>−</span>
+                      {isCur && <span style={{ fontSize: 9, fontWeight: 600, opacity: 0.7 }}>●</span>}
+                      <span style={{ background: isCur ? 'var(--primary)' : 'var(--primary-dim)', color: isCur ? 'var(--bg-card)' : 'var(--primary)', borderRadius: 4, padding: '0 4px', fontWeight: 800, fontSize: 11 }}>−</span>
                     </span>
                   )}
                 </th>
@@ -312,9 +406,9 @@ const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
             return (
               <React.Fragment key={cat.name}>
                 {/* Category row */}
-                <tr style={{ cursor: showItems ? 'pointer' : 'default', background: 'var(--bg-secondary)' }}
+                <tr style={{ cursor: showItems ? 'pointer' : 'default' }}
                   onClick={() => showItems && toggleCollapse(cat.name)}>
-                  <td style={td({ textAlign: 'left', fontWeight: 700, color: 'var(--text-primary)', background: 'var(--bg-secondary)', position: 'sticky', left: 0, zIndex: 1 })}>
+                  <td style={tdCat({ textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, width: colWidths.category, maxWidth: colWidths.category, overflow: 'hidden', textOverflow: 'ellipsis' })}>
                     {showItems && (
                       <span style={{ marginRight: 8, background: 'var(--primary-dim)', color: 'var(--primary)', borderRadius: 4, padding: '1px 6px', fontWeight: 800, fontSize: 12, lineHeight: 1.6 }}>
                         {isCollapsed ? '+' : '−'}
@@ -322,45 +416,45 @@ const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
                     )}
                     {cat.name}
                   </td>
-                  <td style={td({ textAlign: 'left', background: 'var(--bg-secondary)', color: 'var(--text-muted)', fontSize: 11 })}></td>
+                  <td style={tdCat({ textAlign: 'left', color: 'var(--text-muted)', fontSize: 11, borderLeft: '1px solid var(--border)', width: colWidths.item, maxWidth: colWidths.item, overflow: 'hidden' })}></td>
                   {ALL_MONTHS.map(m => collapsedMonths.has(m)
-                    ? <td key={m} style={{ ...tdCollapsed, background: 'var(--bg-secondary)' }} />
-                    : <td key={m} style={td({ background: 'var(--bg-secondary)', fontWeight: 600, color: 'var(--text-primary)' })}>
+                    ? <td key={m} style={tdCollapsed} />
+                    : <td key={m} style={tdCat({ borderLeft: '1px solid var(--border)', textAlign: 'right', ...(m === curMonth ? { background: 'var(--primary-dim)', color: 'var(--primary)' } : {}) })}>
                         {cat.monthlyTotals[m] ? fmt(cat.monthlyTotals[m]) : ''}
                       </td>
                   )}
-                  <td style={td({ background: 'var(--bg-secondary)', fontWeight: 700, color: 'var(--text-primary)' })}>{fmt(cat.total)}</td>
+                  <td style={tdCat({ textAlign: 'right', borderLeft: '1px solid var(--border)' })}>{fmt(cat.total)}</td>
                 </tr>
 
-                {/* Item rows */}
-                {showItems && !isCollapsed && cat.items.map(item => (
-                  <tr key={item.name} style={{ background: 'var(--bg-card)' }}>
-                    <td style={td({ textAlign: 'left', background: 'var(--bg-card)', position: 'sticky', left: 0, zIndex: 1, color: 'var(--text-muted)' })}></td>
-                    <td style={td({ textAlign: 'left', paddingLeft: 20, color: 'var(--text-primary)' })}>{item.name}</td>
+                {/* Item rows — actual data */}
+                {showItems && !isCollapsed && cat.items.map((item, idx) => (
+                  <tr key={item.name} style={{ background: idx % 2 === 0 ? 'var(--bg-card)' : 'var(--bg-secondary)' }}>
+                    <td style={td({ textAlign: 'left', background: 'inherit', position: 'sticky', left: 0, zIndex: 1, color: 'var(--text-muted)', borderLeft: '3px solid transparent', width: colWidths.category, maxWidth: colWidths.category, overflow: 'hidden' })}></td>
+                    <td style={td({ textAlign: 'left', paddingLeft: 20, color: 'var(--text-primary)', background: 'inherit', width: colWidths.item, maxWidth: colWidths.item, overflow: 'hidden', textOverflow: 'ellipsis' })}>{item.name}</td>
                     {ALL_MONTHS.map(m => collapsedMonths.has(m)
                       ? <td key={m} style={tdCollapsed} />
-                      : <td key={m} style={td({ color: 'var(--text-primary)' })}>
+                      : <td key={m} style={td({ color: m === curMonth ? 'var(--primary)' : 'var(--text-primary)', background: m === curMonth ? 'var(--primary-dim)' : 'inherit', fontWeight: m === curMonth ? 600 : undefined })}>
                           {item.months[m] ? fmt(item.months[m]) : ''}
                         </td>
                     )}
-                    <td style={td({ fontWeight: 600, color: 'var(--text-primary)' })}>{fmt(item.total)}</td>
+                    <td style={td({ fontWeight: 600, color: 'var(--text-primary)', background: 'inherit' })}>{fmt(item.total)}</td>
                   </tr>
                 ))}
 
-                {/* Category total row */}
-                {showItems && (
-                  <tr style={{ background: 'var(--primary-dim)' }}>
-                    <td style={td({ textAlign: 'left', fontWeight: 700, color: 'var(--primary)', background: 'var(--primary-dim)', position: 'sticky', left: 0, zIndex: 1, fontSize: 11 })}>
+                {/* Category total — only visible when expanded */}
+                {showItems && !isCollapsed && (
+                  <tr>
+                    <td style={tdTotal({ textAlign: 'left', position: 'sticky', left: 0, zIndex: 1, width: colWidths.category, maxWidth: colWidths.category, overflow: 'hidden', textOverflow: 'ellipsis' })}>
                       {cat.name} Total
                     </td>
-                    <td style={td({ background: 'var(--primary-dim)', color: 'var(--text-primary)' })}></td>
+                    <td style={tdTotal({ borderLeft: '1px solid var(--border)', width: colWidths.item, maxWidth: colWidths.item })}></td>
                     {ALL_MONTHS.map(m => collapsedMonths.has(m)
-                      ? <td key={m} style={{ ...tdCollapsed, background: 'var(--primary-dim)' }} />
-                      : <td key={m} style={td({ background: 'var(--primary-dim)', fontWeight: 600, color: 'var(--text-primary)' })}>
+                      ? <td key={m} style={tdCollapsed} />
+                      : <td key={m} style={tdTotal({ borderLeft: '1px solid var(--border)', ...(m === curMonth ? { background: 'var(--primary)', color: 'var(--bg-card)' } : {}) })}>
                           {cat.monthlyTotals[m] ? fmt(cat.monthlyTotals[m]) : ''}
                         </td>
                     )}
-                    <td style={td({ background: 'var(--primary-dim)', fontWeight: 700, color: 'var(--primary)' })}>{fmt(cat.total)}</td>
+                    <td style={tdTotal()}>{fmt(cat.total)}</td>
                   </tr>
                 )}
               </React.Fragment>
@@ -369,13 +463,13 @@ const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
 
           {/* Grand Total row */}
           <tr style={{ background: 'var(--bg-elevated)', borderTop: '2px solid var(--primary)' }}>
-            <td style={td({ textAlign: 'left', fontWeight: 700, background: 'var(--bg-elevated)', color: 'var(--text-primary)', position: 'sticky', left: 0, zIndex: 1, borderTop: '2px solid var(--primary)' })}>
+            <td style={td({ textAlign: 'left', fontWeight: 700, background: 'var(--bg-elevated)', color: 'var(--text-primary)', position: 'sticky', left: 0, zIndex: 1, borderTop: '2px solid var(--primary)', width: colWidths.category, maxWidth: colWidths.category, overflow: 'hidden' })}>
               Grand Total
             </td>
-            <td style={td({ background: 'var(--bg-elevated)', color: 'var(--text-primary)', borderTop: '2px solid var(--primary)' })}></td>
+            <td style={td({ background: 'var(--bg-elevated)', color: 'var(--text-primary)', borderTop: '2px solid var(--primary)', width: colWidths.item, maxWidth: colWidths.item })}></td>
             {ALL_MONTHS.map(m => collapsedMonths.has(m)
               ? <td key={m} style={{ ...tdCollapsed, borderTop: '2px solid var(--primary)' }} />
-              : <td key={m} style={td({ background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontWeight: 600, borderTop: '2px solid var(--primary)' })}>
+              : <td key={m} style={td({ background: m === curMonth ? 'var(--primary)' : 'var(--bg-elevated)', color: m === curMonth ? 'var(--bg-card)' : 'var(--text-primary)', fontWeight: 700, borderTop: '2px solid var(--primary)' })}>
                   {data.grandMonthlyTotals[m] ? fmt(data.grandMonthlyTotals[m]) : ''}
                 </td>
             )}
@@ -399,7 +493,7 @@ const BudgetsPage: React.FC = () => {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
 
   useEffect(() => {
-    categoryItemApi.getCategories().then(r => setCategories(r.data));
+    categoryItemApi.getCategories().then(r => setCategories(Array.isArray(r.data) ? r.data : []));
   }, []);
 
   return (

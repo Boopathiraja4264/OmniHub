@@ -73,7 +73,7 @@ const BankTab: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', bankName: '', accountType: 'SAVINGS', openingBalance: '', isDefault: false });
 
-  const load = () => bankAccountApi.getAll().then(r => setAccounts(r.data));
+  const load = () => bankAccountApi.getAll().then(r => setAccounts(Array.isArray(r.data) ? r.data : []));
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -249,8 +249,8 @@ const CardsTab: React.FC = () => {
   const [payForm, setPayForm] = useState({ bankAccountId: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
 
   const load = () => {
-    creditCardApi.getAll().then(r => setCards(r.data));
-    bankAccountApi.getAll().then(r => setBankAccounts(r.data));
+    creditCardApi.getAll().then(r => setCards(Array.isArray(r.data) ? r.data : []));
+    bankAccountApi.getAll().then(r => setBankAccounts(Array.isArray(r.data) ? r.data : []));
   };
   useEffect(() => { load(); }, []);
 

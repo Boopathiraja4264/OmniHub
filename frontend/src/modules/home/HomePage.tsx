@@ -17,6 +17,12 @@ const emptyExpense = {
   date: todayStr(), notes: '',
 };
 
+type ExpenseForm = typeof emptyExpense;
+interface PendingExpense extends ExpenseForm { _id: number; }
+
+const fmtAmt = (n: number) =>
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
@@ -51,6 +57,8 @@ const HomePage: React.FC = () => {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [defaultBankId, setDefaultBankId] = useState<string>('');
+  const [pendingExpenses, setPendingExpenses] = useState<PendingExpense[]>([]);
+  const [pendingNextId, setPendingNextId] = useState(0);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? t('greeting.morning') : hour < 17 ? t('greeting.afternoon') : t('greeting.evening');
@@ -74,13 +82,15 @@ const HomePage: React.FC = () => {
 
     // Pre-load expense data so drawer opens instantly
     categoryItemApi.getCategories().then(r => {
+      const arr = Array.isArray(r.data) ? r.data : [];
       const seen = new Set<string>();
-      setExpenseCategories(r.data.filter((c: ExpenseCategory) => seen.has(c.name) ? false : !!seen.add(c.name)));
+      setExpenseCategories(arr.filter((c: ExpenseCategory) => seen.has(c.name) ? false : !!seen.add(c.name)));
     }).catch(() => {});
-    creditCardApi.getAll().then(r => setCards(r.data)).catch(() => {});
+    creditCardApi.getAll().then(r => setCards(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     bankAccountApi.getAll().then(r => {
-      setBankAccounts(r.data);
-      const def = r.data.find((b: BankAccount) => b.isDefault) || r.data[0];
+      const arr: BankAccount[] = Array.isArray(r.data) ? r.data : [];
+      setBankAccounts(arr);
+      const def = arr.find((b: BankAccount) => b.isDefault) || arr[0];
       if (def) setDefaultBankId(String(def.id));
     }).catch(() => {});
   }, []);
@@ -120,11 +130,12 @@ const HomePage: React.FC = () => {
       setWorkoutDate(todayStr()); setSets([]);
       setNewSet({ exerciseId: '', sets: '3', reps: '', weight: '' });
       if (exercises.length === 0)
-        fetchExercises().then(r => setExercises(r.data)).catch(() => {});
+        fetchExercises().then(r => setExercises(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     }
     if (type === 'expense') {
       setEForm({ ...emptyExpense, date: todayStr(), bankAccountId: defaultBankId });
       setExpenseItems([]);
+      setPendingExpenses([]);
     }
     setDrawer(type);
   };
@@ -133,7 +144,23 @@ const HomePage: React.FC = () => {
     const cat = expenseCategories.find(c => String(c.id) === catId);
     setEForm(f => ({ ...f, categoryId: catId, categoryName: cat?.name || '', itemName: '' }));
     setExpenseItems([]);
-    if (catId) categoryItemApi.getItems(parseInt(catId)).then(r => setExpenseItems(r.data)).catch(() => {});
+    if (catId) categoryItemApi.getItems(parseInt(catId)).then(r => setExpenseItems(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+  };
+
+  const handleAddExpenseToList = () => {
+    if (!eForm.amount || !eForm.categoryName) return;
+    if (pendingExpenses.length >= 50) return;
+    setPendingExpenses(p => [...p, { ...eForm, _id: pendingNextId }]);
+    setPendingNextId(n => n + 1);
+    // Reset form but keep date and payment info
+    setEForm(f => ({
+      ...emptyExpense,
+      date: f.date,
+      paymentSource: f.paymentSource,
+      bankAccountId: f.bankAccountId,
+      cardId: f.cardId,
+    }));
+    setExpenseItems([]);
   };
 
   const saveWeight = async () => {
@@ -169,23 +196,26 @@ const HomePage: React.FC = () => {
     finally { setSaving(false); }
   };
 
+  const buildExpensePayload = (f: ExpenseForm) => ({
+    type: 'EXPENSE' as const,
+    description: f.itemName ? `${f.categoryName} – ${f.itemName}` : f.categoryName,
+    category: f.categoryName,
+    itemName: f.itemName || undefined,
+    amount: parseFloat(f.amount),
+    date: f.date,
+    notes: f.notes || undefined,
+    paymentSource: f.paymentSource,
+    bankAccountId: f.paymentSource === 'BANK' && f.bankAccountId ? parseInt(f.bankAccountId) : undefined,
+    cardId: f.paymentSource === 'CREDIT_CARD' && f.cardId ? parseInt(f.cardId) : undefined,
+  });
+
   const saveExpense = async () => {
-    if (!eForm.amount || !eForm.categoryName) return;
+    if (pendingExpenses.length === 0) return;
     setSaving(true); setDrawerMsg(null);
     try {
-      await transactionApi.create({
-        type: 'EXPENSE',
-        description: eForm.itemName ? `${eForm.categoryName} – ${eForm.itemName}` : eForm.categoryName,
-        category: eForm.categoryName,
-        itemName: eForm.itemName || undefined,
-        amount: parseFloat(eForm.amount),
-        date: eForm.date,
-        notes: eForm.notes || undefined,
-        paymentSource: eForm.paymentSource,
-        bankAccountId: eForm.paymentSource === 'BANK' && eForm.bankAccountId ? parseInt(eForm.bankAccountId) : undefined,
-        cardId: eForm.paymentSource === 'CREDIT_CARD' && eForm.cardId ? parseInt(eForm.cardId) : undefined,
-      });
-      setDrawerMsg('Expense saved!');
+      await Promise.all(pendingExpenses.map(p => transactionApi.create(buildExpensePayload(p))));
+      setDrawerMsg(`${pendingExpenses.length} expense${pendingExpenses.length > 1 ? 's' : ''} saved!`);
+      setPendingExpenses([]);
       setEForm({ ...emptyExpense, date: todayStr(), bankAccountId: defaultBankId });
       setExpenseItems([]);
     } catch { setDrawerMsg(t('drawer.failed')); }
@@ -485,6 +515,46 @@ const HomePage: React.FC = () => {
                     <input className="input" placeholder="Optional note..."
                       value={eForm.notes} onChange={e => setEForm(f => ({ ...f, notes: e.target.value }))} />
                   </div>
+
+                  {/* Add to list button */}
+                  <button
+                    className="btn btn-secondary"
+                    style={{ width: '100%' }}
+                    disabled={!eForm.amount || !eForm.categoryName || pendingExpenses.length >= 50}
+                    onClick={handleAddExpenseToList}
+                  >
+                    {pendingExpenses.length >= 50 ? 'Max 50 reached' : '+ Add to List'}
+                  </button>
+
+                  {/* Pending list */}
+                  {pendingExpenses.length > 0 && (
+                    <div style={{ background: 'var(--bg-elevated)', borderRadius: 10, padding: '10px 12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
+                          Queued ({pendingExpenses.length}/50)
+                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--expense)' }}>
+                          {fmtAmt(pendingExpenses.reduce((s, p) => s + parseFloat(p.amount || '0'), 0))}
+                        </span>
+                      </div>
+                      {pendingExpenses.map((p, idx) => (
+                        <div key={p._id} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '6px 4px', fontSize: 12,
+                          borderBottom: idx < pendingExpenses.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                        }}>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500, flex: 1, marginRight: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {p.categoryName}{p.itemName ? ` / ${p.itemName}` : ''}
+                          </span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                            <span style={{ fontWeight: 700, color: 'var(--expense)' }}>{fmtAmt(parseFloat(p.amount))}</span>
+                            <button onClick={() => setPendingExpenses(prev => prev.filter(x => x._id !== p._id))}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -499,13 +569,14 @@ const HomePage: React.FC = () => {
             <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)' }}>
               <button
                 className="btn btn-primary" style={{ width: '100%' }}
-                disabled={saving || (drawer === 'workout' && sets.length === 0) || (drawer === 'expense' && (!eForm.amount || !eForm.categoryName))}
+                disabled={saving || (drawer === 'workout' && sets.length === 0) || (drawer === 'expense' && pendingExpenses.length === 0)}
                 onClick={drawer === 'weight' ? saveWeight : drawer === 'workout' ? saveWorkout : saveExpense}
               >
                 {saving ? t('drawer.saving')
                   : drawer === 'weight' ? t('drawer.saveWeight')
                   : drawer === 'workout' ? `${t('drawer.saveWorkout')} (${sets.length})`
-                  : 'Save Expense'}
+                  : pendingExpenses.length === 0 ? 'Add to List first'
+                  : `Save All (${pendingExpenses.length})`}
               </button>
             </div>
           </div>

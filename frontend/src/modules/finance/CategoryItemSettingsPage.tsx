@@ -11,12 +11,28 @@ const CategoryItemSettingsPage: React.FC = () => {
   const [addingCat, setAddingCat] = useState(false);
   const [addingItem, setAddingItem] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [deduping, setDeduping] = useState(false);
+  const [catError, setCatError] = useState<string | null>(null);
+  const [itemError, setItemError] = useState<string | null>(null);
 
-  const loadAll = () =>
-    Promise.all([
-      categoryItemApi.getCategories().then(r => setCategories(r.data)),
-      categoryItemApi.getAll().then(r => setItems(r.data))
-    ]);
+  const loadAll = async () => {
+    const cats = await categoryItemApi.getCategories();
+    setCategories(Array.isArray(cats.data) ? cats.data : []);
+    const all = await categoryItemApi.getAll();
+    setItems(Array.isArray(all.data) ? all.data : []);
+  };
+
+  const handleDeduplicate = async () => {
+    if (!window.confirm('Remove all duplicate categories and their items? Custom categories will be kept.')) return;
+    setDeduping(true);
+    try {
+      const r = await categoryItemApi.deduplicate();
+      await loadAll();
+      alert(`Done — removed ${r.data.removed} duplicate(s).`);
+    } finally {
+      setDeduping(false);
+    }
+  };
 
   const handleReset = async () => {
     if (!window.confirm('This will delete ALL your categories and items and restore the default list. Continue?')) return;
@@ -42,13 +58,14 @@ const CategoryItemSettingsPage: React.FC = () => {
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
+    setCatError(null);
     setAddingCat(true);
     try {
       await categoryItemApi.addCategory(newCatName.trim());
       setNewCatName('');
       loadAll();
-    } catch {
-      // add failed
+    } catch (err: any) {
+      setCatError(err?.response?.data?.message || err?.message || 'Failed to add category');
     } finally {
       setAddingCat(false);
     }
@@ -64,13 +81,14 @@ const CategoryItemSettingsPage: React.FC = () => {
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim() || !selectedCatId) return;
+    setItemError(null);
     setAddingItem(true);
     try {
       await categoryItemApi.addItem(newItemName.trim(), selectedCatId);
       setNewItemName('');
       loadAll();
-    } catch {
-      // add failed
+    } catch (err: any) {
+      setItemError(err?.response?.data?.message || err?.message || 'Failed to add item');
     } finally {
       setAddingItem(false);
     }
@@ -87,17 +105,27 @@ const CategoryItemSettingsPage: React.FC = () => {
     <div>
       <div className="page-header">
         <h2 className="page-title">Categories & Items</h2>
-        <button
-          className="btn btn-danger btn-sm"
-          onClick={handleReset}
-          disabled={resetting}
-          title="Wipe all categories & items and restore defaults"
-        >
-          {resetting ? 'Resetting...' : 'Reset to Defaults'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={handleDeduplicate}
+            disabled={deduping}
+            title="Remove duplicate categories keeping custom ones"
+          >
+            {deduping ? 'Deduplicating...' : 'Fix Duplicates'}
+          </button>
+          <button
+            className="btn btn-danger btn-sm"
+            onClick={handleReset}
+            disabled={resetting}
+            title="Wipe all categories & items and restore defaults"
+          >
+            {resetting ? 'Resetting...' : 'Reset to Defaults'}
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div className="two-col-grid">
         {/* Categories */}
         <div className="card">
           <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, color: 'var(--text-primary)' }}>
@@ -107,17 +135,18 @@ const CategoryItemSettingsPage: React.FC = () => {
             </span>
           </h3>
 
-          <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: 8, marginBottom: catError ? 8 : 16 }}>
             <input
               value={newCatName}
-              onChange={e => setNewCatName(e.target.value)}
+              onChange={e => { setNewCatName(e.target.value); setCatError(null); }}
               placeholder="New category name..."
               style={{ flex: 1 }}
             />
             <button type="submit" className="btn btn-primary btn-sm" disabled={addingCat || !newCatName.trim()}>
-              Add
+              {addingCat ? 'Adding...' : 'Add'}
             </button>
           </form>
+          {catError && <div style={{ color: 'var(--expense)', fontSize: 12, marginBottom: 12 }}>{catError}</div>}
 
           <div style={{ maxHeight: 420, overflowY: 'auto' }}>
             {categories.map(c => (
@@ -165,17 +194,20 @@ const CategoryItemSettingsPage: React.FC = () => {
           </p>
 
           {selectedCatId && (
-            <form onSubmit={handleAddItem} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-              <input
-                value={newItemName}
-                onChange={e => setNewItemName(e.target.value)}
-                placeholder="New item name..."
-                style={{ flex: 1 }}
-              />
-              <button type="submit" className="btn btn-primary btn-sm" disabled={addingItem || !newItemName.trim()}>
-                Add
-              </button>
-            </form>
+            <>
+              <form onSubmit={handleAddItem} style={{ display: 'flex', gap: 8, marginBottom: itemError ? 8 : 16 }}>
+                <input
+                  value={newItemName}
+                  onChange={e => { setNewItemName(e.target.value); setItemError(null); }}
+                  placeholder="New item name..."
+                  style={{ flex: 1 }}
+                />
+                <button type="submit" className="btn btn-primary btn-sm" disabled={addingItem || !newItemName.trim()}>
+                  {addingItem ? 'Adding...' : 'Add'}
+                </button>
+              </form>
+              {itemError && <div style={{ color: 'var(--expense)', fontSize: 12, marginBottom: 12 }}>{itemError}</div>}
+            </>
           )}
 
           <div style={{ maxHeight: 420, overflowY: 'auto' }}>

@@ -45,7 +45,7 @@ const WeeklyPlanPage: React.FC = () => {
   const todayIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
   const today = DAYS[todayIdx];
 
-  const load = () => api.get('/fitness/weekly-plan').then(r => setPlans(r.data)).catch(() => {});
+  const load = () => api.get('/fitness/weekly-plan').then(r => setPlans(Array.isArray(r.data) ? r.data : [])).catch(() => {});
   useEffect(() => { load(); setExpanded(today); }, [today]);  // auto-open today
 
   useEffect(() => {

@@ -57,19 +57,21 @@ const FitnessDashboard: React.FC = () => {
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               {muscles.map((m: any) => <span key={m} className="badge badge-warning">{m}</span>)}
             </div>
-            <table className="table">
-              <thead><tr><th>Exercise</th><th>Reps</th><th>Weight</th><th>Notes</th></tr></thead>
-              <tbody>
-                {todayWorkout.sets.map((s: any) => (
-                  <tr key={s.id}>
-                    <td>{s.exerciseName}</td>
-                    <td>{s.reps}</td>
-                    <td>{s.weight ? `${s.weight} kg` : 'BW'}</td>
-                    <td>{s.notes || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="table-container">
+              <table className="table">
+                <thead><tr><th>Exercise</th><th>Reps</th><th>Weight</th><th>Notes</th></tr></thead>
+                <tbody>
+                  {todayWorkout.sets.map((s: any) => (
+                    <tr key={s.id}>
+                      <td>{s.exerciseName}</td>
+                      <td>{s.reps}</td>
+                      <td>{s.weight ? `${s.weight} kg` : 'BW'}</td>
+                      <td>{s.notes || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </>
         ) : (
           <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>

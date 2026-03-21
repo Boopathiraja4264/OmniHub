@@ -1,7 +1,9 @@
 package com.omnihub.core.config;
 
+import com.omnihub.core.security.CookieOAuth2AuthorizationRequestRepository;
 import com.omnihub.core.security.JwtFilter;
 import com.omnihub.core.security.OAuth2SuccessHandler;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -28,8 +31,14 @@ public class SecurityConfig {
     private final JwtFilter jwtFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
+    @Autowired
+    private CookieOAuth2AuthorizationRequestRepository cookieAuthRequestRepository;
+
     @Value("${app.cors.allowed-origins:http://localhost:3000}")
     private String allowedOrigins;
+
+    @Value("${app.base-url:http://localhost:3000}")
+    private String appBaseUrl;
 
     public SecurityConfig(JwtFilter jwtFilter, OAuth2SuccessHandler oAuth2SuccessHandler) {
         this.jwtFilter = jwtFilter;
@@ -51,9 +60,19 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
+            .exceptionHandling(ex -> ex
+                .defaultAuthenticationEntryPointFor(
+                    (request, response, authException) ->
+                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"),
+                    request -> request.getRequestURI().startsWith("/api/")
+                )
+            )
             .oauth2Login(oauth -> oauth
+                .authorizationEndpoint(auth -> auth
+                    .authorizationRequestRepository(cookieAuthRequestRepository))
                 .successHandler(oAuth2SuccessHandler)
-                .failureUrl("/login?error=oauth_failed")
+                .failureHandler((request, response, exception) ->
+                    response.sendRedirect(appBaseUrl + "/login?error=oauth_failed"))
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

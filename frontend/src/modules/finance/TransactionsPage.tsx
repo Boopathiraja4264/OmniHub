@@ -28,14 +28,15 @@ const TransactionsPage: React.FC = () => {
 
   const [filter, setFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
 
-  const load = () => transactionApi.getAll().then(r => setTransactions(r.data));
+  const load = () => transactionApi.getAll().then(r => setTransactions(Array.isArray(r.data) ? r.data : []));
 
   useEffect(() => {
     load();
     creditCardApi.getAll().catch(() => {});
     bankAccountApi.getAll().then(r => {
-      setBankAccounts(r.data);
-      const def = r.data.find((b: BankAccount) => b.isDefault);
+      const arr: BankAccount[] = Array.isArray(r.data) ? r.data : [];
+      setBankAccounts(arr);
+      const def = arr.find((b: BankAccount) => b.isDefault);
       if (def) setDefaultBankId(def.id);
     }).catch(() => {});
     categoryItemApi.getCategories().catch(() => {});

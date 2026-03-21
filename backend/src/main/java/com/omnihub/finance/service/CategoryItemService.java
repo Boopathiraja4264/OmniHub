@@ -143,11 +143,35 @@ public class CategoryItemService {
     @Transactional
     public List<ItemResponse> getAllItems(String email) {
         User user = getUser(email);
-        seedIfEmpty(email);
         return itemRepo.findAllByUserIdWithCategory(user.getId())
                 .stream().map(i -> new ItemResponse(i.getId(), i.getName(),
                         i.getCategory().getId(), i.getCategory().getName()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Removes duplicate categories (same name, keeps lowest id) and their orphaned items.
+     * Items belonging to kept categories are re-assigned if needed.
+     */
+    @Transactional
+    public int deduplicateCategories(String email) {
+        User user = getUser(email);
+        List<ExpenseCategory> all = categoryRepo.findByUserIdOrderByNameAsc(user.getId());
+        Map<String, Long> keepIds = new LinkedHashMap<>();
+        List<Long> deleteIds = new ArrayList<>();
+        for (ExpenseCategory c : all) {
+            String key = c.getName().trim().toLowerCase();
+            if (!keepIds.containsKey(key)) {
+                keepIds.put(key, c.getId());
+            } else {
+                deleteIds.add(c.getId());
+            }
+        }
+        for (Long dupId : deleteIds) {
+            itemRepo.findByCategoryId(dupId).forEach(itemRepo::delete);
+            categoryRepo.deleteById(dupId);
+        }
+        return deleteIds.size();
     }
 
     @Transactional

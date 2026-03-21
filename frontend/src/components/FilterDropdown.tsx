@@ -53,6 +53,7 @@ const FilterDropdown: React.FC<Props> = ({ value, options, onChange, placeholder
       {/* Trigger */}
       <button
         ref={btnRef}
+        type="button"
         onClick={() => { if (!disabled) setOpen(o => !o); }}
         disabled={disabled}
         style={{

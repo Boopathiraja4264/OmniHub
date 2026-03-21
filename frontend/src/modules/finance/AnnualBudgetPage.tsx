@@ -40,7 +40,7 @@ const AnnualBudgetPage: React.FC = () => {
     budgetApi.getAnnual(y).then(r => setData(r.data)).catch(() => setData(null));
 
   useEffect(() => { load(year); }, [year]);
-  useEffect(() => { categoryItemApi.getCategories().then(r => setCategories(r.data)); }, []);
+  useEffect(() => { categoryItemApi.getCategories().then(r => setCategories(Array.isArray(r.data) ? r.data : [])); }, []);
   useEffect(() => {
     if (editingCell) editInputRef.current?.focus();
   }, [editingCell]);

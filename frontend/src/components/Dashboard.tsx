@@ -16,7 +16,7 @@ const Dashboard: React.FC = () => {
 
   const refreshData = () => {
     transactionApi.getSummary().then((r: { data: Summary }) => setSummary(r.data)).catch(() => {});
-    transactionApi.getRecent().then((r: { data: Transaction[] }) => setRecent(r.data)).catch(() => {});
+    transactionApi.getRecent().then((r: { data: any }) => setRecent(Array.isArray(r.data) ? r.data : [])).catch(() => {});
   };
 
   useEffect(() => { refreshData(); }, []);

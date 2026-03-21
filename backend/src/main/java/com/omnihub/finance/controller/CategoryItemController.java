@@ -60,4 +60,10 @@ public class CategoryItemController {
         service.resetAndReseed(user.getUsername());
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/categories/deduplicate")
+    public ResponseEntity<java.util.Map<String, Integer>> deduplicateCategories(@AuthenticationPrincipal UserDetails user) {
+        int removed = service.deduplicateCategories(user.getUsername());
+        return ResponseEntity.ok(java.util.Map.of("removed", removed));
+    }
 }

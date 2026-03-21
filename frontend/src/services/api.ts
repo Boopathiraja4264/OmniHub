@@ -137,6 +137,7 @@ export const categoryItemApi = {
     api.post("/finance/items", { name, categoryId }),
   deleteItem: (id: number) => api.delete(`/finance/items/${id}`),
   reset: () => api.post("/finance/categories/reset"),
+  deduplicate: () => api.post("/finance/categories/deduplicate"),
 };
 
 export const notificationApi = {

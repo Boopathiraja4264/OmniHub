@@ -17,8 +17,8 @@ const VehicleLogPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
 
   const loadAll = () => Promise.all([
-    vehicleApi.getAll().then(r => setVehicles(r.data)),
-    vehicleApi.getLogs().then(r => setLogs(r.data)),
+    vehicleApi.getAll().then(r => setVehicles(Array.isArray(r.data) ? r.data : [])),
+    vehicleApi.getLogs().then(r => setLogs(Array.isArray(r.data) ? r.data : [])),
   ]);
 
   useEffect(() => { loadAll(); }, []);
