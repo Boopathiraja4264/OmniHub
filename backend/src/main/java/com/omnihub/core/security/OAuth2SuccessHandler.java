@@ -86,6 +86,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
     private String extractEmail(Map<String, Object> attrs) {
         if (attrs.containsKey("email")) return (String) attrs.get("email");
+        if (attrs.containsKey("preferred_username")) return (String) attrs.get("preferred_username"); // Microsoft
         return null;
     }
 

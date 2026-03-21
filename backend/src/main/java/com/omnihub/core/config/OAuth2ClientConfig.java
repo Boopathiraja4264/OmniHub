@@ -71,11 +71,11 @@ public class OAuth2ClientConfig {
                     .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                     .redirectUri("{baseUrl}/login/oauth2/code/microsoft-sso")
                     .scope("openid", "profile", "email")
-                    .authorizationUri("https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize")
-                    .tokenUri("https://login.microsoftonline.com/consumers/oauth2/v2.0/token")
+                    .authorizationUri("https://login.microsoftonline.com/common/oauth2/v2.0/authorize")
+                    .tokenUri("https://login.microsoftonline.com/common/oauth2/v2.0/token")
                     .userInfoUri("https://graph.microsoft.com/oidc/userinfo")
                     .userNameAttributeName("email")
-                    .jwkSetUri("https://login.microsoftonline.com/consumers/discovery/v2.0/keys")
+                    .jwkSetUri("https://login.microsoftonline.com/common/discovery/v2.0/keys")
                     .clientName("Microsoft")
                     .build());
         }
