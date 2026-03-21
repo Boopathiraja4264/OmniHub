@@ -21,6 +21,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,6 +31,7 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
     private final JwtFilter jwtFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
@@ -71,8 +75,10 @@ public class SecurityConfig {
                 .authorizationEndpoint(auth -> auth
                     .authorizationRequestRepository(cookieAuthRequestRepository))
                 .successHandler(oAuth2SuccessHandler)
-                .failureHandler((request, response, exception) ->
-                    response.sendRedirect(appBaseUrl + "/login?error=oauth_failed"))
+                .failureHandler((request, response, exception) -> {
+                    log.error("OAuth2 login failed: {}", exception.getMessage(), exception);
+                    response.sendRedirect(appBaseUrl + "/login?error=oauth_failed");
+                })
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
