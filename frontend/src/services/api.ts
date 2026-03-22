@@ -11,9 +11,10 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
+      const isSessionCheck = err.config?.url?.endsWith('/auth/me');
       const publicPaths = ['/login', '/register', '/reset-password', '/oauth-callback'];
       const isPublic = publicPaths.some(p => window.location.pathname.startsWith(p));
-      if (!isPublic) window.location.href = "/login";
+      if (!isPublic && !isSessionCheck) window.location.href = "/login";
     }
     return Promise.reject(err);
   },
