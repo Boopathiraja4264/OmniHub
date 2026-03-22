@@ -3,7 +3,6 @@ package com.omnihub.fitness.service;
 import com.omnihub.fitness.entity.*;
 import com.omnihub.fitness.repository.*;
 import com.omnihub.core.entity.User;
-import com.omnihub.core.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +24,6 @@ public class FitnessService {
     private WeightLogRepository weightLogRepository;
     @Autowired
     private com.omnihub.core.repository.UserRepository userRepository;
-    @Autowired
-    private JwtUtil jwtUtil;
 
     private User getUser(String email) {
         return userRepository.findByEmail(email)

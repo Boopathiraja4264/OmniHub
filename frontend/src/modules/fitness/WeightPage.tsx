@@ -46,7 +46,7 @@ const WeightPage: React.FC = () => {
 
   // All calculations run in the browser — zero server CPU
   const stats = useMemo(() => {
-    if (!rawStats || !setupForm.goalWeight) return null;
+    if (!rawStats || !rawStats.days || !setupForm.goalWeight) return null;
 
     const goalWeight = parseFloat(setupForm.goalWeight) || null;
     const startWeight = parseFloat(setupForm.startWeight) || null;

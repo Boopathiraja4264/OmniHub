@@ -25,6 +25,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.annotation.Order;
 
 import java.util.Arrays;
 import java.util.List;
@@ -55,9 +56,12 @@ public class SecurityConfig {
         this.rateLimitFilter = rateLimitFilter;
     }
 
+    // Chain 1: JWT-only for all /api/** — never redirects, always returns 401 JSON
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
         http
+            .securityMatcher("/api/**")
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -68,8 +72,6 @@ public class SecurityConfig {
                     "/api/auth/forgot-password", "/api/auth/reset-password",
                     "/api/auth/2fa/verify", "/api/auth/oauth/exchange"
                 ).permitAll()
-                .requestMatchers("/oauth2/**", "/login/oauth2/**", "/auth/callback", "/auth/login").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex
@@ -79,6 +81,24 @@ public class SecurityConfig {
                     response.getWriter().write("{\"error\":\"Unauthorized\"}");
                 })
             )
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    // Chain 2: OAuth2 login flow for SSO paths
+    @Bean
+    @Order(2)
+    public SecurityFilterChain oauthFilterChain(HttpSecurity http) throws Exception {
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/oauth2/**", "/login/oauth2/**", "/auth/callback", "/auth/login", "/actuator/health").permitAll()
+                .anyRequest().authenticated()
+            )
             .oauth2Login(oauth -> oauth
                 .authorizationEndpoint(auth -> auth
                     .authorizationRequestRepository(cookieAuthRequestRepository))
@@ -87,9 +107,7 @@ public class SecurityConfig {
                     log.error("OAuth2 login failed: {}", exception.getMessage(), exception);
                     response.sendRedirect(appBaseUrl + "/login?error=oauth_failed");
                 })
-            )
-            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+            );
 
         return http.build();
     }

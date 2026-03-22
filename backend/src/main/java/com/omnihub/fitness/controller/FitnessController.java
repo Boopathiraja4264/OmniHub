@@ -1,10 +1,10 @@
 package com.omnihub.fitness.controller;
 
 import com.omnihub.fitness.service.FitnessService;
-import com.omnihub.core.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import java.time.LocalDate;
@@ -16,17 +16,11 @@ public class FitnessController {
 
     @Autowired
     private FitnessService fitnessService;
-    @Autowired
-    private JwtUtil jwtUtil;
 
     @Value("${exercise.api-key:}")
     private String exerciseApiKey;
 
     private final RestTemplate restTemplate = new RestTemplate();
-
-    private String getEmail(String authHeader) {
-        return jwtUtil.extractUsername(authHeader.substring(7));
-    }
 
     // ── EXERCISES ──────────────────────────────────────────────────────────────
 
@@ -56,97 +50,97 @@ public class FitnessController {
 
     // ── WEEKLY PLAN ────────────────────────────────────────────────────────────
     @GetMapping("/weekly-plan")
-    public ResponseEntity<?> getWeeklyPlan(@RequestHeader("Authorization") String auth) {
-        return ResponseEntity.ok(fitnessService.getWeeklyPlan(getEmail(auth)));
+    public ResponseEntity<?> getWeeklyPlan(Authentication auth) {
+        return ResponseEntity.ok(fitnessService.getWeeklyPlan(auth.getName()));
     }
 
     @PostMapping("/weekly-plan")
-    public ResponseEntity<?> saveWeeklyPlan(@RequestHeader("Authorization") String auth,
+    public ResponseEntity<?> saveWeeklyPlan(Authentication auth,
             @RequestBody Map<String, Object> body) {
-        return ResponseEntity.ok(fitnessService.saveWeeklyPlan(getEmail(auth), body));
+        return ResponseEntity.ok(fitnessService.saveWeeklyPlan(auth.getName(), body));
     }
 
     @DeleteMapping("/weekly-plan/{id}")
-    public ResponseEntity<?> deleteWeeklyPlan(@RequestHeader("Authorization") String auth,
+    public ResponseEntity<?> deleteWeeklyPlan(Authentication auth,
             @PathVariable Long id) {
-        fitnessService.deleteWeeklyPlan(getEmail(auth), id);
+        fitnessService.deleteWeeklyPlan(auth.getName(), id);
         return ResponseEntity.ok().build();
     }
 
     // achivable weight goal weeks
     @GetMapping("/weight/achieved-weeks")
-    public ResponseEntity<?> getAchievedWeeks(@RequestHeader("Authorization") String auth) {
-        return ResponseEntity.ok(fitnessService.getAchievedWeeks(getEmail(auth)));
+    public ResponseEntity<?> getAchievedWeeks(Authentication auth) {
+        return ResponseEntity.ok(fitnessService.getAchievedWeeks(auth.getName()));
     }
 
     @PostMapping("/weight/achieved-weeks")
-    public ResponseEntity<?> saveAchievedWeeks(@RequestHeader("Authorization") String auth,
+    public ResponseEntity<?> saveAchievedWeeks(Authentication auth,
             @RequestBody Map<String, Object> body) {
         @SuppressWarnings("unchecked")
         List<Integer> weeks = (List<Integer>) body.get("achievedWeeks");
-        return ResponseEntity.ok(fitnessService.saveAchievedWeeks(getEmail(auth), weeks));
+        return ResponseEntity.ok(fitnessService.saveAchievedWeeks(auth.getName(), weeks));
     }
 
     // ── WORKOUTS ───────────────────────────────────────────────────────────────
     @GetMapping("/workouts")
-    public ResponseEntity<?> getWorkouts(@RequestHeader("Authorization") String auth) {
-        return ResponseEntity.ok(fitnessService.getWorkouts(getEmail(auth)));
+    public ResponseEntity<?> getWorkouts(Authentication auth) {
+        return ResponseEntity.ok(fitnessService.getWorkouts(auth.getName()));
     }
 
     @GetMapping("/workouts/date/{date}")
-    public ResponseEntity<?> getWorkoutByDate(@RequestHeader("Authorization") String auth,
+    public ResponseEntity<?> getWorkoutByDate(Authentication auth,
             @PathVariable String date) {
-        Object result = fitnessService.getWorkoutByDate(getEmail(auth), LocalDate.parse(date));
+        Object result = fitnessService.getWorkoutByDate(auth.getName(), LocalDate.parse(date));
         return ResponseEntity.ok(result != null ? result : Collections.emptyMap());
     }
 
     @PostMapping("/workouts")
-    public ResponseEntity<?> saveWorkout(@RequestHeader("Authorization") String auth,
+    public ResponseEntity<?> saveWorkout(Authentication auth,
             @RequestBody Map<String, Object> body) {
-        return ResponseEntity.ok(fitnessService.saveWorkout(getEmail(auth), body));
+        return ResponseEntity.ok(fitnessService.saveWorkout(auth.getName(), body));
     }
 
     // ── WEIGHT ─────────────────────────────────────────────────────────────────
     @GetMapping("/weight")
-    public ResponseEntity<?> getWeights(@RequestHeader("Authorization") String auth) {
-        return ResponseEntity.ok(fitnessService.getWeights(getEmail(auth)));
+    public ResponseEntity<?> getWeights(Authentication auth) {
+        return ResponseEntity.ok(fitnessService.getWeights(auth.getName()));
     }
 
     @PostMapping("/weight")
-    public ResponseEntity<?> saveWeight(@RequestHeader("Authorization") String auth,
+    public ResponseEntity<?> saveWeight(Authentication auth,
             @RequestBody Map<String, Object> body) {
-        return ResponseEntity.ok(fitnessService.saveWeight(getEmail(auth), body));
+        return ResponseEntity.ok(fitnessService.saveWeight(auth.getName(), body));
     }
 
     @DeleteMapping("/weight/{id}")
-    public ResponseEntity<?> deleteWeight(@RequestHeader("Authorization") String auth,
+    public ResponseEntity<?> deleteWeight(Authentication auth,
             @PathVariable Long id) {
-        fitnessService.deleteWeight(getEmail(auth), id);
+        fitnessService.deleteWeight(auth.getName(), id);
         return ResponseEntity.ok().build();
     }
 
     // ── WEIGHT SETUP ───────────────────────────────────────────────────────────
     @GetMapping("/weight/setup")
-    public ResponseEntity<?> getWeightSetup(@RequestHeader("Authorization") String auth) {
-        return ResponseEntity.ok(fitnessService.getWeightSetup(getEmail(auth)));
+    public ResponseEntity<?> getWeightSetup(Authentication auth) {
+        return ResponseEntity.ok(fitnessService.getWeightSetup(auth.getName()));
     }
 
     @PostMapping("/weight/setup")
-    public ResponseEntity<?> saveWeightSetup(@RequestHeader("Authorization") String auth,
+    public ResponseEntity<?> saveWeightSetup(Authentication auth,
             @RequestBody Map<String, Object> body) {
-        return ResponseEntity.ok(fitnessService.saveWeightSetup(getEmail(auth), body));
+        return ResponseEntity.ok(fitnessService.saveWeightSetup(auth.getName(), body));
     }
 
     // ── WEIGHT STATS ───────────────────────────────────────────────────────────
     @GetMapping("/weight/stats")
-    public ResponseEntity<?> getWeightStats(@RequestHeader("Authorization") String auth,
+    public ResponseEntity<?> getWeightStats(Authentication auth,
             @RequestParam String month) {
-        return ResponseEntity.ok(fitnessService.getWeightStats(getEmail(auth), month));
+        return ResponseEntity.ok(fitnessService.getWeightStats(auth.getName(), month));
     }
 
     // ── DASHBOARD ──────────────────────────────────────────────────────────────
     @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboard(@RequestHeader("Authorization") String auth) {
-        return ResponseEntity.ok(fitnessService.getDashboard(getEmail(auth)));
+    public ResponseEntity<?> getDashboard(Authentication auth) {
+        return ResponseEntity.ok(fitnessService.getDashboard(auth.getName()));
     }
 }
