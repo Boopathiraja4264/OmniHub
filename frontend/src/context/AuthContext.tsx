@@ -28,23 +28,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // On app load: rehydrate session from HttpOnly cookie via /api/auth/me
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const email = localStorage.getItem('email');
-    const fullName = localStorage.getItem('fullName');
-    if (token && email && fullName) {
-      setUser({ token, email, fullName });
-    }
-    setLoading(false);
+    authApi.getMe()
+      .then(r => {
+        setUser({ email: r.data.email, fullName: r.data.fullName, token: '' });
+      })
+      .catch(() => {
+        // No valid session — clear any stale localStorage
+        localStorage.removeItem('token');
+        localStorage.removeItem('email');
+        localStorage.removeItem('fullName');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const login = async (email: string, password: string): Promise<AuthResponse> => {
     const { data } = await authApi.login(email, password);
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('email', data.email);
-      localStorage.setItem('fullName', data.fullName);
-      setUser({ token: data.token, email: data.email, fullName: data.fullName });
+    if (data.token && !data.twoFactorRequired && !data.requiresEmailVerification) {
+      // Cookie is set by backend; store user info in memory only
+      setUser({ email: data.email, fullName: data.fullName, token: '' });
     }
     return data;
   };
@@ -55,15 +58,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const loginWithToken = (data: AuthResponse) => {
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('email', data.email);
-      localStorage.setItem('fullName', data.fullName);
-      setUser({ token: data.token, email: data.email, fullName: data.fullName });
+    if (data.token || data.email) {
+      // Cookie is set by backend; store user info in memory only
+      setUser({ email: data.email, fullName: data.fullName, token: '' });
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try { await authApi.logout(); } catch { /* ignore */ }
     localStorage.clear();
     setUser(null);
   };

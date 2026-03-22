@@ -1,25 +1,31 @@
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { authApi } from "../../services/api";
 
 const OAuthCallbackPage: React.FC = () => {
   const { loginWithToken } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const token = params.get("token");
-    const email = params.get("email");
-    const fullName = params.get("name") || "";
+    const code = searchParams.get("code");
 
-    if (token && email) {
-      loginWithToken({ token, email, fullName });
-      navigate("/", { replace: true });
-    } else {
+    if (!code) {
       navigate("/login?error=oauth_failed", { replace: true });
+      return;
     }
-  }, [loginWithToken, navigate]);
+
+    authApi.exchangeOauthCode(code)
+      .then(({ data }) => {
+        // Backend set the HttpOnly cookie; just update UI state
+        loginWithToken({ email: data.email, fullName: data.fullName });
+        navigate("/", { replace: true });
+      })
+      .catch(() => {
+        navigate("/login?error=oauth_failed", { replace: true });
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "var(--text-muted)" }}>

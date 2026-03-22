@@ -2,6 +2,7 @@ package com.omnihub.core.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,27 +19,21 @@ import java.io.IOException;
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private UserDetailsService userDetailsService;
+    @Autowired private JwtUtil jwtUtil;
+    @Autowired private UserDetailsService userDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
+        String jwt = extractToken(request);
         String username = null;
-        String jwt = null;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            jwt = authHeader.substring(7);
+        if (jwt != null) {
             try {
                 username = jwtUtil.extractUsername(jwt);
-            } catch (Exception e) {
-                // Invalid token
-            }
+            } catch (Exception ignored) {}
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -52,5 +47,20 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private String extractToken(HttpServletRequest request) {
+        // 1. HttpOnly cookie (primary — not accessible to JavaScript)
+        if (request.getCookies() != null) {
+            for (Cookie c : request.getCookies()) {
+                if ("jwt".equals(c.getName())) return c.getValue();
+            }
+        }
+        // 2. Authorization header fallback (for API clients / mobile)
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+        return null;
     }
 }

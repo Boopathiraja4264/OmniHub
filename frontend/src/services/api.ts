@@ -4,20 +4,16 @@ const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 const api = axios.create({
   baseURL: `${BASE_URL}/api`,
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+  withCredentials: true, // send HttpOnly JWT cookie with every request
 });
 
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.clear();
-      window.location.href = "/login";
+      const publicPaths = ['/login', '/register', '/reset-password', '/oauth-callback'];
+      const isPublic = publicPaths.some(p => window.location.pathname.startsWith(p));
+      if (!isPublic) window.location.href = "/login";
     }
     return Promise.reject(err);
   },
@@ -39,6 +35,8 @@ export const authApi = {
   verify2FA: (tempToken: string, code: string, method: string, challengeToken?: string) =>
     api.post("/auth/2fa/verify", { tempToken, code, method, challengeToken }),
   getMe: () => api.get("/auth/me"),
+  logout: () => api.post("/auth/logout"),
+  exchangeOauthCode: (code: string) => api.post("/auth/oauth/exchange", { code }),
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post("/auth/change-password", { currentPassword, newPassword }),
   get2FAStatus: () => api.get("/auth/2fa/status"),

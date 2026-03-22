@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -27,6 +29,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     @Autowired private UserRepository userRepository;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private UserDetailsService userDetailsService;
+    @Autowired private CacheManager cacheManager;
 
     @Value("${app.base-url}")
     private String baseUrl;
@@ -50,8 +53,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         }
 
         email = email.toLowerCase().trim();
-
-        // Find or create user
         final String finalEmail = email;
         final String finalName = name;
         final String finalProvider = provider;
@@ -61,7 +62,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             User newUser = User.builder()
                     .email(finalEmail)
                     .fullName(finalName != null ? finalName : finalEmail)
-                    .password(UUID.randomUUID().toString()) // Random, unusable password for SSO users
+                    .password(UUID.randomUUID().toString())
                     .oauthProvider(finalProvider)
                     .oauthProviderId(finalProviderId)
                     .emailVerified(true)
@@ -69,7 +70,6 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             return userRepository.save(newUser);
         });
 
-        // Update provider info if linking
         if (user.getOauthProvider() == null) {
             user.setOauthProvider(finalProvider);
             user.setOauthProviderId(finalProviderId);
@@ -80,48 +80,50 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtUtil.generateToken(userDetails);
 
-        response.sendRedirect(baseUrl + "/oauth-callback#token=" + token +
-                "&email=" + user.getEmail() + "&name=" + encodeForUrl(user.getFullName()));
+        // Store token in cache under a one-time code (never expose token in URL)
+        String code = UUID.randomUUID().toString();
+        Cache cache = cacheManager.getCache("oauthCodeCache");
+        if (cache != null) {
+            Map<String, String> payload = new java.util.HashMap<>();
+            payload.put("token", token);
+            payload.put("email", user.getEmail());
+            payload.put("fullName", user.getFullName() != null ? user.getFullName() : user.getEmail());
+            cache.put(code, payload);
+        }
+
+        // Redirect with short-lived code — frontend exchanges it for a session cookie
+        response.sendRedirect(baseUrl + "/oauth-callback?code=" + code);
     }
 
     private String extractEmail(Map<String, Object> attrs) {
         if (attrs.containsKey("email")) return (String) attrs.get("email");
-        if (attrs.containsKey("preferred_username")) return (String) attrs.get("preferred_username"); // Microsoft
+        if (attrs.containsKey("preferred_username")) return (String) attrs.get("preferred_username");
         return null;
     }
 
     private String extractName(Map<String, Object> attrs) {
         if (attrs.containsKey("name")) return (String) attrs.get("name");
-        if (attrs.containsKey("login")) return (String) attrs.get("login"); // GitHub
+        if (attrs.containsKey("login")) return (String) attrs.get("login");
         return null;
     }
 
     private String extractProvider(Authentication auth) {
-        String name = auth.getClass().getSimpleName();
-        if (name.toLowerCase().contains("google")) return "google";
-        if (name.toLowerCase().contains("github")) return "github";
-        if (name.toLowerCase().contains("microsoft")) return "microsoft";
-        if (name.toLowerCase().contains("linkedin")) return "linkedin";
-        // Extract from the client registration ID
+        String name = auth.getClass().getSimpleName().toLowerCase();
+        if (name.contains("google")) return "google";
+        if (name.contains("github")) return "github";
+        if (name.contains("microsoft")) return "microsoft";
+        if (name.contains("linkedin")) return "linkedin";
         try {
-            var details = auth.getDetails();
-            if (details != null) {
-                String str = details.toString();
-                if (str.contains("google")) return "google";
-                if (str.contains("github")) return "github";
-            }
+            String str = auth.getDetails() != null ? auth.getDetails().toString() : "";
+            if (str.contains("google")) return "google";
+            if (str.contains("github")) return "github";
         } catch (Exception ignored) {}
         return "oauth2";
     }
 
     private String extractProviderId(Map<String, Object> attrs) {
         if (attrs.containsKey("sub")) return String.valueOf(attrs.get("sub"));
-        if (attrs.containsKey("id")) return String.valueOf(attrs.get("id")); // GitHub
+        if (attrs.containsKey("id")) return String.valueOf(attrs.get("id"));
         return UUID.randomUUID().toString();
-    }
-
-    private String encodeForUrl(String value) {
-        if (value == null) return "";
-        return value.replace(" ", "+").replace("&", "");
     }
 }

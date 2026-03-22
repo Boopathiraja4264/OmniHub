@@ -1,6 +1,7 @@
 package com.omnihub.notification.entity;
 
 import com.omnihub.core.entity.User;
+import com.omnihub.core.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import java.time.LocalTime;
 
@@ -17,6 +18,9 @@ public class SmsSettings {
     private User user;
 
     private boolean enabled = false;
+
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(length = 500)
     private String phoneNumber;
 
     private LocalTime sendTime1 = LocalTime.of(8, 0);

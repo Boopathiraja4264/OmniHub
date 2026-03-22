@@ -1,6 +1,7 @@
 package com.omnihub.notification.entity;
 
 import com.omnihub.core.entity.User;
+import com.omnihub.core.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import java.time.LocalTime;
 
@@ -18,7 +19,8 @@ public class SlackSettings {
 
     private boolean enabled = false;
 
-    @Column(length = 512)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(length = 1000)
     private String webhookUrl;
 
     private LocalTime sendTime1 = LocalTime.of(8, 0);

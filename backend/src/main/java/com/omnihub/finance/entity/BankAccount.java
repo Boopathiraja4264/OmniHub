@@ -1,5 +1,6 @@
 package com.omnihub.finance.entity;
 
+import com.omnihub.core.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import com.omnihub.core.entity.User;
 import java.math.BigDecimal;
@@ -15,9 +16,12 @@ public class BankAccount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, length = 500)
     private String name;
 
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(length = 500)
     private String bankName;
 
     @Column(nullable = false)

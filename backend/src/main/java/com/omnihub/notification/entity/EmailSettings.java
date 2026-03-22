@@ -1,6 +1,7 @@
 package com.omnihub.notification.entity;
 
 import com.omnihub.core.entity.User;
+import com.omnihub.core.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import java.time.LocalTime;
 
@@ -22,6 +23,8 @@ public class EmailSettings {
     private boolean includeFitness = true;
     private boolean includeBudgetAlerts = true;
     private boolean includeWeeklyPlan = true;
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(length = 500)
     private String customEmail;
 
     public Long getId() { return id; }

@@ -37,7 +37,6 @@ public class TwoFactorService {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private CacheManager cacheManager;
     @Autowired(required = false) private JavaMailSender mailSender;
-
     @Value("${spring.mail.username}")
     private String fromEmail;
 

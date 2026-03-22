@@ -1,5 +1,6 @@
 package com.omnihub.core.entity;
 
+import com.omnihub.core.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -37,6 +38,7 @@ public class User {
     private boolean emailVerified = false;
 
     // TOTP 2FA
+    @Convert(converter = EncryptedStringConverter.class)
     @Column
     private String totpSecret;
     @Column(nullable = false)

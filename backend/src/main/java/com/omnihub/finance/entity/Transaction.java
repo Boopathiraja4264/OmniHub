@@ -1,5 +1,6 @@
 package com.omnihub.finance.entity;
 
+import com.omnihub.core.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import com.omnihub.core.entity.User;
 import java.math.BigDecimal;
@@ -18,7 +19,8 @@ public class Transaction {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, length = 1000)
     private String description;
 
     @Column(nullable = false, precision = 10, scale = 2)
@@ -34,7 +36,12 @@ public class Transaction {
     @Column(nullable = false)
     private LocalDate date;
 
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(length = 1000)
     private String notes;
+
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(length = 500)
     private String itemName;
 
     @Enumerated(EnumType.STRING)

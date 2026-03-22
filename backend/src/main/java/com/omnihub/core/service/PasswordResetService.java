@@ -11,7 +11,10 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.UUID;
 
 @Service
@@ -31,18 +34,19 @@ public class PasswordResetService {
 
     public void sendResetLink(String email) {
         User user = userRepository.findByEmail(email.toLowerCase()).orElse(null);
-        // Always respond the same way to prevent email enumeration
-        if (user == null) return;
+        if (user == null) return; // Prevent email enumeration
 
-        String token = UUID.randomUUID().toString();
-        user.setPasswordResetToken(token);
+        String rawToken = UUID.randomUUID().toString();
+        String tokenHash = sha256(rawToken);
+
+        user.setPasswordResetToken(tokenHash); // Store hash, not raw token
         user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(1));
         userRepository.save(user);
 
-        String link = baseUrl + "/reset-password?token=" + token;
+        String link = baseUrl + "/reset-password?token=" + rawToken; // Email gets raw token
 
         if (mailSender == null) {
-            log.warn("Mail not configured (MAIL_USERNAME not set). Reset link for {}: {}", email, link);
+            log.warn("Mail not configured. Reset link for {}: {}", email, link);
             return;
         }
         try {
@@ -58,8 +62,9 @@ public class PasswordResetService {
         }
     }
 
-    public void resetPassword(String token, String newPassword) {
-        User user = userRepository.findByPasswordResetToken(token)
+    public void resetPassword(String rawToken, String newPassword) {
+        String tokenHash = sha256(rawToken);
+        User user = userRepository.findByPasswordResetToken(tokenHash)
                 .orElseThrow(() -> new RuntimeException("Invalid or expired reset link"));
 
         if (user.getPasswordResetTokenExpiry() == null ||
@@ -71,5 +76,15 @@ public class PasswordResetService {
         user.setPasswordResetToken(null);
         user.setPasswordResetTokenExpiry(null);
         userRepository.save(user);
+    }
+
+    private String sha256(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (Exception e) {
+            throw new RuntimeException("SHA-256 unavailable", e);
+        }
     }
 }

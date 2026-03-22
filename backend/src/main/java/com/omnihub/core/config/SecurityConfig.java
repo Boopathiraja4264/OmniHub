@@ -3,6 +3,9 @@ package com.omnihub.core.config;
 import com.omnihub.core.security.CookieOAuth2AuthorizationRequestRepository;
 import com.omnihub.core.security.JwtFilter;
 import com.omnihub.core.security.OAuth2SuccessHandler;
+import com.omnihub.core.security.RateLimitFilter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -21,8 +24,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 
 import java.util.Arrays;
 import java.util.List;
@@ -32,8 +34,10 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+
     private final JwtFilter jwtFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final RateLimitFilter rateLimitFilter;
 
     @Autowired
     private CookieOAuth2AuthorizationRequestRepository cookieAuthRequestRepository;
@@ -44,9 +48,11 @@ public class SecurityConfig {
     @Value("${app.base-url:http://localhost:3000}")
     private String appBaseUrl;
 
-    public SecurityConfig(JwtFilter jwtFilter, OAuth2SuccessHandler oAuth2SuccessHandler) {
+    public SecurityConfig(JwtFilter jwtFilter, OAuth2SuccessHandler oAuth2SuccessHandler,
+                          RateLimitFilter rateLimitFilter) {
         this.jwtFilter = jwtFilter;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -56,10 +62,12 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/api/auth/register",
-                        "/api/auth/verify-email", "/api/auth/resend-verification",
-                        "/api/auth/forgot-password", "/api/auth/reset-password",
-                        "/api/auth/2fa/verify").permitAll()
+                .requestMatchers(
+                    "/api/auth/login", "/api/auth/register",
+                    "/api/auth/verify-email", "/api/auth/resend-verification",
+                    "/api/auth/forgot-password", "/api/auth/reset-password",
+                    "/api/auth/2fa/verify", "/api/auth/oauth/exchange"
+                ).permitAll()
                 .requestMatchers("/oauth2/**", "/login/oauth2/**", "/auth/callback", "/auth/login").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
@@ -80,6 +88,7 @@ public class SecurityConfig {
                     response.sendRedirect(appBaseUrl + "/login?error=oauth_failed");
                 })
             )
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -106,5 +115,14 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    /** Prevent Spring Boot from auto-registering RateLimitFilter as a servlet filter.
+     *  It's already registered inside the Spring Security filter chain above. */
+    @Bean
+    public FilterRegistrationBean<RateLimitFilter> rateLimitFilterRegistration(RateLimitFilter filter) {
+        FilterRegistrationBean<RateLimitFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 }
