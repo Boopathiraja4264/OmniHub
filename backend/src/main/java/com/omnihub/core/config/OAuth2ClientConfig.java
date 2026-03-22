@@ -74,7 +74,7 @@ public class OAuth2ClientConfig {
                     .authorizationUri("https://login.microsoftonline.com/common/oauth2/v2.0/authorize")
                     .tokenUri("https://login.microsoftonline.com/common/oauth2/v2.0/token")
                     .userInfoUri("https://graph.microsoft.com/oidc/userinfo")
-                    .userNameAttributeName("email")
+                    .userNameAttributeName("sub")
                     .jwkSetUri("https://login.microsoftonline.com/common/discovery/v2.0/keys")
                     .clientName("Microsoft")
                     .build());

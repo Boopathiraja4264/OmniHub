@@ -70,12 +70,18 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             return userRepository.save(newUser);
         });
 
+        // Always ensure SSO users have emailVerified=true and provider info set
+        boolean needsSave = false;
         if (user.getOauthProvider() == null) {
             user.setOauthProvider(finalProvider);
             user.setOauthProviderId(finalProviderId);
-            user.setEmailVerified(true);
-            userRepository.save(user);
+            needsSave = true;
         }
+        if (!user.isEmailVerified()) {
+            user.setEmailVerified(true);
+            needsSave = true;
+        }
+        if (needsSave) userRepository.save(user);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtUtil.generateToken(userDetails);
