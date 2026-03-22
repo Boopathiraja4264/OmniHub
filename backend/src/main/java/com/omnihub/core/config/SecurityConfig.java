@@ -73,11 +73,11 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .exceptionHandling(ex -> ex
-                .defaultAuthenticationEntryPointFor(
-                    (request, response, authException) ->
-                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"),
-                    request -> request.getRequestURI().startsWith("/api/")
-                )
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Unauthorized\"}");
+                })
             )
             .oauth2Login(oauth -> oauth
                 .authorizationEndpoint(auth -> auth
