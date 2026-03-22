@@ -4,6 +4,8 @@ import { transactionApi, creditCardApi } from '../../services/api';
 import { Transaction, CreditCard } from '../../types';
 import FilterDropdown from '../../components/FilterDropdown';
 
+const fmtDateInput = (d?: string) => d ? d.split('T')[0] : '';
+
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
 
@@ -19,28 +21,75 @@ const CreditCardDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filterYear, setFilterYear] = useState<number | 'ALL'>('ALL');
   const [filterMonth, setFilterMonth] = useState<number | 'ALL'>('ALL');
+  const [showEdit, setShowEdit] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [editForm, setEditForm] = useState({
+    name: '', bank: '', cardType: '', lastFourDigits: '',
+    creditLimit: '', billingDate: '', paymentDueDate: '',
+    balanceDate: '', openingOutstanding: '',
+  });
 
-  useEffect(() => {
-    if (!id) return;
-    const cardId = parseInt(id);
+  const load = (cardId: number) => {
     Promise.all([
       creditCardApi.getAll(),
       transactionApi.getByCard(cardId),
     ]).then(([cardRes, txRes]) => {
       const c = cardRes.data.find((x: CreditCard) => x.id === cardId);
       setCard(c || null);
-
-      // Transactions sorted oldest→newest; compute running outstanding
+      if (c) {
+        setEditForm({
+          name: c.name,
+          bank: c.bank || '',
+          cardType: c.cardType || '',
+          lastFourDigits: c.lastFourDigits || '',
+          creditLimit: c.creditLimit != null ? String(c.creditLimit) : '',
+          billingDate: c.billingDate != null ? String(c.billingDate) : '',
+          paymentDueDate: c.paymentDueDate != null ? String(c.paymentDueDate) : '',
+          balanceDate: fmtDateInput(c.balanceDate),
+          openingOutstanding: c.openingOutstanding != null ? String(c.openingOutstanding) : '',
+        });
+      }
       const list: Transaction[] = txRes.data;
       let outstanding = 0;
       const enriched: TxWithOutstanding[] = list.map(t => {
-        // CC transactions are always EXPENSE (spending on card)
         outstanding += t.amount;
         return { ...t, runningOutstanding: outstanding };
       });
       setTxs(enriched);
     }).finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!id) return;
+    load(parseInt(id));
   }, [id]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!card) return;
+    setSaving(true);
+    setSaveError('');
+    try {
+      await creditCardApi.update(card.id, {
+        name: editForm.name,
+        bank: editForm.bank || undefined,
+        cardType: editForm.cardType || undefined,
+        lastFourDigits: editForm.lastFourDigits || undefined,
+        creditLimit: editForm.creditLimit ? parseFloat(editForm.creditLimit) : undefined,
+        billingDate: editForm.billingDate ? parseInt(editForm.billingDate) : undefined,
+        paymentDueDate: editForm.paymentDueDate ? parseInt(editForm.paymentDueDate) : undefined,
+        balanceDate: editForm.balanceDate || undefined,
+        openingOutstanding: editForm.openingOutstanding ? parseFloat(editForm.openingOutstanding) : undefined,
+      });
+      setShowEdit(false);
+      load(parseInt(id!));
+    } catch (e: any) {
+      setSaveError(e?.response?.data?.message || e?.response?.data?.error || 'Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>;
   if (!card) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Card not found.</div>;
@@ -93,9 +142,12 @@ const CreditCardDetailPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Current Outstanding</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: outstandingColor }}>{fmt(card.outstanding)}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowEdit(true)}>Edit</button>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Current Outstanding</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: outstandingColor }}>{fmt(card.outstanding)}</div>
+          </div>
         </div>
       </div>
 
@@ -138,6 +190,82 @@ const CreditCardDetailPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEdit && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowEdit(false)}>
+          <div className="modal">
+            <div className="modal-header">
+              <h3 className="modal-title">Edit Credit Card</h3>
+              <button className="close-btn" onClick={() => setShowEdit(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSave}>
+              <div className="form-grid" style={{ marginBottom: 24 }}>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Card Name</label>
+                  <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label>Card Type</label>
+                  <FilterDropdown
+                    value={editForm.cardType}
+                    options={[
+                      { label: 'Visa', value: 'VISA' },
+                      { label: 'Mastercard', value: 'MASTERCARD' },
+                      { label: 'RuPay', value: 'RUPAY' },
+                      { label: 'American Express', value: 'AMEX' },
+                      { label: 'Discover', value: 'DISCOVER' },
+                      { label: 'Other', value: 'OTHER' },
+                    ]}
+                    onChange={v => setEditForm({ ...editForm, cardType: v as string })}
+                    placeholder="Select type..."
+                    fullWidth
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Last 4 Digits <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                  <input value={editForm.lastFourDigits} maxLength={4}
+                    onChange={e => setEditForm({ ...editForm, lastFourDigits: e.target.value.replace(/\D/g, '') })} />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Issuing Bank <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                  <input value={editForm.bank} onChange={e => setEditForm({ ...editForm, bank: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Credit Limit (₹) <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                  <input type="number" value={editForm.creditLimit} onChange={e => setEditForm({ ...editForm, creditLimit: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Statement Date <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(day of month)</span></label>
+                  <input type="number" min="1" max="31" value={editForm.billingDate} onChange={e => setEditForm({ ...editForm, billingDate: e.target.value })} />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Payment Due Date <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(day of month)</span></label>
+                  <input type="number" min="1" max="31" value={editForm.paymentDueDate} onChange={e => setEditForm({ ...editForm, paymentDueDate: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Balance Date</label>
+                  <input type="date" value={editForm.balanceDate} onChange={e => setEditForm({ ...editForm, balanceDate: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>
+                    Outstanding as of {editForm.balanceDate ? new Date(editForm.balanceDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'selected date'} (₹)
+                  </label>
+                  <input type="number" step="0.01" min="0" value={editForm.openingOutstanding}
+                    onChange={e => setEditForm({ ...editForm, openingOutstanding: e.target.value })} />
+                </div>
+              </div>
+              {saveError && (
+                <div style={{ color: 'var(--expense)', fontSize: 13, marginBottom: 12 }}>{saveError}</div>
+              )}
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowEdit(false); setSaveError(''); }}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>

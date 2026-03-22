@@ -44,6 +44,7 @@ public class BankAccountService {
         acc.setBankName(req.getBankName());
         acc.setAccountType(req.getAccountType());
         acc.setOpeningBalance(req.getOpeningBalance() != null ? req.getOpeningBalance() : BigDecimal.ZERO);
+        acc.setBalanceDate(req.getBalanceDate());
         acc.setDefault(req.isDefault());
         acc.setUser(user);
         return toResponse(bankRepo.save(acc), user.getId());
@@ -66,6 +67,26 @@ public class BankAccountService {
     }
 
     @Transactional
+    public BankAccountResponse update(String email, Long id, BankAccountRequest req) {
+        User user = getUser(email);
+        BankAccount acc = bankRepo.findByIdAndUserId(id, user.getId())
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        acc.setName(req.getName());
+        acc.setBankName(req.getBankName());
+        acc.setAccountType(req.getAccountType());
+        acc.setOpeningBalance(req.getOpeningBalance() != null ? req.getOpeningBalance() : BigDecimal.ZERO);
+        acc.setBalanceDate(req.getBalanceDate());
+        if (req.isDefault() && !acc.isDefault()) {
+            bankRepo.findByUserIdAndIsDefaultTrue(user.getId()).ifPresent(current -> {
+                current.setDefault(false);
+                bankRepo.save(current);
+            });
+        }
+        acc.setDefault(req.isDefault());
+        return toResponse(bankRepo.save(acc), user.getId());
+    }
+
+    @Transactional
     public void delete(String email, Long id) {
         User user = getUser(email);
         BankAccount acc = bankRepo.findById(id).orElseThrow(() -> new RuntimeException("Account not found"));
@@ -74,8 +95,14 @@ public class BankAccountService {
     }
 
     private BankAccountResponse toResponse(BankAccount a, Long userId) {
-        BigDecimal inflow  = txRepo.sumByBankAccountIdAndType(userId, a.getId(), TransactionType.INCOME);
-        BigDecimal outflow = txRepo.sumByBankAccountIdAndType(userId, a.getId(), TransactionType.EXPENSE);
+        BigDecimal inflow, outflow;
+        if (a.getBalanceDate() != null) {
+            inflow  = txRepo.sumByBankAccountIdAndTypeFromDate(userId, a.getId(), TransactionType.INCOME, a.getBalanceDate());
+            outflow = txRepo.sumByBankAccountIdAndTypeFromDate(userId, a.getId(), TransactionType.EXPENSE, a.getBalanceDate());
+        } else {
+            inflow  = txRepo.sumByBankAccountIdAndType(userId, a.getId(), TransactionType.INCOME);
+            outflow = txRepo.sumByBankAccountIdAndType(userId, a.getId(), TransactionType.EXPENSE);
+        }
         inflow  = inflow  != null ? inflow  : BigDecimal.ZERO;
         outflow = outflow != null ? outflow : BigDecimal.ZERO;
 
@@ -85,6 +112,7 @@ public class BankAccountService {
         r.setBankName(a.getBankName());
         r.setAccountType(a.getAccountType());
         r.setOpeningBalance(a.getOpeningBalance());
+        r.setBalanceDate(a.getBalanceDate());
         r.setTotalInflow(inflow);
         r.setTotalOutflow(outflow);
         r.setCurrentBalance(a.getOpeningBalance().add(inflow).subtract(outflow));

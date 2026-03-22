@@ -78,12 +78,14 @@ export const transactionApi = {
 export const creditCardApi = {
   getAll: () => api.get("/cards"),
   create: (data: any) => api.post("/cards", data),
+  update: (id: number, data: any) => api.put(`/cards/${id}`, data),
   delete: (id: number) => api.delete(`/cards/${id}`),
 };
 
 export const bankAccountApi = {
   getAll: () => api.get("/bank-accounts"),
   create: (data: any) => api.post("/bank-accounts", data),
+  update: (id: number, data: any) => api.put(`/bank-accounts/${id}`, data),
   delete: (id: number) => api.delete(`/bank-accounts/${id}`),
   setDefault: (id: number) => api.patch(`/bank-accounts/${id}/default`),
 };

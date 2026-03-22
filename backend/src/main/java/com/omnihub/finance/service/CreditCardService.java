@@ -44,7 +44,26 @@ public class CreditCardService {
         card.setPaymentDueDate(req.getPaymentDueDate());
         card.setLastFourDigits(req.getLastFourDigits());
         card.setCardType(req.getCardType());
+        card.setBalanceDate(req.getBalanceDate());
+        card.setOpeningOutstanding(req.getOpeningOutstanding() != null ? req.getOpeningOutstanding() : BigDecimal.ZERO);
         card.setUser(user);
+        return toResponse(cardRepo.save(card), user.getId());
+    }
+
+    @Transactional
+    public CreditCardResponse update(String email, Long id, CreditCardRequest req) {
+        User user = getUser(email);
+        CreditCard card = cardRepo.findById(id).orElseThrow(() -> new RuntimeException("Card not found"));
+        if (!card.getUser().getId().equals(user.getId())) throw new RuntimeException("Unauthorized");
+        card.setName(req.getName());
+        card.setBank(req.getBank());
+        card.setCreditLimit(req.getCreditLimit());
+        card.setBillingDate(req.getBillingDate());
+        card.setPaymentDueDate(req.getPaymentDueDate());
+        card.setLastFourDigits(req.getLastFourDigits());
+        card.setCardType(req.getCardType());
+        card.setBalanceDate(req.getBalanceDate());
+        card.setOpeningOutstanding(req.getOpeningOutstanding() != null ? req.getOpeningOutstanding() : BigDecimal.ZERO);
         return toResponse(cardRepo.save(card), user.getId());
     }
 
@@ -56,7 +75,13 @@ public class CreditCardService {
         cardRepo.delete(card);
     }
 
-    private BigDecimal getBillingCycleOutstanding(CreditCard card, Long userId) {
+    private BigDecimal getOutstanding(CreditCard card, Long userId) {
+        if (card.getBalanceDate() != null) {
+            BigDecimal txExpenses = txRepo.sumCardOutstandingFromDate(userId, card.getId(), card.getBalanceDate());
+            BigDecimal opening = card.getOpeningOutstanding() != null ? card.getOpeningOutstanding() : BigDecimal.ZERO;
+            return opening.add(txExpenses != null ? txExpenses : BigDecimal.ZERO);
+        }
+        // Fall back to billing cycle logic
         LocalDate today = LocalDate.now();
         LocalDate fromDate;
         if (card.getBillingDate() != null) {
@@ -85,7 +110,9 @@ public class CreditCardService {
         r.setPaymentDueDate(c.getPaymentDueDate());
         r.setLastFourDigits(c.getLastFourDigits());
         r.setCardType(c.getCardType());
-        r.setOutstanding(getBillingCycleOutstanding(c, userId));
+        r.setBalanceDate(c.getBalanceDate());
+        r.setOpeningOutstanding(c.getOpeningOutstanding());
+        r.setOutstanding(getOutstanding(c, userId));
         return r;
     }
 }

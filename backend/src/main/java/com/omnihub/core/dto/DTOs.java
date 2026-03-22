@@ -579,6 +579,8 @@ public class DTOs {
         private Integer paymentDueDate;
         private String lastFourDigits;
         private String cardType;
+        private LocalDate balanceDate;
+        private BigDecimal openingOutstanding;
         public String getName() { return name; }
         public void setName(String v) { name = v; }
         public String getBank() { return bank; }
@@ -593,13 +595,18 @@ public class DTOs {
         public void setLastFourDigits(String v) { lastFourDigits = v; }
         public String getCardType() { return cardType; }
         public void setCardType(String v) { cardType = v; }
+        public LocalDate getBalanceDate() { return balanceDate; }
+        public void setBalanceDate(LocalDate v) { balanceDate = v; }
+        public BigDecimal getOpeningOutstanding() { return openingOutstanding; }
+        public void setOpeningOutstanding(BigDecimal v) { openingOutstanding = v; }
     }
 
     public static class CreditCardResponse {
         private Long id;
         private String name, bank, lastFourDigits, cardType;
-        private BigDecimal creditLimit, outstanding;
+        private BigDecimal creditLimit, outstanding, openingOutstanding;
         private Integer billingDate, paymentDueDate;
+        private LocalDate balanceDate;
         public Long getId() { return id; }
         public void setId(Long v) { id = v; }
         public String getName() { return name; }
@@ -610,6 +617,8 @@ public class DTOs {
         public void setCreditLimit(BigDecimal v) { creditLimit = v; }
         public BigDecimal getOutstanding() { return outstanding; }
         public void setOutstanding(BigDecimal v) { outstanding = v; }
+        public BigDecimal getOpeningOutstanding() { return openingOutstanding; }
+        public void setOpeningOutstanding(BigDecimal v) { openingOutstanding = v; }
         public Integer getBillingDate() { return billingDate; }
         public void setBillingDate(Integer v) { billingDate = v; }
         public Integer getPaymentDueDate() { return paymentDueDate; }
@@ -618,6 +627,8 @@ public class DTOs {
         public void setLastFourDigits(String v) { lastFourDigits = v; }
         public String getCardType() { return cardType; }
         public void setCardType(String v) { cardType = v; }
+        public LocalDate getBalanceDate() { return balanceDate; }
+        public void setBalanceDate(LocalDate v) { balanceDate = v; }
     }
 
     public static class BankAccountRequest {
@@ -626,6 +637,7 @@ public class DTOs {
         @NotBlank private String accountType;
         @NotNull private BigDecimal openingBalance;
         @JsonProperty("isDefault") private boolean isDefault;
+        private LocalDate balanceDate;
         public String getName() { return name; }
         public void setName(String v) { name = v; }
         public String getBankName() { return bankName; }
@@ -636,6 +648,8 @@ public class DTOs {
         public void setOpeningBalance(BigDecimal v) { openingBalance = v; }
         public boolean isDefault() { return isDefault; }
         public void setDefault(boolean v) { isDefault = v; }
+        public LocalDate getBalanceDate() { return balanceDate; }
+        public void setBalanceDate(LocalDate v) { balanceDate = v; }
     }
 
     public static class BankAccountResponse {
@@ -643,6 +657,7 @@ public class DTOs {
         private String name, bankName, accountType;
         private BigDecimal openingBalance, currentBalance, totalInflow, totalOutflow;
         @JsonProperty("isDefault") private boolean isDefault;
+        private LocalDate balanceDate;
         public Long getId() { return id; }
         public void setId(Long v) { id = v; }
         public String getName() { return name; }
@@ -661,6 +676,8 @@ public class DTOs {
         public void setTotalOutflow(BigDecimal v) { totalOutflow = v; }
         public boolean isDefault() { return isDefault; }
         public void setDefault(boolean v) { isDefault = v; }
+        public LocalDate getBalanceDate() { return balanceDate; }
+        public void setBalanceDate(LocalDate v) { balanceDate = v; }
     }
 
     public static class VehicleRequest {

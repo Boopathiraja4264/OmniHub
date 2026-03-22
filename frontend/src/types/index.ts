@@ -32,6 +32,8 @@ export interface CreditCard {
   lastFourDigits?: string;
   cardType?: string; // VISA | MASTERCARD | RUPAY | AMEX | DISCOVER | OTHER
   outstanding: number;
+  balanceDate?: string;
+  openingOutstanding?: number;
 }
 
 export interface BankAccount {
@@ -44,6 +46,7 @@ export interface BankAccount {
   totalInflow: number;
   totalOutflow: number;
   isDefault: boolean;
+  balanceDate?: string;
 }
 
 export interface Vehicle {

@@ -26,6 +26,13 @@ public class CreditCardController {
         return ResponseEntity.ok(service.create(u.getUsername(), req));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<CreditCardResponse> update(@AuthenticationPrincipal UserDetails u,
+                                                      @PathVariable Long id,
+                                                      @Valid @RequestBody CreditCardRequest req) {
+        return ResponseEntity.ok(service.update(u.getUsername(), id, req));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal UserDetails u, @PathVariable Long id) {
         service.delete(u.getUsername(), id);

@@ -4,6 +4,8 @@ import { transactionApi, bankAccountApi } from '../../services/api';
 import { Transaction, BankAccount } from '../../types';
 import FilterDropdown from '../../components/FilterDropdown';
 
+const fmtDateInput = (d?: string) => d ? d.split('T')[0] : '';
+
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
 
@@ -19,18 +21,28 @@ const BankAccountDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filterYear, setFilterYear] = useState<number | 'ALL'>('ALL');
   const [filterMonth, setFilterMonth] = useState<number | 'ALL'>('ALL');
+  const [showEdit, setShowEdit] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [editForm, setEditForm] = useState({ name: '', bankName: '', accountType: 'SAVINGS', openingBalance: '', balanceDate: '', isDefault: false });
 
-  useEffect(() => {
-    if (!id) return;
-    const accountId = parseInt(id);
+  const load = (accountId: number) => {
     Promise.all([
       bankAccountApi.getAll(),
       transactionApi.getByBankAccount(accountId),
     ]).then(([accRes, txRes]) => {
       const acc = accRes.data.find((a: BankAccount) => a.id === accountId);
       setAccount(acc || null);
-
-      // Transactions come sorted oldest→newest; compute running balance
+      if (acc) {
+        setEditForm({
+          name: acc.name,
+          bankName: acc.bankName || '',
+          accountType: acc.accountType,
+          openingBalance: String(acc.openingBalance),
+          balanceDate: fmtDateInput(acc.balanceDate),
+          isDefault: acc.isDefault,
+        });
+      }
       const txs: Transaction[] = txRes.data;
       let balance = acc ? acc.openingBalance : 0;
       const enriched: TxWithBalance[] = txs.map(t => {
@@ -39,7 +51,35 @@ const BankAccountDetailPage: React.FC = () => {
       });
       setTxWithBalance(enriched);
     }).finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!id) return;
+    load(parseInt(id));
   }, [id]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!account) return;
+    setSaving(true);
+    setSaveError('');
+    try {
+      await bankAccountApi.update(account.id, {
+        name: editForm.name,
+        bankName: editForm.bankName || undefined,
+        accountType: editForm.accountType,
+        openingBalance: parseFloat(editForm.openingBalance) || 0,
+        balanceDate: editForm.balanceDate || undefined,
+        isDefault: editForm.isDefault,
+      });
+      setShowEdit(false);
+      load(parseInt(id!));
+    } catch (e: any) {
+      setSaveError(e?.response?.data?.message || e?.response?.data?.error || 'Failed to save. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>;
   if (!account) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Account not found.</div>;
@@ -90,9 +130,12 @@ const BankAccountDetailPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Current Balance</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: balanceColor }}>{fmt(account.currentBalance)}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setShowEdit(true)}>Edit</button>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Current Balance</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: balanceColor }}>{fmt(account.currentBalance)}</div>
+          </div>
         </div>
       </div>
 
@@ -140,6 +183,63 @@ const BankAccountDetailPage: React.FC = () => {
       {filtered.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
           No transactions found for this account.
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEdit && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowEdit(false)}>
+          <div className="modal">
+            <div className="modal-header">
+              <h3 className="modal-title">Edit Bank Account</h3>
+              <button className="close-btn" onClick={() => setShowEdit(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSave}>
+              <div className="form-grid" style={{ marginBottom: 24 }}>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Account Name</label>
+                  <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label>Bank Name <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                  <input value={editForm.bankName} onChange={e => setEditForm({ ...editForm, bankName: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Account Type</label>
+                  <FilterDropdown
+                    value={editForm.accountType}
+                    options={[{ label: 'Savings', value: 'SAVINGS' }, { label: 'Current', value: 'CURRENT' }, { label: 'Salary', value: 'SALARY' }]}
+                    onChange={v => setEditForm({ ...editForm, accountType: v as string })}
+                    fullWidth
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Balance Date</label>
+                  <input type="date" value={editForm.balanceDate} onChange={e => setEditForm({ ...editForm, balanceDate: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>
+                    Balance as of {editForm.balanceDate ? new Date(editForm.balanceDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'selected date'} (₹)
+                  </label>
+                  <input type="number" step="0.01" min="0" value={editForm.openingBalance}
+                    onChange={e => setEditForm({ ...editForm, openingBalance: e.target.value })} />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={editForm.isDefault} onChange={e => setEditForm({ ...editForm, isDefault: e.target.checked })} />
+                    <span>Set as default account</span>
+                  </label>
+                </div>
+              </div>
+              {saveError && (
+                <div style={{ color: 'var(--expense)', fontSize: 13, marginBottom: 12 }}>{saveError}</div>
+              )}
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => { setShowEdit(false); setSaveError(''); }}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

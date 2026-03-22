@@ -4,6 +4,7 @@ import com.omnihub.core.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import com.omnihub.core.entity.User;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -41,6 +42,12 @@ public class CreditCard {
     /** VISA, MASTERCARD, RUPAY, AMEX, DISCOVER, OTHER */
     private String cardType;
 
+    @Column(name = "balance_date")
+    private LocalDate balanceDate;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal openingOutstanding;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -68,6 +75,10 @@ public class CreditCard {
     public void setLastFourDigits(String v) { lastFourDigits = v; }
     public String getCardType() { return cardType; }
     public void setCardType(String v) { cardType = v; }
+    public LocalDate getBalanceDate() { return balanceDate; }
+    public void setBalanceDate(LocalDate v) { balanceDate = v; }
+    public BigDecimal getOpeningOutstanding() { return openingOutstanding; }
+    public void setOpeningOutstanding(BigDecimal v) { openingOutstanding = v; }
     public User getUser() { return user; }
     public void setUser(User v) { user = v; }
     public LocalDateTime getCreatedAt() { return createdAt; }

@@ -27,6 +27,12 @@ public class BankAccountController {
         return ResponseEntity.ok(service.create(u.getUsername(), req));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody @Valid BankAccountRequest req,
+                                     @AuthenticationPrincipal UserDetails u) {
+        return ResponseEntity.ok(service.update(u.getUsername(), id, req));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id, @AuthenticationPrincipal UserDetails u) {
         service.delete(u.getUsername(), id);

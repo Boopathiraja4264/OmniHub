@@ -71,7 +71,8 @@ const BankTab: React.FC = () => {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: '', bankName: '', accountType: 'SAVINGS', openingBalance: '', isDefault: false });
+  const today = new Date().toISOString().split('T')[0];
+  const [form, setForm] = useState({ name: '', bankName: '', accountType: 'SAVINGS', openingBalance: '', balanceDate: today, isDefault: false });
 
   const load = () => bankAccountApi.getAll().then(r => setAccounts(Array.isArray(r.data) ? r.data : []));
   useEffect(() => { load(); }, []);
@@ -85,10 +86,11 @@ const BankTab: React.FC = () => {
         bankName: form.bankName || undefined,
         accountType: form.accountType,
         openingBalance: parseFloat(form.openingBalance) || 0,
+        balanceDate: form.balanceDate || undefined,
         isDefault: form.isDefault,
       });
       setShowModal(false);
-      setForm({ name: '', bankName: '', accountType: 'SAVINGS', openingBalance: '', isDefault: false });
+      setForm({ name: '', bankName: '', accountType: 'SAVINGS', openingBalance: '', balanceDate: today, isDefault: false });
       load();
     } catch {} finally { setSaving(false); }
   };
@@ -158,7 +160,9 @@ const BankTab: React.FC = () => {
                 </div>
                 {acc.openingBalance > 0 && (
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                    Opening: {fmt(acc.openingBalance)}
+                    {acc.balanceDate
+                      ? `As of ${new Date(acc.balanceDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}: ${fmt(acc.openingBalance)}`
+                      : `Opening: ${fmt(acc.openingBalance)}`}
                   </div>
                 )}
               </div>
@@ -207,11 +211,18 @@ const BankTab: React.FC = () => {
                     fullWidth
                   />
                 </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label>Opening Balance (₹)</label>
+                <div className="form-group">
+                  <label>Balance Date</label>
+                  <input type="date" value={form.balanceDate}
+                    onChange={e => setForm({ ...form, balanceDate: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>
+                    Balance as of {form.balanceDate ? new Date(form.balanceDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'selected date'} (₹)
+                  </label>
                   <input type="number" step="0.01" min="0" value={form.openingBalance}
                     onChange={e => setForm({ ...form, openingBalance: e.target.value })}
-                    placeholder="Current balance in your account" />
+                    placeholder="Your balance on this date" />
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
@@ -242,9 +253,15 @@ const CardsTab: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [payModal, setPayModal] = useState<CreditCard | null>(null);
   const [saving, setSaving] = useState(false);
+  const [expandedCardId, setExpandedCardId] = useState<number | null>(null);
+  const [categoryData, setCategoryData] = useState<Record<number, Record<string, number>>>({});
+  const [loadingCategory, setLoadingCategory] = useState<Set<number>>(new Set());
+  const [showDebtReport, setShowDebtReport] = useState(false);
+  const cardToday = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState({
     name: '', bank: '', cardType: '', lastFourDigits: '',
     creditLimit: '', billingDate: '', paymentDueDate: '',
+    balanceDate: cardToday, openingOutstanding: '',
   });
   const [payForm, setPayForm] = useState({ bankAccountId: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
 
@@ -266,9 +283,11 @@ const CardsTab: React.FC = () => {
         creditLimit: form.creditLimit ? parseFloat(form.creditLimit) : undefined,
         billingDate: form.billingDate ? parseInt(form.billingDate) : undefined,
         paymentDueDate: form.paymentDueDate ? parseInt(form.paymentDueDate) : undefined,
+        balanceDate: form.balanceDate || undefined,
+        openingOutstanding: form.openingOutstanding ? parseFloat(form.openingOutstanding) : undefined,
       });
       setShowAddModal(false);
-      setForm({ name: '', bank: '', cardType: '', lastFourDigits: '', creditLimit: '', billingDate: '', paymentDueDate: '' });
+      setForm({ name: '', bank: '', cardType: '', lastFourDigits: '', creditLimit: '', billingDate: '', paymentDueDate: '', balanceDate: cardToday, openingOutstanding: '' });
       load();
     } catch {} finally { setSaving(false); }
   };
@@ -304,9 +323,36 @@ const CardsTab: React.FC = () => {
     return card.name;
   };
 
+  const CAT_COLORS = ['#c9a84c','#4caf82','#e05c6a','#6a8fe8','#a874d4','#e09c5c','#5cc4e0','#e0d45c','#a8e05c','#e07a5c'];
+
+  const totalDebt = cards.reduce((s, c) => s + (c.outstanding || 0), 0);
+  const debtSorted = [...cards].sort((a, b) => (b.outstanding || 0) - (a.outstanding || 0));
+
+  const toggleDrilldown = async (cardId: number) => {
+    if (expandedCardId === cardId) { setExpandedCardId(null); return; }
+    setExpandedCardId(cardId);
+    if (categoryData[cardId]) return;
+    setLoadingCategory(prev => new Set(prev).add(cardId));
+    try {
+      const res = await transactionApi.getByCard(cardId);
+      const totals: Record<string, number> = {};
+      for (const t of res.data) {
+        totals[t.category] = (totals[t.category] || 0) + t.amount;
+      }
+      setCategoryData(prev => ({ ...prev, [cardId]: totals }));
+    } finally {
+      setLoadingCategory(prev => { const s = new Set(prev); s.delete(cardId); return s; });
+    }
+  };
+
   return (
     <>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginBottom: 16 }}>
+        {cards.length > 0 && (
+          <button className="btn btn-secondary" onClick={() => { setExpandedCardId(null); setShowDebtReport(true); }}>
+            Debt Report
+          </button>
+        )}
         <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>+ Add Credit Card</button>
       </div>
 
@@ -385,6 +431,126 @@ const CardsTab: React.FC = () => {
         })}
       </div>
 
+      {/* ── Debt Report Modal ── */}
+      {showDebtReport && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowDebtReport(false)}>
+          <div className="modal" style={{ maxWidth: 720, width: '95vw' }}>
+            {/* Header */}
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">Credit Debt Report</h3>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                  Total outstanding&nbsp;
+                  <span style={{ fontWeight: 700, color: 'var(--expense)' }}>{fmt(totalDebt)}</span>
+                  &nbsp;across {debtSorted.length} card{debtSorted.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+              <button className="close-btn" onClick={() => setShowDebtReport(false)}>✕</button>
+            </div>
+
+            {/* Two-panel body */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0, minHeight: 320 }}>
+
+              {/* Left — card list */}
+              <div style={{ borderRight: '1px solid var(--border)', paddingRight: 20 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2,
+                  color: 'var(--text-muted)', marginBottom: 12 }}>Cards</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {debtSorted.map((card, i) => {
+                    const pct = totalDebt > 0 ? ((card.outstanding || 0) / totalDebt) * 100 : 0;
+                    const isSelected = expandedCardId === card.id;
+                    const color = CAT_COLORS[i % CAT_COLORS.length];
+                    return (
+                      <div key={card.id}
+                        onClick={() => toggleDrilldown(card.id)}
+                        style={{ padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
+                          background: isSelected ? 'var(--bg-elevated)' : 'transparent',
+                          border: isSelected ? `1px solid ${color}` : '1px solid transparent',
+                          transition: 'all 0.12s' }}
+                        onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-elevated)'; }}
+                        onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                            <NetworkLogo type={card.cardType} />
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
+                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {displayName(card)}
+                              </div>
+                              {card.bank && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{card.bank}</div>}
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 8 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--expense)' }}>{fmt(card.outstanding || 0)}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{Math.round(pct)}% of total</div>
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--border)', borderRadius: 4, height: 4 }}>
+                          <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: color, borderRadius: 4 }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Right — category breakdown */}
+              <div style={{ paddingLeft: 20 }}>
+                {expandedCardId === null ? (
+                  <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--text-muted)', fontSize: 13, textAlign: 'center' }}>
+                    Select a card to see<br />category breakdown
+                  </div>
+                ) : (() => {
+                  const selCard = debtSorted.find(c => c.id === expandedCardId)!;
+                  const selIdx = debtSorted.findIndex(c => c.id === expandedCardId);
+                  const cats = categoryData[expandedCardId];
+                  const isLoading = loadingCategory.has(expandedCardId);
+                  const catEntries = cats ? Object.entries(cats).sort((a, b) => b[1] - a[1]) : [];
+                  const catTotal = catEntries.reduce((s, [, v]) => s + v, 0);
+                  return (
+                    <>
+                      <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2,
+                        color: 'var(--text-muted)', marginBottom: 4 }}>Spend by Category</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14 }}>
+                        {displayName(selCard)} · <span style={{ color: 'var(--expense)', fontWeight: 600 }}>{fmt(selCard.outstanding || 0)}</span> outstanding
+                      </div>
+                      {isLoading ? (
+                        <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading...</div>
+                      ) : catEntries.length === 0 ? (
+                        <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>No transactions found.</div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {catEntries.map(([cat, amt], ci) => {
+                            const catPct = catTotal > 0 ? (amt / catTotal) * 100 : 0;
+                            return (
+                              <div key={cat}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                                  <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>{cat}</span>
+                                  <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{fmt(amt)}</span>
+                                    <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 34, textAlign: 'right' }}>{Math.round(catPct)}%</span>
+                                  </div>
+                                </div>
+                                <div style={{ background: 'var(--border)', borderRadius: 4, height: 5 }}>
+                                  <div style={{ width: `${Math.min(catPct, 100)}%`, height: '100%',
+                                    background: CAT_COLORS[(selIdx + ci) % CAT_COLORS.length], borderRadius: 4 }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add Card Modal */}
       {showAddModal && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAddModal(false)}>
@@ -442,6 +608,19 @@ const CardsTab: React.FC = () => {
                   <label>Payment Due Date <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(day of month)</span></label>
                   <input type="number" min="1" max="31" value={form.paymentDueDate}
                     onChange={e => setForm({ ...form, paymentDueDate: e.target.value })} placeholder="e.g. 5" />
+                </div>
+                <div className="form-group">
+                  <label>Balance Date</label>
+                  <input type="date" value={form.balanceDate}
+                    onChange={e => setForm({ ...form, balanceDate: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>
+                    Outstanding as of {form.balanceDate ? new Date(form.balanceDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'selected date'} (₹)
+                  </label>
+                  <input type="number" step="0.01" min="0" value={form.openingOutstanding}
+                    onChange={e => setForm({ ...form, openingOutstanding: e.target.value })}
+                    placeholder="Amount owed on this date" />
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>

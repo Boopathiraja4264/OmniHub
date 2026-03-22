@@ -4,6 +4,7 @@ import com.omnihub.core.security.EncryptedStringConverter;
 import jakarta.persistence.*;
 import com.omnihub.core.entity.User;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -33,6 +34,9 @@ public class BankAccount {
     @Column(name = "is_default", nullable = false, columnDefinition = "boolean not null default false")
     private boolean isDefault = false;
 
+    @Column(name = "balance_date")
+    private LocalDate balanceDate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -54,6 +58,8 @@ public class BankAccount {
     public void setOpeningBalance(BigDecimal v) { openingBalance = v; }
     public boolean isDefault() { return isDefault; }
     public void setDefault(boolean v) { isDefault = v; }
+    public LocalDate getBalanceDate() { return balanceDate; }
+    public void setBalanceDate(LocalDate v) { balanceDate = v; }
     public User getUser() { return user; }
     public void setUser(User v) { user = v; }
     public LocalDateTime getCreatedAt() { return createdAt; }
