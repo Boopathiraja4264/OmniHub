@@ -66,7 +66,7 @@ const AuthPage: React.FC = () => {
           clearInterval(interval);
           const { data: authData } = await authApi.verify2FA(tempToken, "", "PUSH", challengeToken);
           loginWithToken(authData);
-          navigate("/");
+          navigate("/home");
         } else if (data.status === "DENIED") {
           clearInterval(interval);
           setPushPolling(false);
@@ -119,7 +119,7 @@ const AuthPage: React.FC = () => {
           setInfo("A one-time code has been sent to your phone.");
         }
       } else {
-        navigate("/");
+        navigate("/home");
       }
     } catch (err: any) {
       setError(err.response?.data?.error || "Invalid email or password");
@@ -148,7 +148,7 @@ const AuthPage: React.FC = () => {
     try {
       const { data } = await authApi.verifyEmail(email, otp);
       loginWithToken(data);
-      navigate("/");
+      navigate("/home");
     } catch (err: any) {
       setError(err.response?.data?.error || "Invalid or expired code");
     } finally {
@@ -172,7 +172,7 @@ const AuthPage: React.FC = () => {
     try {
       const { data } = await authApi.verify2FA(tempToken, twoFACode, twoFAMethod, challengeToken);
       loginWithToken(data);
-      navigate("/");
+      navigate("/home");
     } catch (err: any) {
       setError(err.response?.data?.error || "Invalid or expired code");
     } finally {

@@ -20,7 +20,7 @@ const OAuthCallbackPage: React.FC = () => {
       .then(({ data }) => {
         // Backend set the HttpOnly cookie; just update UI state
         loginWithToken({ email: data.email, fullName: data.fullName });
-        navigate("/", { replace: true });
+        navigate("/home", { replace: true });
       })
       .catch(() => {
         navigate("/login?error=oauth_failed", { replace: true });
