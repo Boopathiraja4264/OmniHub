@@ -1,8 +1,6 @@
 package com.omnihub.core.controller;
 
 import com.omnihub.core.dto.DTOs.*;
-import com.omnihub.core.entity.User;
-import com.omnihub.core.repository.UserRepository;
 import com.omnihub.core.security.JwtUtil;
 import com.omnihub.core.service.AuthService;
 import com.omnihub.core.service.EmailVerificationService;
@@ -17,8 +15,6 @@ import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ResponseCookie;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -31,7 +27,6 @@ public class AuthController {
     @Autowired private EmailVerificationService emailVerificationService;
     @Autowired private PasswordResetService passwordResetService;
     @Autowired private JwtUtil jwtUtil;
-    @Autowired private UserRepository userRepository;
     @Autowired private CacheManager cacheManager;
 
     @Value("${app.cookie.secure:false}")
@@ -95,12 +90,6 @@ public class AuthController {
     }
 
     // ── Session management ─────────────────────────────────────────────────────
-
-    @GetMapping("/me")
-    public ResponseEntity<?> getMe(@AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByEmail(userDetails.getUsername()).orElseThrow();
-        return ResponseEntity.ok(Map.of("email", user.getEmail(), "fullName", user.getFullName()));
-    }
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
