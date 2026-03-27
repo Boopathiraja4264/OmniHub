@@ -3,6 +3,16 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "../../services/api";
 
+const EyeIcon = ({ open }: { open: boolean }) => open ? (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+  </svg>
+) : (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
+);
+
 type Step = "login" | "register" | "verify-email" | "2fa" | "forgot-password" | "reset-sent";
 
 const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
@@ -31,6 +41,7 @@ const AuthPage: React.FC = () => {
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [twoFACode, setTwoFACode] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -378,8 +389,14 @@ const AuthPage: React.FC = () => {
           )}
           <input className="input-glass" type="email" value={email} onChange={e => setEmail(e.target.value)}
             placeholder="Email Address" required />
-          <input className="input-glass" type="password" value={password} onChange={e => setPassword(e.target.value)}
-            placeholder="Password" required />
+          <div style={{ position: 'relative' }}>
+            <input className="input-glass" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
+              placeholder="Password" required style={{ paddingRight: 44, width: '100%' }} />
+            <button type="button" onClick={() => setShowPassword(v => !v)}
+              style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: 0, lineHeight: 1, display: 'flex' }}>
+              <EyeIcon open={showPassword} />
+            </button>
+          </div>
           {isLogin && (
             <div style={{ textAlign: 'right', marginBottom: 16, marginTop: -8 }}>
               <button type="button" onClick={() => { setStep("forgot-password"); setForgotEmail(email); setError(""); }}
@@ -389,7 +406,7 @@ const AuthPage: React.FC = () => {
             </div>
           )}
           <button type="submit" className="btn-gold" disabled={loading}>
-            {loading ? "Authenticating..." : isLogin ? "Access Dashboard" : "Create Account"}
+            {loading ? "Authenticating..." : isLogin ? "Let's Go" : "Create Account"}
           </button>
         </form>
 
@@ -413,6 +430,9 @@ const AuthPage: React.FC = () => {
         <div className="aurora-blob blob-1"></div>
         <div className="aurora-blob blob-2"></div>
         <div className="aurora-blob blob-3"></div>
+      </div>
+      <div className="particles">
+        {Array.from({ length: 10 }).map((_, i) => <div key={i} className="particle" />)}
       </div>
 
       <div className="palm-floating">🌴</div>

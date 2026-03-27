@@ -2,6 +2,7 @@ export interface User {
   email: string;
   fullName: string;
   token: string;
+  oauthProvider?: string;
 }
 
 export type TransactionType = 'INCOME' | 'EXPENSE';

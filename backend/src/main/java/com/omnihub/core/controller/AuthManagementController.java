@@ -26,6 +26,17 @@ public class AuthManagementController {
         return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
     }
 
+    @PostMapping("/set-password")
+    public ResponseEntity<?> setPassword(Authentication auth,
+                                          @RequestBody Map<String, String> body) {
+        String newPassword = body.get("newPassword");
+        if (newPassword == null || newPassword.length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Password must be at least 8 characters"));
+        }
+        authService.setPassword(auth.getName(), newPassword);
+        return ResponseEntity.ok(Map.of("message", "Password set successfully"));
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> getMe(Authentication auth) {
         User user = userRepository.findByEmail(auth.getName())
