@@ -2,6 +2,7 @@ export interface User {
   email: string;
   fullName: string;
   token: string;
+  oauthProvider?: string;
 }
 
 export type TransactionType = 'INCOME' | 'EXPENSE';
@@ -146,6 +147,130 @@ export interface PivotResponse {
 export const INCOME_CATEGORIES = [
   'Salary', 'Freelance', 'Investment', 'Business', 'Gift', 'Other'
 ];
+
+// ─── Productivity ─────────────────────────────────────────────────────────────
+
+export type TaskCategory  = 'PERSONAL' | 'PROFESSIONAL';
+export type TaskStatus    = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'DEFERRED';
+export type TaskPriority  = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+export type TaskRecurring = 'NONE' | 'DAILY' | 'WEEKDAYS' | 'WEEKLY';
+export type BlockCategory = 'PERSONAL' | 'PROFESSIONAL' | 'DEEP_WORK' | 'BREAK' | 'ADMIN';
+export type BlockStatus   = 'PLANNED' | 'IN_PROGRESS' | 'DONE' | 'SKIPPED';
+export type PlanStatus    = 'DRAFT' | 'ACTIVE' | 'COMPLETED';
+
+export interface Task {
+  id: number;
+  title: string;
+  description?: string;
+  category: TaskCategory;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate?: string;
+  estimatedMinutes?: number;
+  recurring: TaskRecurring;
+  parentTaskId?: number;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+}
+
+export interface TimeBlock {
+  id: number;
+  planId: number;
+  taskId?: number;
+  title: string;
+  category: BlockCategory;
+  startTime: string;
+  endTime: string;
+  color?: string;
+  status: BlockStatus;
+  notes?: string;
+  sortOrder: number;
+  plannedMinutes?: number;
+}
+
+export interface DailyPlan {
+  id: number;
+  planDate: string;
+  notes?: string;
+  status: PlanStatus;
+  timeBlocks: TimeBlock[];
+  createdAt: string;
+}
+
+export interface TimeEntry {
+  id: number;
+  taskId?: number;
+  blockId?: number;
+  description?: string;
+  startedAt: string;
+  endedAt?: string;
+  durationMinutes?: number;
+  running: boolean;
+}
+
+export interface WeeklyTemplate {
+  id: number;
+  name: string;
+  active: boolean;
+  blocks: TemplateBlock[];
+  createdAt: string;
+}
+
+export interface TemplateBlock {
+  id: number;
+  templateId: number;
+  dayOfWeek: string;
+  title: string;
+  category: BlockCategory;
+  startTime: string;
+  endTime: string;
+  color?: string;
+  sortOrder: number;
+}
+
+export interface FocusScoreResponse {
+  date: string;
+  totalScore: number;
+  taskScore: number;
+  blockScore: number;
+  timeAccuracyScore: number;
+  streakBonus: number;
+  streakDays: number;
+  label: string;
+  tasksPlanned: number;
+  tasksDone: number;
+  blocksPlanned: number;
+  blocksDone: number;
+  adherenceRate: number;
+}
+
+export interface ScoreSeriesPoint {
+  date: string;
+  score: number;
+  label: string;
+}
+
+export interface AdherenceDataPoint {
+  date: string;
+  plannedMinutes: number;
+  loggedMinutes: number;
+  adherenceRate: number;
+  byCategory: Record<string, { plannedMinutes: number; loggedMinutes: number }>;
+}
+
+export interface ProductivityDashboard {
+  todayScore?: FocusScoreResponse;
+  weekAvgScore: number;
+  monthAvgScore: number;
+  currentStreak: number;
+  todayAdherence: number;
+  pendingTasks: number;
+  todayBlocksDone: number;
+  todayBlocksTotal: number;
+  timerRunning: boolean;
+  activeTimer?: TimeEntry;
+}
 
 // Static fallback used by quick-add forms; full dynamic list is managed via CategoryItemSettingsPage
 export const EXPENSE_CATEGORIES = [

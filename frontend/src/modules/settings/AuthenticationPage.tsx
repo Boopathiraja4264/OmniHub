@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { authApi } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+
+const Eye = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+  </svg>
+);
+const EyeOff = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
+);
 
 interface TwoFAStatus {
   method: string;
@@ -15,15 +27,21 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 );
 
 const AuthenticationPage: React.FC = () => {
+  const { user } = useAuth();
+  const isSsoUser = !!(user?.oauthProvider && user.oauthProvider !== '');
+
   const [status, setStatus] = useState<TwoFAStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(true);
 
-  // Change password
+  // Change / Set password
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [pwMsg, setPwMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [pwLoading, setPwLoading] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
 
   // TOTP setup
   const [totpSetupData, setTotpSetupData] = useState<{ qrCode: string; secret: string } | null>(null);
@@ -54,11 +72,17 @@ const AuthenticationPage: React.FC = () => {
     if (newPw.length < 8) { setPwMsg({ text: "Password must be at least 8 characters", type: "error" }); return; }
     setPwLoading(true);
     try {
-      await authApi.changePassword(currentPw, newPw);
-      setPwMsg({ text: "Password changed successfully", type: "success" });
-      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+      if (isSsoUser) {
+        await authApi.setPassword(newPw);
+        setPwMsg({ text: "Password set! You can now log in with email + password.", type: "success" });
+      } else {
+        await authApi.changePassword(currentPw, newPw);
+        setPwMsg({ text: "Password changed successfully", type: "success" });
+        setCurrentPw("");
+      }
+      setNewPw(""); setConfirmPw("");
     } catch (err: any) {
-      setPwMsg({ text: err.response?.data?.error || "Failed to change password", type: "error" });
+      setPwMsg({ text: err.response?.data?.error || "Failed to update password", type: "error" });
     } finally {
       setPwLoading(false);
     }
@@ -127,25 +151,47 @@ const AuthenticationPage: React.FC = () => {
 
   return (
     <div>
-      {/* Change Password */}
-      <Section title="🔑 Change Password">
+      {/* Change / Set Password */}
+      <Section title={isSsoUser ? "🔑 Set Password" : "🔑 Change Password"}>
+        {isSsoUser && (
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16, padding: '10px 12px', background: 'var(--bg-hover)', borderRadius: 8, borderLeft: '3px solid #6a8fe8' }}>
+            You signed in with <strong>{user?.oauthProvider}</strong>. Set a password to also log in with your email and password.
+          </p>
+        )}
         <form onSubmit={handleChangePassword}>
-          <div className="form-group" style={{ marginBottom: 14 }}>
-            <label className="form-label">CURRENT PASSWORD</label>
-            <input type="password" className="input" value={currentPw} onChange={e => setCurrentPw(e.target.value)} required style={{ maxWidth: 360 }} />
-          </div>
+          {!isSsoUser && (
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label className="form-label">CURRENT PASSWORD</label>
+              <div style={{ position: 'relative', maxWidth: 360 }}>
+                <input type={showCurrentPw ? "text" : "password"} className="input" value={currentPw} onChange={e => setCurrentPw(e.target.value)} required style={{ width: '100%', paddingRight: 40 }} />
+                <button type="button" onClick={() => setShowCurrentPw(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, lineHeight: 1 }}>
+                  {showCurrentPw ? <EyeOff /> : <Eye />}
+                </button>
+              </div>
+            </div>
+          )}
           <div className="form-group" style={{ marginBottom: 14 }}>
             <label className="form-label">NEW PASSWORD</label>
-            <input type="password" className="input" value={newPw} onChange={e => setNewPw(e.target.value)} required style={{ maxWidth: 360 }} />
+            <div style={{ position: 'relative', maxWidth: 360 }}>
+              <input type={showNewPw ? "text" : "password"} className="input" value={newPw} onChange={e => setNewPw(e.target.value)} required style={{ width: '100%', paddingRight: 40 }} />
+              <button type="button" onClick={() => setShowNewPw(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, lineHeight: 1 }}>
+                {showNewPw ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
             <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 4 }}>Min 8 chars, 1 uppercase, 1 number</p>
           </div>
           <div className="form-group" style={{ marginBottom: 20 }}>
             <label className="form-label">CONFIRM NEW PASSWORD</label>
-            <input type="password" className="input" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} required style={{ maxWidth: 360 }} />
+            <div style={{ position: 'relative', maxWidth: 360 }}>
+              <input type={showConfirmPw ? "text" : "password"} className="input" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} required style={{ width: '100%', paddingRight: 40 }} />
+              <button type="button" onClick={() => setShowConfirmPw(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, lineHeight: 1 }}>
+                {showConfirmPw ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
           </div>
           {pwMsg && <StatusMsg msg={pwMsg} />}
           <button type="submit" className="btn btn-primary" disabled={pwLoading}>
-            {pwLoading ? "Saving..." : "Update Password"}
+            {pwLoading ? "Saving..." : isSsoUser ? "Set Password" : "Update Password"}
           </button>
         </form>
       </Section>

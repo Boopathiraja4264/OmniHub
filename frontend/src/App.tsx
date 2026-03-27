@@ -30,8 +30,14 @@ const WorkoutPage      = lazy(() => import('./modules/fitness/WorkoutPage'));
 const WeeklyPlanPage   = lazy(() => import('./modules/fitness/WeeklyPlanPage'));
 const WeightPage       = lazy(() => import('./modules/fitness/WeightPage'));
 const StepsPage        = lazy(() => import('./modules/fitness/StepsPage'));
-const SettingsPage     = lazy(() => import('./modules/settings/SettingsPage'));
-const BackupPage       = lazy(() => import('./modules/settings/BackupPage'));
+const SettingsPage              = lazy(() => import('./modules/settings/SettingsPage'));
+const BackupPage                = lazy(() => import('./modules/settings/BackupPage'));
+const ProductivityDashboard     = lazy(() => import('./modules/productivity/ProductivityDashboard'));
+const TodayPage                 = lazy(() => import('./modules/productivity/TodayPage'));
+const TaskBoardPage             = lazy(() => import('./modules/productivity/TaskBoardPage'));
+const TemplatesPage             = lazy(() => import('./modules/productivity/TemplatesPage'));
+const InsightsPage              = lazy(() => import('./modules/productivity/InsightsPage'));
+const CalendarPage              = lazy(() => import('./modules/productivity/CalendarPage'));
 
 const PageFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--text-muted)' }}>
@@ -71,6 +77,12 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />
             <Route path="/fitness/weight" element={<WeightPage />} />
             <Route path="/fitness/steps" element={<StepsPage />} />
+            <Route path="/productivity" element={<ProductivityDashboard />} />
+            <Route path="/productivity/today" element={<TodayPage />} />
+            <Route path="/productivity/tasks" element={<TaskBoardPage />} />
+            <Route path="/productivity/templates" element={<TemplatesPage />} />
+            <Route path="/productivity/insights" element={<InsightsPage />} />
+            <Route path="/productivity/calendar" element={<CalendarPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/backup" element={<BackupPage />} />
           </Routes>

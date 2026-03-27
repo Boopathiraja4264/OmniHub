@@ -135,4 +135,14 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
+
+    /** For SSO users who have never set a password — no current password required. */
+    public void setPassword(String email, String newPassword) {
+        User user = userRepository.findByEmail(email).orElseThrow();
+        if (user.getOauthProvider() == null || user.getOauthProvider().isBlank()) {
+            throw new RuntimeException("Use change-password instead");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 }

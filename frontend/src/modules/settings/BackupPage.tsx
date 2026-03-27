@@ -25,6 +25,11 @@ interface BackupStats {
   latest: BackupLog | null;
 }
 
+interface BackupSettings {
+  enabled: boolean;
+  backupTime: string; // "HH:mm:ss"
+}
+
 const formatBytes = (bytes: number) => {
   if (!bytes) return '—';
   if (bytes < 1024) return bytes + ' B';
@@ -45,6 +50,8 @@ const BackupPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState('');
+  const [settings, setSettings] = useState<BackupSettings>({ enabled: true, backupTime: '00:00:00' });
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -52,16 +59,31 @@ const BackupPage: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [statsRes, logsRes] = await Promise.all([
+      const [statsRes, logsRes, settingsRes] = await Promise.all([
         api.get('/backup/stats'),
-        api.get('/backup/logs')
+        api.get('/backup/logs'),
+        api.get('/backup/settings'),
       ]);
       setStats(statsRes.data);
       setLogs(logsRes.data);
+      setSettings(settingsRes.data);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveSettings = async (patch: Partial<BackupSettings>) => {
+    setSettingsSaving(true);
+    try {
+      const updated = { ...settings, ...patch };
+      await api.put('/backup/settings', updated);
+      setSettings(updated);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSettingsSaving(false);
     }
   };
 
@@ -120,6 +142,43 @@ const BackupPage: React.FC = () => {
         </div>
       )}
 
+      {/* Settings */}
+      <div className="card" style={{ marginBottom: 24, padding: '18px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>Automatic backup</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              {settings.enabled ? `Runs daily at ${settings.backupTime.slice(0, 5)} IST` : 'Disabled — no automatic backups will run'}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            {settings.enabled && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>Time</label>
+                <input
+                  type="time"
+                  value={settings.backupTime.slice(0, 5)}
+                  onChange={e => saveSettings({ backupTime: e.target.value + ':00' })}
+                  style={{ fontSize: 13, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', cursor: 'pointer' }}
+                />
+              </div>
+            )}
+            <button
+              onClick={() => saveSettings({ enabled: !settings.enabled })}
+              disabled={settingsSaving}
+              style={{
+                padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13,
+                background: settings.enabled ? 'rgba(224,92,106,0.15)' : 'var(--primary-dim)',
+                color: settings.enabled ? '#ef4444' : 'var(--primary-light)',
+                transition: 'all 0.15s',
+              }}
+            >
+              {settingsSaving ? '...' : settings.enabled ? 'Disable' : 'Enable'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Stat cards */}
       <div className="stats-grid" style={{ marginBottom: 24 }}>
         <div className="stat-card">
@@ -145,8 +204,12 @@ const BackupPage: React.FC = () => {
         </div>
         <div className="stat-card">
           <div className="stat-label">Next backup</div>
-          <div className="stat-value" style={{ fontSize: 22 }}>Tonight</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>12:00 AM IST</div>
+          <div className="stat-value" style={{ fontSize: 22, color: settings.enabled ? undefined : 'var(--text-muted)' }}>
+            {settings.enabled ? 'Tonight' : 'Disabled'}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+            {settings.enabled ? `${settings.backupTime.slice(0, 5)} IST` : 'Enable to schedule'}
+          </div>
         </div>
       </div>
 

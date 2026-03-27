@@ -11,6 +11,7 @@ export interface AuthResponse {
   twoFactorMethod?: string;
   tempToken?: string;
   challengeToken?: string;
+  oauthProvider?: string;
 }
 
 interface AuthContextType {
@@ -32,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     authApi.getMe()
       .then(r => {
-        setUser({ email: r.data.email, fullName: r.data.fullName, token: '' });
+        setUser({ email: r.data.email, fullName: r.data.fullName, token: '', oauthProvider: r.data.oauthProvider || '' });
       })
       .catch(() => {
         // No valid session — clear any stale localStorage
@@ -59,8 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginWithToken = (data: AuthResponse) => {
     if (data.token || data.email) {
-      // Cookie is set by backend; store user info in memory only
-      setUser({ email: data.email, fullName: data.fullName, token: '' });
+      setUser({ email: data.email, fullName: data.fullName, token: '', oauthProvider: data.oauthProvider || '' });
     }
   };
 
