@@ -171,4 +171,55 @@ export const slackApi = {
   sendTest: () => api.post("/notifications/slack-settings/test"),
 };
 
+export const productivityApi = {
+  // Tasks
+  getTasks: () => api.get('/productivity/tasks'),
+  getActiveTasks: () => api.get('/productivity/tasks/active'),
+  getTodayTasks: () => api.get('/productivity/tasks/today'),
+  createTask: (data: any) => api.post('/productivity/tasks', data),
+  updateTask: (id: number, data: any) => api.put(`/productivity/tasks/${id}`, data),
+  updateTaskStatus: (id: number, status: string) => api.patch(`/productivity/tasks/${id}/status`, { status }),
+  deleteTask: (id: number) => api.delete(`/productivity/tasks/${id}`),
+
+  // Daily Plans
+  getPlan: (date: string) => api.get('/productivity/plans', { params: { date } }),
+  getPlansRange: (from: string, to: string) => api.get('/productivity/plans/range', { params: { from, to } }),
+  createPlan: (data: any) => api.post('/productivity/plans', data),
+  updatePlan: (id: number, data: any) => api.put(`/productivity/plans/${id}`, data),
+  generatePlan: (id: number) => api.post(`/productivity/plans/${id}/generate`),
+  deferIncomplete: (id: number) => api.post(`/productivity/plans/${id}/defer-incomplete`),
+
+  // Time Blocks
+  addBlock: (planId: number, data: any) => api.post(`/productivity/plans/${planId}/blocks`, data),
+  updateBlock: (id: number, data: any) => api.put(`/productivity/time-blocks/${id}`, data),
+  updateBlockStatus: (id: number, status: string) => api.patch(`/productivity/time-blocks/${id}/status`, { status }),
+  deleteBlock: (id: number) => api.delete(`/productivity/time-blocks/${id}`),
+
+  // Timer
+  getActiveTimer: () => api.get('/productivity/timer/active'),
+  startTimer: (data?: any) => api.post('/productivity/timer/start', data || {}),
+  stopTimer: () => api.post('/productivity/timer/stop'),
+  getTimeEntries: (date: string) => api.get('/productivity/timer/entries', { params: { date } }),
+  deleteTimeEntry: (id: number) => api.delete(`/productivity/timer/entries/${id}`),
+
+  // Weekly Templates
+  getTemplates: () => api.get('/productivity/templates'),
+  createTemplate: (data: any) => api.post('/productivity/templates', data),
+  updateTemplate: (id: number, data: any) => api.put(`/productivity/templates/${id}`, data),
+  deleteTemplate: (id: number) => api.delete(`/productivity/templates/${id}`),
+  addTemplateBlock: (templateId: number, data: any) => api.post(`/productivity/templates/${templateId}/blocks`, data),
+  updateTemplateBlock: (id: number, data: any) => api.put(`/productivity/templates/blocks/${id}`, data),
+  deleteTemplateBlock: (id: number) => api.delete(`/productivity/templates/blocks/${id}`),
+
+  // Reports
+  getDashboard: () => api.get('/productivity/reports/dashboard'),
+  getDailyReport: (date: string) => api.get('/productivity/reports/daily', { params: { date } }),
+  getAdherence: (from: string, to: string) => api.get('/productivity/reports/adherence', { params: { from, to } }),
+  getFocusScore: (date: string) => api.get('/productivity/reports/focus-score', { params: { date } }),
+  computeFocusScore: (date: string) => api.post('/productivity/reports/focus-score/compute', null, { params: { date } }),
+  getDailyScoreSeries: (from: string, to: string) => api.get('/productivity/reports/focus-score/series/daily', { params: { from, to } }),
+  getWeeklyScoreSeries: (year: number) => api.get('/productivity/reports/focus-score/series/weekly', { params: { year } }),
+  getMonthlyScoreSeries: (year: number) => api.get('/productivity/reports/focus-score/series/monthly', { params: { year } }),
+};
+
 export default api;

@@ -46,6 +46,15 @@ const TopNav: React.FC = () => {
     { to: '/fitness/steps', label: t('nav.stepsRun'), icon: '👟', end: false },
   ];
 
+  const focusLinks = [
+    { to: '/productivity', label: 'Dashboard', icon: '📊', end: true },
+    { to: '/productivity/calendar', label: 'Calendar', icon: '📅', end: false },
+    { to: '/productivity/today', label: 'Today', icon: '🗓️', end: false },
+    { to: '/productivity/tasks', label: 'Tasks', icon: '✅', end: false },
+    { to: '/productivity/templates', label: 'Templates', icon: '📋', end: false },
+    { to: '/productivity/insights', label: 'Insights', icon: '📈', end: false },
+  ];
+
   return (
     <>
       <header className="top-nav">
@@ -95,6 +104,31 @@ const TopNav: React.FC = () => {
               <div className="top-nav-dropdown-menu">
                 <div className="top-nav-dropdown-inner">
                   {fitnessLinks.map(link => (
+                    <NavLink
+                      key={link.to}
+                      to={link.to}
+                      end={link.end}
+                      className={({ isActive }) => `top-nav-dropdown-item ${isActive ? 'active' : ''}`}
+                    >
+                      <span style={{ fontSize: 15 }}>{link.icon}</span>
+                      {link.label}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Focus dropdown */}
+            <div className="top-nav-dropdown">
+              <button className="top-nav-item top-nav-dropdown-trigger">
+                <span>✅</span> Focus
+                <svg className="top-nav-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+              <div className="top-nav-dropdown-menu">
+                <div className="top-nav-dropdown-inner">
+                  {focusLinks.map(link => (
                     <NavLink
                       key={link.to}
                       to={link.to}
@@ -197,6 +231,21 @@ const TopNav: React.FC = () => {
         {/* Fitness */}
         <div className="top-nav-mobile-section">💪 Fitness</div>
         {fitnessLinks.map(link => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            end={link.end}
+            onClick={closeMenu}
+            className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
+          >
+            <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{link.icon}</span>
+            {link.label}
+          </NavLink>
+        ))}
+
+        {/* Focus */}
+        <div className="top-nav-mobile-section">✅ Focus</div>
+        {focusLinks.map(link => (
           <NavLink
             key={link.to}
             to={link.to}
