@@ -320,7 +320,7 @@ const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
   });
   // Collapsed month column cells — invisible strip, no box
   const tdCollapsed: React.CSSProperties = {
-    width: 18, maxWidth: 18, padding: 0,
+    width: 28, maxWidth: 28, padding: 0,
     border: 'none', borderRight: '1px solid var(--border)',
     background: 'transparent',
   };
@@ -379,7 +379,7 @@ const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
                     ...thBase,
                     cursor: 'pointer', userSelect: 'none', textAlign: 'center',
                     ...(isCol ? {
-                      width: 18, maxWidth: 18, padding: '6px 0',
+                      width: 28, maxWidth: 28, padding: '6px 0',
                       border: 'none', borderRight: '1px solid var(--border)',
                       borderBottom: '2px solid var(--primary)',
                       background: 'var(--bg-secondary)',
@@ -396,7 +396,7 @@ const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
                 >
                   {isCol ? (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <span style={{ color: 'var(--primary)', fontWeight: 800, fontSize: 10 }}>+</span>
+                      <span style={{ color: 'var(--primary)', fontSize: 9 }}>▶</span>
                       <span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 8, color: 'var(--text-muted)', letterSpacing: 0.5, lineHeight: 1 }}>
                         {MONTHS[m - 1].slice(0, 3)}
                       </span>
@@ -405,7 +405,7 @@ const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       {MONTHS[m - 1]}
                       {isCur && <span style={{ fontSize: 9, fontWeight: 600, opacity: 0.7 }}>●</span>}
-                      <span style={{ background: isCur ? 'var(--primary)' : 'var(--primary-dim)', color: isCur ? 'var(--bg-card)' : 'var(--primary)', borderRadius: 4, padding: '0 4px', fontWeight: 800, fontSize: 11 }}>−</span>
+                      <span style={{ background: isCur ? 'var(--primary)' : 'var(--primary-dim)', color: isCur ? 'var(--bg-card)' : 'var(--primary)', borderRadius: 4, padding: '0 4px', fontWeight: 800, fontSize: 11 }}>▼</span>
                     </span>
                   )}
                 </th>
