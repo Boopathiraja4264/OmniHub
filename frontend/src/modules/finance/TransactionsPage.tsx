@@ -82,9 +82,14 @@ const TransactionsPage: React.FC = () => {
     categoryItemApi.getCategories().catch(() => {});
   }, []);
 
-  // Close popover when clicking outside
+  // Close popover when clicking outside.
+  // Skip closing if a date input is focused — the browser's native date picker
+  // (month selector, navigation arrows) fires events outside the DOM so we must
+  // not dismiss the popover while the user is interacting with it.
   useEffect(() => {
     const handler = (e: MouseEvent) => {
+      const active = document.activeElement as HTMLElement | null;
+      if (active?.getAttribute('type') === 'date') return;
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setOpenPopover(null);
       }
@@ -288,8 +293,9 @@ const TransactionsPage: React.FC = () => {
     );
   };
 
-  // Filter popover — filter only, sort via double-click on column name
-  const Popover = () => {
+  // Called as renderPopover() not <Popover/> to avoid unmounting on re-render.
+  // Unmounting destroys the native date picker — same fix as the colTh double-click issue.
+  const renderPopover = () => {
     if (!openPopover) return null;
     const { col, x, y } = openPopover;
     const isDesc = col === 'description';
@@ -501,8 +507,8 @@ const TransactionsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter popover */}
-      <Popover />
+      {/* Filter popover — called as plain function to avoid unmounting native date picker */}
+      {renderPopover()}
 
       {/* Add/Edit modal */}
       <AddTransactionModal
