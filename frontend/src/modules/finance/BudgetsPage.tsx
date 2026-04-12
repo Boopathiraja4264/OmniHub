@@ -210,6 +210,7 @@ interface AnnualTabProps {
 
 const ALL_MONTHS = [1,2,3,4,5,6,7,8,9,10,11,12];
 const curMonth = new Date().getMonth() + 1;
+const TRANSFER_CATEGORIES = ['Transfer Out', 'Transfer In'];
 
 const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
   const [data, setData] = useState<PivotResponse | null>(null);
@@ -223,7 +224,21 @@ const AnnualTab: React.FC<AnnualTabProps> = ({ year }) => {
   const load = useCallback(() => {
     setLoading(true);
     transactionApi.getPivot(year)
-      .then(r => setData(r.data))
+      .then(r => {
+        const raw: PivotResponse = r.data;
+        if (!raw) { setData(null); return; }
+        // Exclude Transfer categories from display and calculations
+        const categories = raw.categories.filter(c => !TRANSFER_CATEGORIES.includes(c.name));
+        const grandMonthlyTotals: Record<number, number> = {};
+        categories.forEach(cat => {
+          Object.entries(cat.monthlyTotals).forEach(([m, amt]) => {
+            const mn = Number(m);
+            grandMonthlyTotals[mn] = (grandMonthlyTotals[mn] || 0) + (amt as number);
+          });
+        });
+        const grandTotal = categories.reduce((s, c) => s + c.total, 0);
+        setData({ ...raw, categories, grandMonthlyTotals, grandTotal });
+      })
       .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, [year]);

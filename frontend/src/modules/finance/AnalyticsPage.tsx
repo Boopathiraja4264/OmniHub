@@ -14,6 +14,7 @@ ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarEle
 const COLORS = ['#c9a84c','#4caf82','#e05c6a','#6a8fe8','#a874d4','#e09c5c','#5cc4e0','#e0d45c','#a8e05c','#e07a5c'];
 const SALMON = '#C0504D';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const TRANSFER_CATEGORIES = ['Transfer Out', 'Transfer In'];
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
@@ -108,17 +109,36 @@ const AnalyticsPage: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  // All expense transactions for the selected year
+  // All expense transactions for the selected year, excluding transfers
   const yearExpenseTxns = useMemo(() =>
-    allTxns.filter(t => t.type === 'EXPENSE' && new Date(t.date).getFullYear() === year),
+    allTxns.filter(t =>
+      t.type === 'EXPENSE' &&
+      new Date(t.date).getFullYear() === year &&
+      !TRANSFER_CATEGORIES.includes(t.category)
+    ),
     [allTxns, year]
   );
 
+  // Exclude Transfer categories from both display and all calculations
+  const filteredPivot = useMemo(() => {
+    if (!pivot) return null;
+    const categories = pivot.categories.filter(c => !TRANSFER_CATEGORIES.includes(c.name));
+    const grandMonthlyTotals: Record<number, number> = {};
+    categories.forEach(cat => {
+      Object.entries(cat.monthlyTotals).forEach(([month, amt]) => {
+        const m = Number(month);
+        grandMonthlyTotals[m] = (grandMonthlyTotals[m] || 0) + (amt as number);
+      });
+    });
+    const grandTotal = categories.reduce((s, c) => s + c.total, 0);
+    return { ...pivot, categories, grandMonthlyTotals, grandTotal };
+  }, [pivot]);
+
   // ─── Annual chart data ──────────────────────────────────────────────────────
-  const annualCatLabels = useMemo(() => pivot?.categories.map(c => c.name) ?? [], [pivot]);
-  const annualCatValues = useMemo(() => pivot?.categories.map(c => c.total) ?? [], [pivot]);
-  const annualMonthVals = useMemo(() => MONTHS.map((_, i) => pivot?.grandMonthlyTotals[i + 1] ?? 0), [pivot]);
-  const annualTotal = useMemo(() => annualCatValues.reduce((s, v) => s + v, 0), [annualCatValues]);
+  const annualCatLabels = useMemo(() => filteredPivot?.categories.map(c => c.name) ?? [], [filteredPivot]);
+  const annualCatValues = useMemo(() => filteredPivot?.categories.map(c => c.total) ?? [], [filteredPivot]);
+  const annualMonthVals = useMemo(() => MONTHS.map((_, i) => filteredPivot?.grandMonthlyTotals[i + 1] ?? 0), [filteredPivot]);
+  const annualTotal = useMemo(() => filteredPivot?.grandTotal ?? 0, [filteredPivot]);
 
   const catColor = useCallback((idx: number) => (COLORS.concat(COLORS))[idx] ?? COLORS[0], []);
 
@@ -303,7 +323,7 @@ const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* ── Expenses by Category + Expenses by Month ── */}
-      {pivot && pivot.categories.length > 0 && (
+      {filteredPivot && filteredPivot.categories.length > 0 && (
         <div className="charts-grid">
           <div className="card">
             <h3 style={{ fontSize: 15, marginBottom: 2 }}>Expenses by Category — {year}</h3>
