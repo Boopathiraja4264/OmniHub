@@ -57,7 +57,7 @@ const TransactionsPage: React.FC = () => {
   // Column filters
   const [colFilters, setColFilters] = useState<Partial<Record<SortField, string[]>>>({});
   const [descSearch, setDescSearch] = useState('');
-  const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: '', to: '' });
+  const [selectedDate, setSelectedDate] = useState('');
 
   // Popover
   const [openPopover, setOpenPopover] = useState<{ col: SortField; x: number; y: number } | null>(null);
@@ -82,9 +82,14 @@ const TransactionsPage: React.FC = () => {
     categoryItemApi.getCategories().catch(() => {});
   }, []);
 
-  // Close popover when clicking outside
+  // Close popover when clicking outside.
+  // Skip closing if a date input is focused — the browser's native date picker
+  // (month selector, navigation arrows) fires events outside the DOM so we must
+  // not dismiss the popover while the user is interacting with it.
   useEffect(() => {
     const handler = (e: MouseEvent) => {
+      const active = document.activeElement as HTMLElement | null;
+      if (active?.getAttribute('type') === 'date') return;
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
         setOpenPopover(null);
       }
@@ -125,8 +130,7 @@ const TransactionsPage: React.FC = () => {
       list = list.filter(t => vals.includes(getColRawVal(t, col)));
     });
 
-    if (dateRange.from) list = list.filter(t => t.date >= dateRange.from);
-    if (dateRange.to)   list = list.filter(t => t.date <= dateRange.to);
+    if (selectedDate) list = list.filter(t => t.date === selectedDate);
 
     return [...list].sort((a, b) => {
       let aVal: string | number, bVal: string | number;
@@ -137,22 +141,22 @@ const TransactionsPage: React.FC = () => {
       if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [transactions, typeFilter, descSearch, colFilters, dateRange, sortField, sortDir, getColRawVal]);
+  }, [transactions, typeFilter, descSearch, colFilters, selectedDate, sortField, sortDir, getColRawVal]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => { setCurrentPage(1); }, [typeFilter, colFilters, descSearch, dateRange, sortField]);
+  useEffect(() => { setCurrentPage(1); }, [typeFilter, colFilters, descSearch, selectedDate, sortField]);
 
   const isColFiltered = (col: SortField) => {
     if (col === 'description') return !!descSearch.trim();
-    if (col === 'date') return !!(dateRange.from || dateRange.to);
+    if (col === 'date') return !!selectedDate;
     return (colFilters[col]?.length ?? 0) > 0;
   };
 
   const hasAnyFilter =
     Object.values(colFilters).some(v => v && v.length > 0) ||
-    !!descSearch.trim() || !!(dateRange.from || dateRange.to);
+    !!descSearch.trim() || !!selectedDate;
 
   const openFilter = (e: React.MouseEvent, col: SortField) => {
     e.stopPropagation();
@@ -173,7 +177,7 @@ const TransactionsPage: React.FC = () => {
 
   const clearColFilter = (col: SortField) => {
     if (col === 'description') setDescSearch('');
-    else if (col === 'date') setDateRange({ from: '', to: '' });
+    else if (col === 'date') setSelectedDate('');
     else setColFilters(prev => ({ ...prev, [col]: [] }));
   };
 
@@ -200,7 +204,7 @@ const TransactionsPage: React.FC = () => {
   const resetAll = () => {
     setColFilters({});
     setDescSearch('');
-    setDateRange({ from: '', to: '' });
+    setSelectedDate('');
     setSortField('date');
     setSortDir('desc');
     setCurrentPage(1);
@@ -289,8 +293,9 @@ const TransactionsPage: React.FC = () => {
     );
   };
 
-  // Filter popover — filter only, sort via double-click on column name
-  const Popover = () => {
+  // Called as renderPopover() not <Popover/> to avoid unmounting on re-render.
+  // Unmounting destroys the native date picker — same fix as the colTh double-click issue.
+  const renderPopover = () => {
     if (!openPopover) return null;
     const { col, x, y } = openPopover;
     const isDesc = col === 'description';
@@ -355,28 +360,15 @@ const TransactionsPage: React.FC = () => {
             />
           )}
 
-          {/* Date: range picker */}
+          {/* Date: single date picker */}
           {isDate && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>From</div>
-                <input
-                  type="date"
-                  value={dateRange.from}
-                  onChange={e => { setDateRange(r => ({ ...r, from: e.target.value })); setCurrentPage(1); }}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>To</div>
-                <input
-                  type="date"
-                  value={dateRange.to}
-                  onChange={e => { setDateRange(r => ({ ...r, to: e.target.value })); setCurrentPage(1); }}
-                  style={inputStyle}
-                />
-              </div>
-            </div>
+            <input
+              autoFocus
+              type="date"
+              value={selectedDate}
+              onChange={e => { setSelectedDate(e.target.value); setCurrentPage(1); }}
+              style={inputStyle}
+            />
           )}
 
           {/* Checkbox filter for category / type / source */}
@@ -515,8 +507,8 @@ const TransactionsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filter popover */}
-      <Popover />
+      {/* Filter popover — called as plain function to avoid unmounting native date picker */}
+      {renderPopover()}
 
       {/* Add/Edit modal */}
       <AddTransactionModal
