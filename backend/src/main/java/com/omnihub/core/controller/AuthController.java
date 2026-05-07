@@ -15,8 +15,12 @@ import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -28,6 +32,7 @@ public class AuthController {
     @Autowired private PasswordResetService passwordResetService;
     @Autowired private JwtUtil jwtUtil;
     @Autowired private CacheManager cacheManager;
+    @Autowired private ClientRegistrationRepository clientRegistrationRepository;
 
     @Value("${app.cookie.secure:false}")
     private boolean cookieSecure;
@@ -89,6 +94,21 @@ public class AuthController {
         return ResponseEntity.ok(auth);
     }
 
+    // ── SSO provider discovery ─────────────────────────────────────────────────
+
+    @GetMapping("/sso-providers")
+    public ResponseEntity<?> getSsoProviders() {
+        List<String> providers = new ArrayList<>();
+        if (clientRegistrationRepository instanceof Iterable<?> iterable) {
+            for (Object obj : iterable) {
+                if (obj instanceof ClientRegistration reg) {
+                    providers.add(reg.getRegistrationId());
+                }
+            }
+        }
+        return ResponseEntity.ok(Map.of("providers", providers));
+    }
+
     // ── Session management ─────────────────────────────────────────────────────
 
     @PostMapping("/logout")
@@ -131,9 +151,13 @@ public class AuthController {
         String token = payload.get("token");
         setJwtCookie(response, token);
 
+        String email = String.valueOf(payload.getOrDefault("email", ""));
+        String fullName = String.valueOf(payload.getOrDefault("fullName", ""));
+        String oauthProvider = String.valueOf(payload.getOrDefault("oauthProvider", ""));
         return ResponseEntity.ok(Map.of(
-                "email", payload.get("email"),
-                "fullName", payload.get("fullName")
+                "email", email,
+                "fullName", fullName,
+                "oauthProvider", oauthProvider
         ));
     }
 

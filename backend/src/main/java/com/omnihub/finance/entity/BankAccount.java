@@ -34,6 +34,9 @@ public class BankAccount {
     @Column(name = "is_default", nullable = false, columnDefinition = "boolean not null default false")
     private boolean isDefault = false;
 
+    @Column(name = "is_emergency_fund", nullable = false, columnDefinition = "boolean not null default false")
+    private boolean isEmergencyFund = false;
+
     @Column(name = "balance_date")
     private LocalDate balanceDate;
 
@@ -58,6 +61,8 @@ public class BankAccount {
     public void setOpeningBalance(BigDecimal v) { openingBalance = v; }
     public boolean isDefault() { return isDefault; }
     public void setDefault(boolean v) { isDefault = v; }
+    public boolean isEmergencyFund() { return isEmergencyFund; }
+    public void setEmergencyFund(boolean v) { isEmergencyFund = v; }
     public LocalDate getBalanceDate() { return balanceDate; }
     public void setBalanceDate(LocalDate v) { balanceDate = v; }
     public User getUser() { return user; }

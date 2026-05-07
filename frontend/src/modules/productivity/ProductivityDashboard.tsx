@@ -142,7 +142,7 @@ const ProductivityDashboardPage: React.FC = () => {
             style={{
               height:       '8px',
               borderRadius: '4px',
-              background:   'var(--border-subtle, rgba(255,255,255,0.06))',
+              background:   'var(--border-subtle)',
               overflow:     'hidden',
             }}
           >

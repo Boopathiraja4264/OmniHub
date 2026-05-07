@@ -90,6 +90,7 @@ export const bankAccountApi = {
   update: (id: number, data: any) => api.put(`/bank-accounts/${id}`, data),
   delete: (id: number) => api.delete(`/bank-accounts/${id}`),
   setDefault: (id: number) => api.patch(`/bank-accounts/${id}/default`),
+  toggleEmergencyFund: (id: number) => api.patch(`/bank-accounts/${id}/emergency-fund`),
 };
 
 export const vehicleApi = {
@@ -222,6 +223,55 @@ export const productivityApi = {
   getDailyScoreSeries: (from: string, to: string) => api.get('/productivity/reports/focus-score/series/daily', { params: { from, to } }),
   getWeeklyScoreSeries: (year: number) => api.get('/productivity/reports/focus-score/series/weekly', { params: { year } }),
   getMonthlyScoreSeries: (year: number) => api.get('/productivity/reports/focus-score/series/monthly', { params: { year } }),
+};
+
+export const investmentApi = {
+  getDashboard: () => api.get('/investments/dashboard'),
+  create: (data: any) => api.post('/investments', data),
+  getById: (id: number) => api.get(`/investments/${id}`),
+  update: (id: number, data: any) => api.put(`/investments/${id}`, data),
+  delete: (id: number) => api.delete(`/investments/${id}`),
+  addPayment: (id: number, data: any) => api.post(`/investments/${id}/payments`, data),
+  deletePayment: (paymentId: number) => api.delete(`/investments/payments/${paymentId}`),
+};
+
+export const chitApi = {
+  getAll: () => api.get('/chit/groups'),
+  create: (data: any) => api.post('/chit/groups', data),
+  getById: (id: number) => api.get(`/chit/groups/${id}`),
+  update: (id: number, data: any) => api.put(`/chit/groups/${id}`, data),
+  delete: (id: number) => api.delete(`/chit/groups/${id}`),
+  updateBatch: (batchId: number, data: { dateTaken?: string; amountTaken?: number }) =>
+    api.put(`/chit/batches/${batchId}`, data),
+  updateKasir: (entryId: number, kasirPerMonth: number | null) =>
+    api.put(`/chit/entries/${entryId}/kasir`, { kasirPerMonth }),
+};
+
+export const debtApi = {
+  getDashboard: () => api.get('/debt/dashboard'),
+
+  // EMI
+  getEmi: (id: number) => api.get(`/debt/emi/${id}`),
+  createEmi: (data: any) => api.post('/debt/emi', data),
+  updateEmi: (id: number, data: any) => api.put(`/debt/emi/${id}`, data),
+  deleteEmi: (id: number) => api.delete(`/debt/emi/${id}`),
+  toggleInstallment: (instId: number) => api.patch(`/debt/emi/installment/${instId}/toggle`),
+
+  // Annual
+  getAnnual: (id: number) => api.get(`/debt/annual/${id}`),
+  createAnnual: (data: any) => api.post('/debt/annual', data),
+  updateAnnual: (id: number, data: any) => api.put(`/debt/annual/${id}`, data),
+  deleteAnnual: (id: number) => api.delete(`/debt/annual/${id}`),
+  addPrepayment: (id: number, data: any) => api.post(`/debt/annual/${id}/prepayment`, data),
+  deletePrepayment: (prepId: number) => api.delete(`/debt/annual/prepayment/${prepId}`),
+
+  // Borrowed
+  getBorrowed: (id: number) => api.get(`/debt/borrowed/${id}`),
+  createBorrowed: (data: any) => api.post('/debt/borrowed', data),
+  updateBorrowed: (id: number, data: any) => api.put(`/debt/borrowed/${id}`, data),
+  deleteBorrowed: (id: number) => api.delete(`/debt/borrowed/${id}`),
+  addRepayment: (id: number, data: any) => api.post(`/debt/borrowed/${id}/repayment`, data),
+  deleteRepayment: (repId: number) => api.delete(`/debt/borrowed/repayment/${repId}`),
 };
 
 export default api;

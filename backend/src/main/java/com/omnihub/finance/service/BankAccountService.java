@@ -46,6 +46,7 @@ public class BankAccountService {
         acc.setOpeningBalance(req.getOpeningBalance() != null ? req.getOpeningBalance() : BigDecimal.ZERO);
         acc.setBalanceDate(req.getBalanceDate());
         acc.setDefault(req.isDefault());
+        acc.setEmergencyFund(req.isEmergencyFund());
         acc.setUser(user);
         return toResponse(bankRepo.save(acc), user.getId());
     }
@@ -83,6 +84,16 @@ public class BankAccountService {
             });
         }
         acc.setDefault(req.isDefault());
+        acc.setEmergencyFund(req.isEmergencyFund());
+        return toResponse(bankRepo.save(acc), user.getId());
+    }
+
+    @Transactional
+    public BankAccountResponse toggleEmergencyFund(String email, Long id) {
+        User user = getUser(email);
+        BankAccount acc = bankRepo.findByIdAndUserId(id, user.getId())
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+        acc.setEmergencyFund(!acc.isEmergencyFund());
         return toResponse(bankRepo.save(acc), user.getId());
     }
 
@@ -117,6 +128,7 @@ public class BankAccountService {
         r.setTotalOutflow(outflow);
         r.setCurrentBalance(a.getOpeningBalance().add(inflow).subtract(outflow));
         r.setDefault(a.isDefault());
+        r.setEmergencyFund(a.isEmergencyFund());
         return r;
     }
 }

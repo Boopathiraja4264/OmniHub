@@ -4,6 +4,12 @@ import { bankAccountApi, creditCardApi, transactionApi } from '../../services/ap
 import FilterDropdown from '../../components/FilterDropdown';
 import { BankAccount, CreditCard } from '../../types';
 
+const EfBadge: React.FC = () => (
+  <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4,
+    background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)',
+    letterSpacing: '0.05em' }}>EF</span>
+);
+
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
 
@@ -72,7 +78,7 @@ const BankTab: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const today = new Date().toISOString().split('T')[0];
-  const [form, setForm] = useState({ name: '', bankName: '', accountType: 'SAVINGS', openingBalance: '', balanceDate: today, isDefault: false });
+  const [form, setForm] = useState({ name: '', bankName: '', accountType: 'SAVINGS', openingBalance: '', balanceDate: today, isDefault: false, emergencyFund: false });
 
   const load = () => bankAccountApi.getAll().then(r => setAccounts(Array.isArray(r.data) ? r.data : []));
   useEffect(() => { load(); }, []);
@@ -88,9 +94,10 @@ const BankTab: React.FC = () => {
         openingBalance: parseFloat(form.openingBalance) || 0,
         balanceDate: form.balanceDate || undefined,
         isDefault: form.isDefault,
+        emergencyFund: form.emergencyFund,
       });
       setShowModal(false);
-      setForm({ name: '', bankName: '', accountType: 'SAVINGS', openingBalance: '', balanceDate: today, isDefault: false });
+      setForm({ name: '', bankName: '', accountType: 'SAVINGS', openingBalance: '', balanceDate: today, isDefault: false, emergencyFund: false });
       load();
     } catch {} finally { setSaving(false); }
   };
@@ -108,6 +115,12 @@ const BankTab: React.FC = () => {
     } catch (e: any) {
       alert('Failed to set default: ' + (e.response?.data?.error || e.message || 'Unknown error'));
     }
+  };
+
+  const handleToggleEf = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    await bankAccountApi.toggleEmergencyFund(id);
+    load();
   };
 
   return (
@@ -135,6 +148,7 @@ const BankTab: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
                     <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>{acc.name}</span>
                     <AccTypeBadge type={acc.accountType} />
+                    {acc.emergencyFund && <EfBadge />}
                     {acc.isDefault ? (
                       <span style={{ background: 'var(--primary)', color: '#fff', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10 }}>DEFAULT</span>
                     ) : (
@@ -144,6 +158,12 @@ const BankTab: React.FC = () => {
                         color: 'var(--text-muted)', cursor: 'pointer', lineHeight: 1.4,
                       }}>Set Default</button>
                     )}
+                    <button onClick={e => handleToggleEf(e, acc.id)} style={{
+                      fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
+                      border: acc.emergencyFund ? '1px solid rgba(245,158,11,0.4)' : '1px solid var(--border)',
+                      background: acc.emergencyFund ? 'rgba(245,158,11,0.1)' : 'transparent',
+                      color: acc.emergencyFund ? '#f59e0b' : 'var(--text-muted)', cursor: 'pointer', lineHeight: 1.4,
+                    }}>🛡 EF</button>
                   </div>
                   {acc.bankName && (
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{acc.bankName}</div>
@@ -228,6 +248,12 @@ const BankTab: React.FC = () => {
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
                     <input type="checkbox" checked={form.isDefault} onChange={e => setForm({ ...form, isDefault: e.target.checked })} />
                     <span>Set as default account (auto-selected for Bank/UPI payments)</span>
+                  </label>
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.emergencyFund} onChange={e => setForm({ ...form, emergencyFund: e.target.checked })} style={{ accentColor: '#f59e0b' }} />
+                    <span>🛡 Mark as Emergency Fund (shown in EF tracker)</span>
                   </label>
                 </div>
               </div>

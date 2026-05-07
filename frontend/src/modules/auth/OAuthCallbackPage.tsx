@@ -17,7 +17,6 @@ const OAuthCallbackPage: React.FC = () => {
     }
 
     authApi.exchangeOauthCode(code)
-      .then(() => authApi.getMe())
       .then(({ data }) => {
         loginWithToken({ email: data.email, fullName: data.fullName, oauthProvider: data.oauthProvider || '' });
         navigate("/home", { replace: true });
