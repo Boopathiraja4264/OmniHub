@@ -43,7 +43,7 @@ public class ChitService {
         }
     }
 
-    private void seedForUser(User user) {
+    public void seedForUser(User user) {
         if (chitGroupRepository.existsByUserId(user.getId())) return; // already seeded
 
             seedGroup(user, "DEC 2025 10000",    "B", 12, 2, 12, 10000, 0.12, 0.01,

@@ -44,7 +44,7 @@ public class DebtService {
         }
     }
 
-    private void seedForUser(User user) {
+    public void seedForUser(User user) {
         if (emiLoanRepo.existsByUserId(user.getId())) return;
 
         // ── EMI Loans ──────────────────────────────────────────────────────────
