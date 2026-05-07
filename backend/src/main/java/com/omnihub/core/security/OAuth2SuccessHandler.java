@@ -2,6 +2,8 @@ package com.omnihub.core.security;
 
 import com.omnihub.core.entity.User;
 import com.omnihub.core.repository.UserRepository;
+import com.omnihub.finance.service.ChitService;
+import com.omnihub.finance.service.DebtService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -30,6 +32,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     @Autowired private JwtUtil jwtUtil;
     @Autowired private UserDetailsService userDetailsService;
     @Autowired private CacheManager cacheManager;
+    @Autowired private ChitService chitService;
+    @Autowired private DebtService debtService;
 
     @Value("${app.base-url}")
     private String baseUrl;
@@ -82,6 +86,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             needsSave = true;
         }
         if (needsSave) userRepository.save(user);
+
+        chitService.seedForUser(user);
+        debtService.seedForUser(user);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         String token = jwtUtil.generateToken(userDetails);
