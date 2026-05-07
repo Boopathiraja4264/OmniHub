@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { transactionApi, budgetApi } from '../../services/api';
+import { useMobile } from '../../hooks/useMobile';
 
 const fmt  = (n?: number) => n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
 const fmtK = (n: number)  => Math.abs(n) >= 100000 ? `₹${(n/100000).toFixed(1)}L` : Math.abs(n) >= 1000 ? `₹${(n/1000).toFixed(1)}K` : `₹${Math.round(n)}`;
@@ -23,6 +24,7 @@ const StatCard: React.FC<{ label: string; value: string; sub?: string; color: st
 
 const IncomeExpenseDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useMobile();
   const [summary,    setSummary]    = useState<any>(null);
   const [incomeData, setIncomeData] = useState<MonthPoint[]>([]);
   const [expData,    setExpData]    = useState<MonthPoint[]>([]);
@@ -80,11 +82,11 @@ const IncomeExpenseDashboard: React.FC = () => {
   const maxCat  = topCats[0]?.total ?? 1;
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200, minHeight: '100%',
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200, minHeight: '100%',
       background: 'radial-gradient(ellipse 60% 35% at 5% 0%, rgba(34,197,94,0.05) 0%, transparent 55%)' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px' }}>Income & Expense</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4, marginBottom: 0 }}>
@@ -99,7 +101,7 @@ const IncomeExpenseDashboard: React.FC = () => {
       </div>
 
       {/* This month stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
         <StatCard label="This Month Income"   value={fmt(monthlyIncome)}   color="#22c55e" sub="all income sources" big />
         <StatCard label="This Month Expenses" value={fmt(monthlyExpenses)} color="#ef4444" sub="all categories"     big />
         <StatCard label="Net Savings"         value={fmt(monthlySavings)}  color={monthlySavings >= 0 ? '#3b82f6' : '#ef4444'} sub="income − expenses" big />
@@ -107,7 +109,7 @@ const IncomeExpenseDashboard: React.FC = () => {
       </div>
 
       {/* Trend + Categories row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.4fr 1fr', gap: 16, marginBottom: 20 }}>
 
         {/* 6-month trend */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
@@ -182,7 +184,7 @@ const IncomeExpenseDashboard: React.FC = () => {
       </div>
 
       {/* Budget utilization + All-time row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.4fr 1fr', gap: 16 }}>
 
         {/* Budget */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>

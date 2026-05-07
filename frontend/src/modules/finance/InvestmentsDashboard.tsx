@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { investmentApi, bankAccountApi, chitApi } from '../../services/api';
 import { InvestmentDashboard, RdFdInvestment, BankAccount, ChitGroup } from '../../types';
+import { useMobile } from '../../hooks/useMobile';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -40,6 +41,7 @@ const SectionHeader: React.FC<{ title: string; sub?: string; onNav: () => void; 
 
 const InvestmentsDashboard: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useMobile();
   const [dash, setDash] = useState<InvestmentDashboard | null>(null);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [chits, setChits] = useState<ChitGroup[]>([]);
@@ -77,11 +79,11 @@ const InvestmentsDashboard: React.FC = () => {
   const chitMonthly = activeChits.reduce((s, c) => s + (c.monthlyAmount || 0), 0);
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200, minHeight: '100%',
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200, minHeight: '100%',
       background: 'radial-gradient(ellipse 60% 35% at 5% 0%, rgba(59,130,246,0.05) 0%, transparent 55%)' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px' }}>Investments</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4, marginBottom: 0 }}>FD · RD · Chit · Emergency Fund</p>
@@ -97,7 +99,7 @@ const InvestmentsDashboard: React.FC = () => {
       </div>
 
       {/* Stats strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
         <StatCard label="Total Invested" value={fmt(totalInvested)} color="#3b82f6" sub={`${activeFds.length} FD · ${activeRds.length} RD active`} />
         <StatCard label="Maturity Value" value={fmt(totalMaturity)} color="#22c55e" sub={`gain ${fmt(totalInterest)}`} />
         <StatCard label="Monthly RD" value={fmt(rdMonthly)} color="#f59e0b" sub="committed every month" />
@@ -105,7 +107,7 @@ const InvestmentsDashboard: React.FC = () => {
       </div>
 
       {/* FD + RD row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 20 }}>
 
         {/* FD section */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
@@ -190,7 +192,7 @@ const InvestmentsDashboard: React.FC = () => {
       </div>
 
       {/* Chit + Emergency Fund row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16 }}>
 
         {/* Chit */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>

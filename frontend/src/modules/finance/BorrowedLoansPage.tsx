@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { debtApi } from '../../services/api';
 import { BorrowedLoanSummary } from '../../types';
+import { useMobile } from '../../hooks/useMobile';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -52,6 +53,7 @@ const thStyle = (right?: boolean): React.CSSProperties => ({
 
 const BorrowedLoansPage: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useMobile();
   const [loans, setLoans] = useState<BorrowedLoanSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -127,8 +129,8 @@ const BorrowedLoansPage: React.FC = () => {
       {items.length === 0 ? (
         <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '12px 0' }}>No entries.</div>
       ) : (
-        <div style={tblWrap}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
+        <div style={{ ...tblWrap, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontVariantNumeric: 'tabular-nums', minWidth: 520 }}>
             <thead>
               <tr>
                 <th style={thStyle()}>Loan ID</th>
@@ -184,7 +186,7 @@ const BorrowedLoansPage: React.FC = () => {
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1100, minHeight: '100%', background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(59,130,246,0.07) 0%, transparent 60%)' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1100, minHeight: '100%', background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(59,130,246,0.07) 0%, transparent 60%)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px' }}>Borrowed</h1>
@@ -201,7 +203,7 @@ const BorrowedLoansPage: React.FC = () => {
       {showModal && (
         <Modal title={editLoan ? `Edit — ${editLoan.lenderName}` : 'New Borrowed Entry'} onClose={() => setShowModal(false)}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               <Field label="Loan ID *"><input style={inputStyle} value={form.loanId} onChange={set('loanId')} required placeholder="BR001" /></Field>
               <Field label="Lender Name *"><input style={inputStyle} value={form.lenderName} onChange={set('lenderName')} required placeholder="Name" /></Field>
               <Field label="Date Borrowed *"><input style={inputStyle} type="date" value={form.dateBorrowed} onChange={set('dateBorrowed')} required /></Field>

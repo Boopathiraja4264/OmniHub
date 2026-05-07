@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { debtApi } from '../../services/api';
 import { EmiLoanSummary } from '../../types';
+import { useMobile } from '../../hooks/useMobile';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -51,6 +52,7 @@ const inputStyle: React.CSSProperties = {
 
 const EmiLoansPage: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useMobile();
   const [loans, setLoans] = useState<EmiLoanSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -135,8 +137,8 @@ const EmiLoansPage: React.FC = () => {
       {items.length === 0 ? (
         <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '12px 0' }}>No entries.</div>
       ) : (
-        <div style={tblWrap}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <div style={{ ...tblWrap, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
             <thead>
               <tr style={{ background: 'var(--bg-row-alt)' }}>
                 {['Loan ID','Name','Principal','Rate','Tenure','EMI/mo','Outstanding','Start','Status',''].map(h => (
@@ -178,7 +180,7 @@ const EmiLoansPage: React.FC = () => {
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200, background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(239,68,68,0.06) 0%, transparent 60%)', minHeight: '100%' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200, background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(239,68,68,0.06) 0%, transparent 60%)', minHeight: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.3px' }}>EMI Based Loans</h1>
@@ -211,7 +213,7 @@ const EmiLoansPage: React.FC = () => {
             </div>
             {showAnalysis && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                   {[
                     { label: 'Total Principal Paid', value: fmt(totalPrincipal), color: '#22c55e' },
                     { label: 'Total Interest Paid', value: fmt(totalInterest), color: '#ef4444' },
@@ -245,7 +247,7 @@ const EmiLoansPage: React.FC = () => {
       {showModal && (
         <Modal title={editLoan ? `Edit — ${editLoan.name}` : 'New EMI Loan'} onClose={() => setShowModal(false)}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               <Field label="Loan ID *"><input style={inputStyle} value={form.loanId} onChange={set('loanId')} required placeholder="GA001" /></Field>
               <Field label="Name *"><input style={inputStyle} value={form.name} onChange={set('name')} required placeholder="Macbook EMI" /></Field>
               <Field label="Amount Financed (₹) *"><input style={inputStyle} type="number" value={form.initialPrincipal} onChange={set('initialPrincipal')} required placeholder="93531" /></Field>

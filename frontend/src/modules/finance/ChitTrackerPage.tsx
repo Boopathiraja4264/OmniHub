@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { chitApi } from '../../services/api';
 import { ChitGroup, ChitGroupRequest } from '../../types';
+import { useMobile } from '../../hooks/useMobile';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -21,6 +22,7 @@ const emptyForm = (): ChitGroupRequest => ({
 
 const ChitTrackerPage: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useMobile();
   const [groups, setGroups] = useState<ChitGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -66,7 +68,7 @@ const ChitTrackerPage: React.FC = () => {
 
   return (
     <div style={{
-      padding: '24px 28px', maxWidth: 1100,
+      padding: isMobile ? '16px' : '24px 28px', maxWidth: 1100,
       background: 'radial-gradient(ellipse 70% 40% at 15% 0%, rgba(201,168,76,0.07) 0%, transparent 65%)',
       minHeight: '100%',
     }}>
@@ -89,7 +91,7 @@ const ChitTrackerPage: React.FC = () => {
 
       {/* Summary strip — single panel */}
       <div style={{
-        display: 'flex', marginBottom: 24, borderRadius: 14, overflow: 'hidden',
+        display: 'flex', flexWrap: isMobile ? 'wrap' : 'nowrap', marginBottom: 24, borderRadius: 14, overflow: 'hidden',
         border: '1px solid var(--border)',
         background: 'var(--bg-card)',
         boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.15)',
@@ -102,8 +104,9 @@ const ChitTrackerPage: React.FC = () => {
           { label: 'OVERALL', value: fmt(totalKasir + totalReceived), color: '#f97316' },
         ].map((item, i) => (
           <div key={item.label} style={{
-            flex: 1, padding: '16px 20px',
-            borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none',
+            flex: isMobile ? '1 1 40%' : 1, padding: '12px 16px',
+            borderLeft: (!isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none',
+            borderTop: (isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none',
           }}>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>{item.label}</div>
             <div style={{ fontSize: 19, fontWeight: 700, color: item.color, fontVariantNumeric: 'tabular-nums' }}>{item.value}</div>
@@ -245,15 +248,16 @@ const ChitTrackerPage: React.FC = () => {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }} onClick={() => setShowModal(false)}>
           <div style={{
-            background: 'var(--bg-card)', borderRadius: 16, padding: 28,
+            background: 'var(--bg-card)', borderRadius: 16, padding: isMobile ? 20 : 28,
             width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto',
+            margin: isMobile ? '0 16px' : 0,
           }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Add New Chit Group</h2>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>
             </div>
             <form onSubmit={handleCreate}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
                 {[
                   { label: 'Chit Name', key: 'name' as const, type: 'text', colSpan: 2, placeholder: 'e.g. DEC 2025 10000' },
                   { label: 'Group Label', key: 'groupLabel' as const, type: 'text', placeholder: 'A, B, C...' },

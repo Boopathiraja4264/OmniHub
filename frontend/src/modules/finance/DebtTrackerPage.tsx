@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Legend } from 'recharts';
 import { debtApi } from '../../services/api';
 import { DebtDashboard } from '../../types';
+import { useMobile } from '../../hooks/useMobile';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -25,6 +26,7 @@ const CHART_COLORS = ['#ef4444', '#f59e0b', '#3b82f6'];
 
 const DebtTrackerPage: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useMobile();
   const [data, setData] = useState<DebtDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [showYearlyTable, setShowYearlyTable] = useState(false);
@@ -160,16 +162,16 @@ const DebtTrackerPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200, background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(239,68,68,0.06) 0%, transparent 60%)', minHeight: '100%' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200, background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(239,68,68,0.06) 0%, transparent 60%)', minHeight: '100%' }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.3px' }}>Debt Dashboard</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Overview of all EMIs, gold loans, and borrowed money</p>
       </div>
 
       {/* Summary Strip — unified panel */}
-      <div style={{ display: 'flex', marginBottom: 24, borderRadius: 14, overflow: 'hidden', ...cardS }}>
+      <div style={{ display: 'flex', flexWrap: isMobile ? 'wrap' : 'nowrap', marginBottom: 24, borderRadius: 14, overflow: 'hidden', ...cardS }}>
         {/* Progress ring */}
-        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, borderRight: '1px solid var(--border-subtle)', minWidth: 110 }}>
+        <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, borderRight: isMobile ? 'none' : '1px solid var(--border-subtle)', borderBottom: isMobile ? '1px solid var(--border-subtle)' : 'none', minWidth: isMobile ? '100%' : 110 }}>
           <svg width="56" height="56" viewBox="0 0 64 64">
             <circle cx="32" cy="32" r="26" fill="none" stroke="var(--border)" strokeWidth="6"/>
             <circle cx="32" cy="32" r="26" fill="none" stroke="#22c55e" strokeWidth="6"
@@ -187,7 +189,7 @@ const DebtTrackerPage: React.FC = () => {
           { label: 'MONTHLY INTEREST', value: fmt(monthlyInterest), color: '#f97316' },
           { label: 'TOTAL INITIAL', value: fmt(data.totalInitialPrincipal), color: 'var(--text-secondary)' },
         ].map((c, i) => (
-          <div key={c.label} style={{ flex: 1, padding: '14px 18px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
+          <div key={c.label} style={{ flex: isMobile ? '1 1 40%' : 1, padding: '12px 14px', borderLeft: (!isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none', borderTop: (isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none' }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 5 }}>{c.label}</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: c.color, fontVariantNumeric: 'tabular-nums' }}>{c.value}</div>
             {c.sub && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{c.sub}</div>}
@@ -197,7 +199,7 @@ const DebtTrackerPage: React.FC = () => {
 
       {/* Charts Row */}
       {pieData.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 2fr', gap: 14, marginBottom: 24 }}>
           <div style={{ ...cardS, padding: '16px 20px' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12, letterSpacing: '-0.1px' }}>Outstanding by Type</div>
             <ResponsiveContainer width="100%" height={190}>
@@ -231,8 +233,8 @@ const DebtTrackerPage: React.FC = () => {
         {activeLoans.length === 0 ? (
           <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '16px 0' }}>No active loans.</div>
         ) : (
-          <div style={tblContainer}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, background: 'var(--bg-card)' }}>
+          <div style={{ ...tblContainer, overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, background: 'var(--bg-card)', minWidth: 500 }}>
               <thead>
                 <tr style={{ background: 'var(--bg-row-alt)' }}>
                   {['Loan ID', 'Name', 'Type', 'Outstanding', 'End Date', 'Status', ''].map(h => (
@@ -265,7 +267,7 @@ const DebtTrackerPage: React.FC = () => {
       </div>
 
       {/* Quick links */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
         {[
           { label: 'EMI Based Loans', sub: `${data.emiLoans.length} loans`, path: '/finance/debt/emi', color: '#ef4444' },
           { label: 'Annual Interest Loans', sub: `${data.annualLoans.length} loans`, path: '/finance/debt/annual', color: '#f59e0b' },
@@ -293,8 +295,8 @@ const DebtTrackerPage: React.FC = () => {
             Interest Paid by Year
           </button>
           {showYearlyTable && (
-            <div style={tblContainer}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, background: 'var(--bg-card)' }}>
+            <div style={{ ...tblContainer, overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, background: 'var(--bg-card)', minWidth: 380 }}>
                 <thead>
                   <tr style={{ background: 'var(--bg-row-alt)' }}>
                     {['Year', 'EMI Interest', 'Annual Loan Interest', 'Total'].map(h => (

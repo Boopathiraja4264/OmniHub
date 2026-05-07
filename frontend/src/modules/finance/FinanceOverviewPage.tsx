@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { transactionApi, debtApi, chitApi, investmentApi, bankAccountApi } from '../../services/api';
 import { Summary, DebtDashboard, ChitGroup, InvestmentDashboard, BankAccount } from '../../types';
+import { useMobile } from '../../hooks/useMobile';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -26,6 +27,7 @@ const MetaRow: React.FC<{ label: string; value: string; color: string }> = ({ la
 
 const FinanceOverviewPage: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useMobile();
   const [summary, setSummary] = useState<Summary | null>(null);
   const [debt, setDebt] = useState<DebtDashboard | null>(null);
   const [chits, setChits] = useState<ChitGroup[]>([]);
@@ -92,14 +94,14 @@ const FinanceOverviewPage: React.FC = () => {
   const savingsColor = savingsRate >= 20 ? '#22c55e' : savingsRate >= 10 ? '#f59e0b' : '#ef4444';
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Finance Overview</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Your complete financial snapshot</p>
       </div>
 
       {/* Monthly strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
         {[
           { label: 'Monthly Income', value: fmt(monthlyIncome), color: '#22c55e', sub: 'this month' },
           { label: 'Monthly Expenses', value: fmt(monthlyExpenses), color: '#ef4444', sub: 'this month' },
@@ -115,7 +117,7 @@ const FinanceOverviewPage: React.FC = () => {
       </div>
 
       {/* Section cards — 3 col: Debt | Investments (FD+RD+Chit) | Emergency Fund */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 1fr', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.4fr 1fr', gap: 14, marginBottom: 24 }}>
 
         {/* Debt */}
         <Card onClick={() => navigate('/finance/debt')} accent="#ef4444">
@@ -226,7 +228,7 @@ const FinanceOverviewPage: React.FC = () => {
       </div>
 
       {/* Monthly outflow row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14, marginBottom: 24 }}>
         <Card>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>Monthly Committed Outflow</div>
 
@@ -285,7 +287,7 @@ const FinanceOverviewPage: React.FC = () => {
       </div>
 
       {/* Quick links */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12 }}>
         {[
           { label: 'Income & Expense', sub: 'Dashboard', path: '/finance/income-expense', color: '#22c55e' },
           { label: 'Transactions', sub: 'Income & expense log', path: '/transactions', color: '#3b82f6' },

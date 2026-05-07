@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { debtApi } from '../../services/api';
 import { AnnualLoanSummary } from '../../types';
+import { useMobile } from '../../hooks/useMobile';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -57,6 +58,7 @@ const thStyle = (right?: boolean): React.CSSProperties => ({
 
 const AnnualLoansPage: React.FC = () => {
   const navigate = useNavigate();
+  const isMobile = useMobile();
   const [loans, setLoans] = useState<AnnualLoanSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -141,8 +143,8 @@ const AnnualLoansPage: React.FC = () => {
       {items.length === 0 ? (
         <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '12px 0' }}>No entries.</div>
       ) : (
-        <div style={tblWrap}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
+        <div style={{ ...tblWrap, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, fontVariantNumeric: 'tabular-nums', minWidth: 750 }}>
             <thead>
               <tr>
                 <th style={thStyle()}>Loan ID</th>
@@ -196,7 +198,7 @@ const AnnualLoansPage: React.FC = () => {
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200, minHeight: '100%', background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(245,158,11,0.07) 0%, transparent 60%)' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200, minHeight: '100%', background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(245,158,11,0.07) 0%, transparent 60%)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px' }}>Annual Interest Loans</h1>
@@ -229,13 +231,13 @@ const AnnualLoansPage: React.FC = () => {
             </div>
             {showAnalysis && (
               <>
-                <div style={{ display: 'flex', marginBottom: 16, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.12)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', marginBottom: 16, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.12)' }}>
                   {[
                     { label: 'Total Principal', value: fmt(totalPrincipal), color: '#f59e0b' },
                     { label: 'Total Interest Paid', value: fmt(totalInterest), color: '#ef4444' },
                     { label: 'Interest % of Total Cost', value: `${interestPct}%`, color: '#a855f7' },
                   ].map((c, i) => (
-                    <div key={c.label} style={{ flex: 1, padding: '14px 20px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
+                    <div key={c.label} style={{ padding: '14px 20px', borderLeft: (!isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none', borderTop: (isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none' }}>
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{c.label}</div>
                       <div style={{ fontSize: 18, fontWeight: 700, color: c.color, fontVariantNumeric: 'tabular-nums' }}>{c.value}</div>
                     </div>
@@ -263,7 +265,7 @@ const AnnualLoansPage: React.FC = () => {
       {showModal && (
         <Modal title={editLoan ? `Edit — ${editLoan.name}` : 'New Annual Loan'} onClose={() => setShowModal(false)}>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               <Field label="Loan ID *"><input style={inputStyle} value={form.loanId} onChange={set('loanId')} required placeholder="GL001" /></Field>
               <Field label="Name *"><input style={inputStyle} value={form.name} onChange={set('name')} required placeholder="TMB Gold Loan" /></Field>
               <Field label="Initial Principal (₹) *"><input style={inputStyle} type="number" value={form.initialPrincipal} onChange={set('initialPrincipal')} required /></Field>
