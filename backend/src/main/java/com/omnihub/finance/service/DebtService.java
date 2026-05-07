@@ -16,6 +16,8 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -366,17 +368,21 @@ public class DebtService {
 
     private void recomputeEmiTotals(EmiLoan loan) {
         List<EmiInstallment> insts = emiInstRepo.findByEmiLoanIdOrderByInstallmentNumberAsc(loan.getId());
-        BigDecimal pp = BigDecimal.ZERO, ip = BigDecimal.ZERO, gp = BigDecimal.ZERO;
+        BigDecimal pp = BigDecimal.ZERO, ip = BigDecimal.ZERO, gp = BigDecimal.ZERO, pcp = BigDecimal.ZERO;
         for (EmiInstallment i : insts) {
             if (i.isPaid()) {
                 pp = pp.add(i.getPrincipalPart());
                 ip = ip.add(i.getInterestPart());
                 gp = gp.add(i.getGstPart());
+                if (i.getProcessingCharge() != null) {
+                    pcp = pcp.add(i.getProcessingCharge());
+                }
             }
         }
         loan.setPrincipalPaid(pp.setScale(2, RoundingMode.HALF_UP));
         loan.setInterestPaid(ip.setScale(2, RoundingMode.HALF_UP));
         loan.setGstPaid(gp.setScale(2, RoundingMode.HALF_UP));
+        loan.setProcessingChargePaid(pcp.setScale(2, RoundingMode.HALF_UP));
         emiLoanRepo.save(loan);
     }
 
@@ -390,6 +396,7 @@ public class DebtService {
         loan.setStartDate(req.getStartDate());
         loan.setEndDate(req.getStartDate().plusMonths(req.getTenureMonths() - 1));
         loan.setStatus(EmiStatus.valueOf(req.getStatus() != null ? req.getStatus() : "ACTIVE"));
+        loan.setProcessingCharge(req.getProcessingCharge() != null ? req.getProcessingCharge() : BigDecimal.ZERO);
         loan.setNotes(req.getNotes());
         loan.setForeclosed(Boolean.TRUE.equals(req.getForeclosed()));
         if (loan.isForeclosed()) {
@@ -415,6 +422,7 @@ public class DebtService {
         BigDecimal r = loan.getAnnualInterestRate().divide(BigDecimal.valueOf(12), 10, RoundingMode.HALF_UP);
         BigDecimal gstRate = loan.getGstRate() != null ? loan.getGstRate() : BigDecimal.ZERO;
         BigDecimal baseEmi = loan.getBaseEmi();
+        BigDecimal procCharge = loan.getProcessingCharge() != null ? loan.getProcessingCharge() : BigDecimal.ZERO;
         BigDecimal balance = P;
         LocalDate today = LocalDate.now();
 
@@ -422,7 +430,8 @@ public class DebtService {
             BigDecimal interestPart = balance.multiply(r).setScale(4, RoundingMode.HALF_UP);
             BigDecimal principalPart = baseEmi.subtract(interestPart).setScale(4, RoundingMode.HALF_UP);
             BigDecimal gstPart = interestPart.multiply(gstRate).setScale(4, RoundingMode.HALF_UP);
-            BigDecimal totalEmi = principalPart.add(interestPart).add(gstPart).setScale(4, RoundingMode.HALF_UP);
+            BigDecimal instProcessingCharge = (i == 1) ? procCharge : BigDecimal.ZERO;
+            BigDecimal totalEmi = principalPart.add(interestPart).add(gstPart).add(instProcessingCharge).setScale(4, RoundingMode.HALF_UP);
             BigDecimal closing = balance.subtract(principalPart).setScale(4, RoundingMode.HALF_UP);
             if (closing.compareTo(BigDecimal.ZERO) < 0) closing = BigDecimal.ZERO;
             LocalDate dueDate = loan.getStartDate().plusMonths(i - 1);
@@ -435,6 +444,7 @@ public class DebtService {
             inst.setPrincipalPart(principalPart);
             inst.setInterestPart(interestPart);
             inst.setGstPart(gstPart);
+            inst.setProcessingCharge(instProcessingCharge.compareTo(BigDecimal.ZERO) > 0 ? instProcessingCharge : null);
             inst.setEmiAmount(totalEmi);
             inst.setClosingPrincipal(closing);
             inst.setPaid(!dueDate.isAfter(today));
@@ -461,6 +471,7 @@ public class DebtService {
         loan.setUser(user);
         applyAnnualFields(loan, req);
         annualLoanRepo.save(loan);
+        recalcTotalInterest(loan);
         return toAnnualDetail(loan);
     }
 
@@ -471,7 +482,8 @@ public class DebtService {
         if (!loan.getUser().getId().equals(user.getId())) throw new RuntimeException("Unauthorized");
         applyAnnualFields(loan, req);
         annualLoanRepo.save(loan);
-        return toAnnualDetail(loan);
+        recalcTotalInterest(loan);
+        return toAnnualDetail(annualLoanRepo.findById(id).orElseThrow());
     }
 
     @Transactional
@@ -487,22 +499,26 @@ public class DebtService {
         User user = getUser(email);
         AnnualLoan loan = annualLoanRepo.findById(loanId).orElseThrow(() -> new RuntimeException("Not found"));
         if (!loan.getUser().getId().equals(user.getId())) throw new RuntimeException("Unauthorized");
+
+        BigDecimal interest = req.getInterestAccrued() != null
+                ? req.getInterestAccrued()
+                : calcPrepaymentInterest(loan, req.getPaymentDate());
+
         PrepaymentEntry e = new PrepaymentEntry();
         e.setAnnualLoan(loan);
         e.setPaymentDate(req.getPaymentDate());
         e.setAmount(req.getAmount());
-        e.setInterestAccrued(req.getInterestAccrued());
+        e.setInterestAccrued(interest);
         prepaymentRepo.save(e);
-        // Update current balance
+
+        // Only principal reduces with each prepayment — interest is settled at loan closure, not here
         loan.setCurrentBalance(loan.getCurrentBalance().subtract(req.getAmount()));
         if (loan.getCurrentBalance().compareTo(BigDecimal.ZERO) <= 0) {
             loan.setCurrentBalance(BigDecimal.ZERO);
             loan.setStatus(LoanStatus.REPAID);
         }
-        loan.setInterestPaid(loan.getInterestPaid() != null
-                ? loan.getInterestPaid().add(req.getInterestAccrued() != null ? req.getInterestAccrued() : BigDecimal.ZERO)
-                : req.getInterestAccrued());
         annualLoanRepo.save(loan);
+        recalcTotalInterest(loan);
         return toAnnualDetail(annualLoanRepo.findById(loanId).orElseThrow());
     }
 
@@ -510,8 +526,18 @@ public class DebtService {
     public void deletePrepayment(String email, Long prepId) {
         PrepaymentEntry e = prepaymentRepo.findById(prepId).orElseThrow(() -> new RuntimeException("Not found"));
         User user = getUser(email);
-        if (!e.getAnnualLoan().getUser().getId().equals(user.getId())) throw new RuntimeException("Unauthorized");
+        AnnualLoan loan = e.getAnnualLoan();
+        if (!loan.getUser().getId().equals(user.getId())) throw new RuntimeException("Unauthorized");
+
+        BigDecimal restoredBalance = loan.getCurrentBalance().add(e.getAmount());
+        loan.setCurrentBalance(restoredBalance);
+        if (restoredBalance.compareTo(BigDecimal.ZERO) > 0 && loan.getStatus() == LoanStatus.REPAID) {
+            loan.setStatus(LoanStatus.OUTSTANDING);
+        }
+        // interestPaid is not touched — it is only updated manually at loan closure
         prepaymentRepo.delete(e);
+        annualLoanRepo.save(loan);
+        recalcTotalInterest(loan);
     }
 
     private void applyAnnualFields(AnnualLoan loan, AnnualLoanRequest req) {
@@ -523,9 +549,75 @@ public class DebtService {
         loan.setEndDate(req.getEndDate());
         loan.setStatus(LoanStatus.valueOf(req.getStatus() != null ? req.getStatus() : "OUTSTANDING"));
         loan.setCurrentBalance(req.getCurrentBalance() != null ? req.getCurrentBalance() : req.getInitialPrincipal());
-        loan.setTotalInterestAccrued(req.getTotalInterestAccrued());
         loan.setInterestPaid(req.getInterestPaid() != null ? req.getInterestPaid() : BigDecimal.ZERO);
         loan.setNotes(req.getNotes());
+        // totalInterestAccrued is always derived — recalc after save
+    }
+
+    // Mirrors the Excel Prepayment Tracker formula exactly:
+    //   period_principal = initialPrincipal − sum(amounts of all prior prepayments before paymentDate)
+    //   prev_date        = most recent prepayment date before paymentDate, or startDate if none
+    //   days             = paymentDate − prev_date
+    //   interest         = period_principal × annualRate × days / 365
+    private BigDecimal calcPrepaymentInterest(AnnualLoan loan, LocalDate paymentDate) {
+        List<PrepaymentEntry> all = prepaymentRepo.findByAnnualLoanIdOrderByPaymentDateAsc(loan.getId());
+        List<PrepaymentEntry> prior = all.stream()
+                .filter(p -> p.getPaymentDate().isBefore(paymentDate))
+                .collect(Collectors.toList());
+
+        BigDecimal prevPaidPrincipal = prior.stream()
+                .map(PrepaymentEntry::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal periodPrincipal = loan.getInitialPrincipal().subtract(prevPaidPrincipal);
+
+        LocalDate prevDate = prior.stream()
+                .map(PrepaymentEntry::getPaymentDate)
+                .max(Comparator.naturalOrder())
+                .orElse(loan.getStartDate());
+
+        long days = ChronoUnit.DAYS.between(prevDate, paymentDate);
+        return periodPrincipal
+                .multiply(loan.getAnnualInterestRate())
+                .multiply(BigDecimal.valueOf(days))
+                .divide(BigDecimal.valueOf(365), 2, RoundingMode.HALF_UP);
+    }
+
+    // Exact replica of the Excel "Annual Interest Tracker" column I formula:
+    //   No prepayments : C * D  =  initialPrincipal × annualRate
+    //   With prepayments: SUMIF(prepayment interests)
+    //                     + H × D × (endDate − lastPrepDate) / 365
+    //                       where H = currentBalance (= initialPrincipal − totalPrepaidPrincipal)
+    private void recalcTotalInterest(AnnualLoan loan) {
+        List<PrepaymentEntry> preps = prepaymentRepo.findByAnnualLoanIdOrderByPaymentDateAsc(loan.getId());
+        BigDecimal total;
+
+        if (preps.isEmpty()) {
+            // Excel: C2 * D2
+            total = loan.getInitialPrincipal()
+                    .multiply(loan.getAnnualInterestRate())
+                    .setScale(2, RoundingMode.HALF_UP);
+        } else {
+            // Excel: sum_past_interest = SUMIF(prepayment interest col, id)
+            BigDecimal sumPast = preps.stream()
+                    .map(p -> p.getInterestAccrued() != null ? p.getInterestAccrued() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            // Excel: future_interest = (H2 * D2 * (F2 - last_payment_date)) / 365
+            //        H2 = currentBalance, F2 = endDate
+            LocalDate lastDate = preps.get(preps.size() - 1).getPaymentDate();
+            LocalDate endDate = loan.getEndDate();
+            BigDecimal future = BigDecimal.ZERO;
+            if (endDate != null && endDate.isAfter(lastDate) && loan.getCurrentBalance().compareTo(BigDecimal.ZERO) > 0) {
+                long days = ChronoUnit.DAYS.between(lastDate, endDate);
+                future = loan.getCurrentBalance()
+                        .multiply(loan.getAnnualInterestRate())
+                        .multiply(BigDecimal.valueOf(days))
+                        .divide(BigDecimal.valueOf(365), 2, RoundingMode.HALF_UP);
+            }
+            total = sumPast.add(future).setScale(2, RoundingMode.HALF_UP);
+        }
+        loan.setTotalInterestAccrued(total);
+        annualLoanRepo.save(loan);
     }
 
     // ─── Borrowed CRUD ────────────────────────────────────────────────────────
@@ -619,6 +711,8 @@ public class DebtService {
         r.setPrincipalPaid(l.getPrincipalPaid()); r.setInterestPaid(l.getInterestPaid()); r.setGstPaid(l.getGstPaid());
         r.setForeclosed(l.isForeclosed()); r.setForeclosureDate(l.getForeclosureDate());
         r.setForeclosureAmount(l.getForeclosureAmount());
+        r.setProcessingCharge(l.getProcessingCharge() != null ? l.getProcessingCharge() : BigDecimal.ZERO);
+        r.setProcessingChargePaid(l.getProcessingChargePaid() != null ? l.getProcessingChargePaid() : BigDecimal.ZERO);
         BigDecimal paid = l.getPrincipalPaid() != null ? l.getPrincipalPaid() : BigDecimal.ZERO;
         r.setOutstandingPrincipal(l.getStatus() == EmiStatus.ACTIVE
                 ? l.getInitialPrincipal().subtract(paid).setScale(2, RoundingMode.HALF_UP)
@@ -646,7 +740,9 @@ public class DebtService {
         r.setDueDate(i.getDueDate()); r.setOpeningPrincipal(i.getOpeningPrincipal());
         r.setEmiAmount(i.getEmiAmount()); r.setPrincipalPart(i.getPrincipalPart());
         r.setInterestPart(i.getInterestPart()); r.setGstPart(i.getGstPart());
-        r.setClosingPrincipal(i.getClosingPrincipal()); r.setPaid(i.isPaid());
+        r.setClosingPrincipal(i.getClosingPrincipal());
+        r.setProcessingCharge(i.getProcessingCharge());
+        r.setPaid(i.isPaid());
         return r;
     }
 

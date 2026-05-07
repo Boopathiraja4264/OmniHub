@@ -29,7 +29,7 @@ const EmiLoanDetailPage: React.FC = () => {
   const [toggling, setToggling] = useState<number | null>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showForeclose, setShowForeclose] = useState(false);
-  const [editForm, setEditForm] = useState({ loanId: '', name: '', initialPrincipal: '', annualInterestRate: '', tenureMonths: '', gstRate: '', startDate: '', status: 'ACTIVE', notes: '' });
+  const [editForm, setEditForm] = useState({ loanId: '', name: '', initialPrincipal: '', annualInterestRate: '', tenureMonths: '', gstRate: '', processingCharge: '', startDate: '', status: 'ACTIVE', notes: '' });
   const [fcForm, setFcForm] = useState({ foreclosureDate: '', foreclosureAmount: '', foreclosurePrincipal: '', foreclosureInterest: '' });
   const [saving, setSaving] = useState(false);
 
@@ -70,6 +70,7 @@ const EmiLoanDetailPage: React.FC = () => {
       annualInterestRate: String(s.annualInterestRate),
       tenureMonths: String(s.tenureMonths),
       gstRate: s.gstRate != null ? String(s.gstRate) : '',
+      processingCharge: s.processingCharge != null && s.processingCharge > 0 ? String(s.processingCharge) : '',
       startDate: s.startDate ? s.startDate.slice(0, 10) : '',
       status: s.status,
       notes: s.notes || '',
@@ -88,6 +89,7 @@ const EmiLoanDetailPage: React.FC = () => {
         annualInterestRate: parseFloat(editForm.annualInterestRate),
         tenureMonths: parseInt(editForm.tenureMonths),
         gstRate: editForm.gstRate ? parseFloat(editForm.gstRate) : 0,
+        processingCharge: editForm.processingCharge ? parseFloat(editForm.processingCharge) : 0,
         startDate: editForm.startDate, status: editForm.status, notes: editForm.notes || null,
         foreclosed: detail?.summary.foreclosed || false,
       });
@@ -108,6 +110,7 @@ const EmiLoanDetailPage: React.FC = () => {
         annualInterestRate: s.annualInterestRate,
         tenureMonths: s.tenureMonths,
         gstRate: s.gstRate || 0,
+        processingCharge: s.processingCharge || 0,
         startDate: s.startDate, status: 'FORECLOSED', notes: s.notes || null,
         foreclosed: true,
         foreclosureDate: fcForm.foreclosureDate,
@@ -129,7 +132,6 @@ const EmiLoanDetailPage: React.FC = () => {
   if (!detail) return null;
 
   const { summary: s, installments } = detail;
-  const totalEmi = s.baseEmi * (1 + (s.gstRate || 0));
   const paidCount = installments.filter(i => i.paid).length;
   const progress = s.initialPrincipal > 0 ? Math.min(100, ((s.principalPaid || 0) / s.initialPrincipal) * 100) : 0;
   const statusColor = s.status === 'ACTIVE' ? '#22c55e' : s.status === 'FORECLOSED' ? '#f97316' : '#94a3b8';
@@ -164,8 +166,8 @@ const EmiLoanDetailPage: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 14 }}>
         {[
           { label: 'Amount Financed', value: fmt(s.initialPrincipal), color: 'var(--text-primary)' },
-          { label: 'Base EMI', value: fmt(s.baseEmi), color: 'var(--text-primary)' },
-          { label: 'Total EMI (incl GST)', value: fmt(totalEmi), color: '#f59e0b' },
+          { label: 'Base EMI', value: fmt(s.baseEmi), color: '#f59e0b' },
+          { label: 'GST Rate', value: s.gstRate ? pct(s.gstRate) : 'None', color: 'var(--text-muted)' },
           { label: 'Installments Paid', value: `${paidCount} / ${s.tenureMonths}`, color: '#22c55e' },
         ].map(c => (
           <div key={c.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px' }}>
@@ -174,16 +176,18 @@ const EmiLoanDetailPage: React.FC = () => {
           </div>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: (s.processingCharge ?? 0) > 0 ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
           { label: 'Principal Paid', value: fmt(s.principalPaid), color: '#22c55e' },
           { label: 'Interest Paid', value: fmt(s.interestPaid), color: '#f59e0b' },
           { label: 'Outstanding Principal', value: fmt(s.outstandingPrincipal), color: '#ef4444' },
           { label: 'Future Interest', value: fmt(s.futureInterest), color: '#a855f7' },
+          ...((s.processingCharge ?? 0) > 0 ? [{ label: 'Processing Charge', value: fmt(s.processingCharge), color: '#64748b', sub: (s.processingChargePaid ?? 0) > 0 ? 'paid' : 'due with 1st EMI' }] : []),
         ].map(c => (
           <div key={c.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px' }}>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>{c.label}</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: c.color }}>{c.value}</div>
+            {(c as any).sub && <div style={{ fontSize: 10, color: (s.processingChargePaid ?? 0) > 0 ? '#22c55e' : '#f59e0b', marginTop: 3 }}>{(c as any).sub}</div>}
           </div>
         ))}
       </div>
@@ -218,7 +222,7 @@ const EmiLoanDetailPage: React.FC = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 660 }}>
           <thead>
             <tr style={{ background: 'var(--bg-main)' }}>
-              {['#', 'Due Date', 'Opening', 'EMI', 'Principal', 'Interest', 'GST', 'Closing', ''].map(h => (
+              {['#', 'Due Date', 'Opening', 'EMI with GST', 'Principal', 'Interest', 'GST', 'Closing', ''].map(h => (
                 <th key={h} style={{ padding: '9px 12px', textAlign: h === '#' ? 'center' : 'right', color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
@@ -226,6 +230,8 @@ const EmiLoanDetailPage: React.FC = () => {
           <tbody>
             {installments.map((inst, i) => {
               const isCurrent = !inst.paid && (i === 0 || installments[i - 1].paid);
+              const pc = inst.processingCharge ?? 0;
+              const baseEmiAmount = pc > 0 ? inst.emiAmount - pc : inst.emiAmount;
               return (
                 <tr key={inst.id}
                   onClick={() => handleToggle(inst.id)}
@@ -241,7 +247,14 @@ const EmiLoanDetailPage: React.FC = () => {
                   <td style={{ padding: '7px 12px', textAlign: 'center', color: inst.paid ? '#22c55e' : 'var(--text-muted)', fontWeight: inst.paid ? 700 : 400 }}>{inst.installmentNumber}</td>
                   <td style={{ padding: '7px 12px', textAlign: 'right', color: inst.paid ? '#22c55e' : isCurrent ? '#f59e0b' : 'var(--text-muted)', fontWeight: isCurrent ? 700 : 400, whiteSpace: 'nowrap' }}>{fmtDate(inst.dueDate)}</td>
                   <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--text-muted)' }}>{fmtD(inst.openingPrincipal, 0)}</td>
-                  <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>{fmtD(inst.emiAmount, 0)}</td>
+                  <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>
+                    {fmtD(inst.emiAmount, 0)}
+                    {pc > 0 && (
+                      <div style={{ fontSize: 10, color: '#64748b', fontWeight: 400, marginTop: 2 }}>
+                        {fmtD(baseEmiAmount, 0)} + {fmtD(pc, 0)} proc.
+                      </div>
+                    )}
+                  </td>
                   <td style={{ padding: '7px 12px', textAlign: 'right', color: '#22c55e' }}>{fmtD(inst.principalPart, 0)}</td>
                   <td style={{ padding: '7px 12px', textAlign: 'right', color: '#f59e0b' }}>{fmtD(inst.interestPart, 0)}</td>
                   <td style={{ padding: '7px 12px', textAlign: 'right', color: '#a855f7' }}>{fmtD(inst.gstPart, 0)}</td>
@@ -262,16 +275,21 @@ const EmiLoanDetailPage: React.FC = () => {
               <td colSpan={2} style={{ padding: '8px 12px', fontWeight: 700, color: 'var(--text-primary)' }}>Total</td>
               <td />
               <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {fmt(installments.reduce((s, i) => s + i.emiAmount, 0))}
+                {fmt(installments.reduce((sum, i) => sum + i.emiAmount, 0))}
+                {(s.processingCharge ?? 0) > 0 && (
+                  <div style={{ fontSize: 10, color: '#64748b', fontWeight: 400, marginTop: 2 }}>
+                    incl. {fmtD(s.processingCharge, 0)} proc. fee
+                  </div>
+                )}
               </td>
               <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#22c55e' }}>
-                {fmt(installments.reduce((s, i) => s + i.principalPart, 0))}
+                {fmt(installments.reduce((sum, i) => sum + i.principalPart, 0))}
               </td>
               <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#f59e0b' }}>
-                {fmt(installments.reduce((s, i) => s + i.interestPart, 0))}
+                {fmt(installments.reduce((sum, i) => sum + i.interestPart, 0))}
               </td>
               <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#a855f7' }}>
-                {fmt(installments.reduce((s, i) => s + i.gstPart, 0))}
+                {fmt(installments.reduce((sum, i) => sum + i.gstPart, 0))}
               </td>
               <td colSpan={2} />
             </tr>
@@ -297,6 +315,7 @@ const EmiLoanDetailPage: React.FC = () => {
                   { label: 'Annual Rate (e.g. 0.1599) *', key: 'annualInterestRate', type: 'number' },
                   { label: 'Tenure (Months) *', key: 'tenureMonths', type: 'number' },
                   { label: 'GST Rate (e.g. 0.18)', key: 'gstRate', type: 'number' },
+                  { label: 'Processing Charge (₹)', key: 'processingCharge', type: 'number' },
                   { label: 'Start Date *', key: 'startDate', type: 'date' },
                 ].map(f => (
                   <div key={f.key}>

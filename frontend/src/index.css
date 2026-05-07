@@ -642,6 +642,21 @@ select.input option { background: var(--bg-elevated); color: var(--text-primary)
 .form-group input::placeholder, .form-group textarea::placeholder { color: var(--text-muted); }
 .form-group select option { background: var(--bg-elevated); color: var(--text-primary); }
 
+/* ─── DATE INPUT CALENDAR ICON ───────────────── */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.5);
+  cursor: pointer;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  filter: invert(1) opacity(0.85);
+}
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0) opacity(0.5);
+}
+[data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  filter: invert(0) opacity(0.85);
+}
+
 /* ─── MODAL ──────────────────────────────────── */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; z-index: 1000; animation: fadeIn 0.15s; padding: 20px; }
 .modal { background: var(--bg-card); border: 1px solid rgba(255,255,255,0.09); border-radius: 18px; padding: 28px 32px 32px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; animation: floatUp 0.25s cubic-bezier(0.22, 1, 0.36, 1); box-shadow: 0 24px 64px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.05) inset; }

@@ -41,6 +41,9 @@ public class EmiInstallment {
     @Column(nullable = false, precision = 14, scale = 4)
     private BigDecimal closingPrincipal;
 
+    @Column(precision = 14, scale = 2)
+    private BigDecimal processingCharge;
+
     @Column(nullable = false)
     private boolean paid = false;
 
@@ -64,6 +67,8 @@ public class EmiInstallment {
     public void setGstPart(BigDecimal v) { gstPart = v; }
     public BigDecimal getClosingPrincipal() { return closingPrincipal; }
     public void setClosingPrincipal(BigDecimal v) { closingPrincipal = v; }
+    public BigDecimal getProcessingCharge() { return processingCharge; }
+    public void setProcessingCharge(BigDecimal v) { processingCharge = v; }
     public boolean isPaid() { return paid; }
     public void setPaid(boolean v) { paid = v; }
 }

@@ -1012,6 +1012,7 @@ public class DTOs {
         private String loanId, name, status, notes;
         private BigDecimal initialPrincipal, annualInterestRate, gstRate;
         private BigDecimal foreclosureAmount, foreclosurePrincipal, foreclosureInterest;
+        private BigDecimal processingCharge;
         private Integer tenureMonths;
         private LocalDate startDate, foreclosureDate;
         private Boolean foreclosed;
@@ -1026,6 +1027,7 @@ public class DTOs {
         public BigDecimal getForeclosureAmount() { return foreclosureAmount; } public void setForeclosureAmount(BigDecimal v) { foreclosureAmount = v; }
         public BigDecimal getForeclosurePrincipal() { return foreclosurePrincipal; } public void setForeclosurePrincipal(BigDecimal v) { foreclosurePrincipal = v; }
         public BigDecimal getForeclosureInterest() { return foreclosureInterest; } public void setForeclosureInterest(BigDecimal v) { foreclosureInterest = v; }
+        public BigDecimal getProcessingCharge() { return processingCharge; } public void setProcessingCharge(BigDecimal v) { processingCharge = v; }
         public Integer getTenureMonths() { return tenureMonths; } public void setTenureMonths(Integer v) { tenureMonths = v; }
         public LocalDate getStartDate() { return startDate; } public void setStartDate(LocalDate v) { startDate = v; }
         public LocalDate getForeclosureDate() { return foreclosureDate; } public void setForeclosureDate(LocalDate v) { foreclosureDate = v; }
@@ -1091,6 +1093,7 @@ public class DTOs {
         private BigDecimal initialPrincipal, annualInterestRate, gstRate, baseEmi;
         private BigDecimal principalPaid, interestPaid, gstPaid, outstandingPrincipal, futureInterest;
         private BigDecimal foreclosureAmount, foreclosurePrincipal, foreclosureInterest;
+        private BigDecimal processingCharge, processingChargePaid;
         private Integer tenureMonths;
         private LocalDate startDate, endDate, foreclosureDate;
         private boolean foreclosed;
@@ -1112,6 +1115,8 @@ public class DTOs {
         public BigDecimal getForeclosureAmount() { return foreclosureAmount; } public void setForeclosureAmount(BigDecimal v) { foreclosureAmount = v; }
         public BigDecimal getForeclosurePrincipal() { return foreclosurePrincipal; } public void setForeclosurePrincipal(BigDecimal v) { foreclosurePrincipal = v; }
         public BigDecimal getForeclosureInterest() { return foreclosureInterest; } public void setForeclosureInterest(BigDecimal v) { foreclosureInterest = v; }
+        public BigDecimal getProcessingCharge() { return processingCharge; } public void setProcessingCharge(BigDecimal v) { processingCharge = v; }
+        public BigDecimal getProcessingChargePaid() { return processingChargePaid; } public void setProcessingChargePaid(BigDecimal v) { processingChargePaid = v; }
         public Integer getTenureMonths() { return tenureMonths; } public void setTenureMonths(Integer v) { tenureMonths = v; }
         public LocalDate getStartDate() { return startDate; } public void setStartDate(LocalDate v) { startDate = v; }
         public LocalDate getEndDate() { return endDate; } public void setEndDate(LocalDate v) { endDate = v; }
@@ -1123,6 +1128,7 @@ public class DTOs {
         private Long id; private Integer installmentNumber;
         private LocalDate dueDate;
         private BigDecimal openingPrincipal, emiAmount, principalPart, interestPart, gstPart, closingPrincipal;
+        private BigDecimal processingCharge;
         private boolean paid;
 
         public Long getId() { return id; } public void setId(Long v) { id = v; }
@@ -1134,6 +1140,7 @@ public class DTOs {
         public BigDecimal getInterestPart() { return interestPart; } public void setInterestPart(BigDecimal v) { interestPart = v; }
         public BigDecimal getGstPart() { return gstPart; } public void setGstPart(BigDecimal v) { gstPart = v; }
         public BigDecimal getClosingPrincipal() { return closingPrincipal; } public void setClosingPrincipal(BigDecimal v) { closingPrincipal = v; }
+        public BigDecimal getProcessingCharge() { return processingCharge; } public void setProcessingCharge(BigDecimal v) { processingCharge = v; }
         public boolean isPaid() { return paid; } public void setPaid(boolean v) { paid = v; }
     }
 

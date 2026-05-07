@@ -23,7 +23,7 @@ const statusColor = (s: string) => {
 
 const emptyForm = {
   loanId: '', name: '', initialPrincipal: '', annualInterestRate: '', tenureMonths: '',
-  gstRate: '', startDate: '', status: 'ACTIVE', notes: '',
+  gstRate: '', processingCharge: '', startDate: '', status: 'ACTIVE', notes: '',
 };
 
 const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
@@ -86,6 +86,7 @@ const EmiLoansPage: React.FC = () => {
       annualInterestRate: String(l.annualInterestRate),
       tenureMonths: String(l.tenureMonths),
       gstRate: l.gstRate != null ? String(l.gstRate) : '',
+      processingCharge: l.processingCharge != null && l.processingCharge > 0 ? String(l.processingCharge) : '',
       startDate: l.startDate ? l.startDate.slice(0, 10) : '',
       status: l.status,
       notes: l.notes || '',
@@ -104,6 +105,7 @@ const EmiLoansPage: React.FC = () => {
         annualInterestRate: parseFloat(form.annualInterestRate),
         tenureMonths: parseInt(form.tenureMonths),
         gstRate: form.gstRate ? parseFloat(form.gstRate) : 0,
+        processingCharge: form.processingCharge ? parseFloat(form.processingCharge) : 0,
         startDate: form.startDate,
         status: form.status,
         notes: form.notes || null,
@@ -141,15 +143,14 @@ const EmiLoansPage: React.FC = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 700 }}>
             <thead>
               <tr style={{ background: 'var(--bg-row-alt)' }}>
-                {['Loan ID','Name','Principal','Rate','Tenure','EMI/mo','Outstanding','Start','Status',''].map(h => (
-                  <th key={h} style={thStyle(['Principal','Outstanding','EMI/mo'].includes(h))}>{h}</th>
+                {['Loan ID','Name','Principal','Rate','Tenure','Base EMI (excl. GST)','Outstanding','Start','Status',''].map(h => (
+                  <th key={h} style={thStyle(['Principal','Outstanding','Base EMI (excl. GST)'].includes(h))}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {items.map((l, i) => {
                 const sc = statusColor(l.status);
-                const totalEmi = l.baseEmi * (1 + (l.gstRate || 0));
                 return (
                   <tr key={l.id} onClick={() => navigate(`/finance/debt/emi/${l.id}`)}
                     style={{ cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.12s' }}
@@ -160,7 +161,7 @@ const EmiLoansPage: React.FC = () => {
                     <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{fmt(l.initialPrincipal)}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{pct(l.annualInterestRate)}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{l.tenureMonths}M</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#f59e0b', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt(totalEmi)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#f59e0b', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt(l.baseEmi)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', color: '#ef4444', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(l.outstandingPrincipal)}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmtDate(l.startDate)}</td>
                     <td style={{ padding: '10px 12px' }}><span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: sc.bg, color: sc.color, border: `1px solid ${sc.color}25`, letterSpacing: '0.04em' }}>{l.status}</span></td>
@@ -254,6 +255,7 @@ const EmiLoansPage: React.FC = () => {
               <Field label="Annual Interest Rate (e.g. 0.1599 for 15.99%) *"><input style={inputStyle} type="number" step="0.0001" value={form.annualInterestRate} onChange={set('annualInterestRate')} required placeholder="0.1599" /></Field>
               <Field label="Tenure (Months) *"><input style={inputStyle} type="number" value={form.tenureMonths} onChange={set('tenureMonths')} required placeholder="24" /></Field>
               <Field label="GST Rate (e.g. 0.18 for 18%)"><input style={inputStyle} type="number" step="0.01" value={form.gstRate} onChange={set('gstRate')} placeholder="0.18" /></Field>
+              <Field label="Processing Charge (₹)"><input style={inputStyle} type="number" step="0.01" value={form.processingCharge} onChange={set('processingCharge')} placeholder="0" /></Field>
               <Field label="Start Date *"><input style={inputStyle} type="date" value={form.startDate} onChange={set('startDate')} required /></Field>
               <Field label="Status">
                 <select style={inputStyle} value={form.status} onChange={set('status')}>

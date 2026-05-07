@@ -394,6 +394,7 @@ export interface EmiInstallment {
   interestPart: number;
   gstPart: number;
   closingPrincipal: number;
+  processingCharge?: number;
   paid: boolean;
 }
 
@@ -419,6 +420,8 @@ export interface EmiLoanSummary {
   foreclosureAmount?: number;
   foreclosurePrincipal?: number;
   foreclosureInterest?: number;
+  processingCharge?: number;
+  processingChargePaid?: number;
   notes?: string;
 }
 

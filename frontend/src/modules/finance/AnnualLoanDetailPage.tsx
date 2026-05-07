@@ -5,6 +5,8 @@ import { AnnualLoanDetail } from '../../types';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
+const fmtExact = (n?: number) =>
+  n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n) : '—';
 const pct = (n?: number) => n != null ? `${(n * 100).toFixed(2)}%` : '—';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmtDate = (d?: string) => {
@@ -25,9 +27,14 @@ const AnnualLoanDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ paymentDate: '', amount: '', interestAccrued: '' });
+  const [interestAutoCalc, setInterestAutoCalc] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [editForm, setEditForm] = useState({ loanId: '', name: '', initialPrincipal: '', annualInterestRate: '', startDate: '', endDate: '', currentBalance: '', totalInterestAccrued: '', interestPaid: '', status: 'OUTSTANDING', notes: '' });
+  const [editForm, setEditForm] = useState({
+    loanId: '', name: '', initialPrincipal: '', annualInterestRate: '',
+    startDate: '', endDate: '', currentBalance: '', interestPaid: '',
+    status: 'OUTSTANDING', notes: '',
+  });
   const [editSaving, setEditSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -41,6 +48,28 @@ const AnnualLoanDetailPage: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  // interest = currentBalance × annualRate × days / 365
+  // days from: last prepayment before paymentDate, or startDate if none
+  const calcSuggestedInterest = useCallback((paymentDate: string): number => {
+    if (!detail || !paymentDate) return 0;
+    const { summary: s, prepayments } = detail;
+    const pDate = new Date(paymentDate);
+    const prior = prepayments
+      .map(p => new Date(p.paymentDate))
+      .filter(d => d < pDate)
+      .sort((a, b) => b.getTime() - a.getTime());
+    const prevDate = prior.length > 0 ? prior[0] : new Date(s.startDate);
+    const days = Math.round((pDate.getTime() - prevDate.getTime()) / 86400000);
+    const interest = (s.currentBalance || 0) * s.annualInterestRate * days / 365;
+    return Math.round(interest * 100) / 100;
+  }, [detail]);
+
+  const handleDateChange = (dateStr: string) => {
+    const suggested = calcSuggestedInterest(dateStr);
+    setForm(fm => ({ ...fm, paymentDate: dateStr, interestAccrued: suggested > 0 ? String(suggested) : '' }));
+    setInterestAutoCalc(suggested > 0);
+  };
+
   const handleAddPrepayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
@@ -52,6 +81,7 @@ const AnnualLoanDetailPage: React.FC = () => {
         interestAccrued: form.interestAccrued ? parseFloat(form.interestAccrued) : null,
       });
       setForm({ paymentDate: '', amount: '', interestAccrued: '' });
+      setInterestAutoCalc(false);
       setShowAdd(false);
       load();
     } catch { /* handled */ } finally { setSaving(false); }
@@ -78,7 +108,6 @@ const AnnualLoanDetailPage: React.FC = () => {
       startDate: s.startDate ? s.startDate.slice(0, 10) : '',
       endDate: s.endDate ? s.endDate.slice(0, 10) : '',
       currentBalance: s.currentBalance != null ? String(s.currentBalance) : '',
-      totalInterestAccrued: s.totalInterestAccrued != null ? String(s.totalInterestAccrued) : '',
       interestPaid: s.interestPaid != null ? String(s.interestPaid) : '',
       status: s.status, notes: s.notes || '',
     });
@@ -96,7 +125,7 @@ const AnnualLoanDetailPage: React.FC = () => {
         annualInterestRate: parseFloat(editForm.annualInterestRate),
         startDate: editForm.startDate, endDate: editForm.endDate || null,
         currentBalance: editForm.currentBalance ? parseFloat(editForm.currentBalance) : parseFloat(editForm.initialPrincipal),
-        totalInterestAccrued: editForm.totalInterestAccrued ? parseFloat(editForm.totalInterestAccrued) : 0,
+        totalInterestAccrued: null,  // always auto-calculated by backend
         interestPaid: editForm.interestPaid ? parseFloat(editForm.interestPaid) : 0,
         status: editForm.status, notes: editForm.notes || null,
       });
@@ -121,7 +150,7 @@ const AnnualLoanDetailPage: React.FC = () => {
       </button>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{s.name}</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
@@ -137,17 +166,24 @@ const AnnualLoanDetailPage: React.FC = () => {
 
       {/* Summary */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
-        {[
-          { label: 'Initial Principal', value: fmt(s.initialPrincipal), color: 'var(--text-primary)' },
-          { label: 'Outstanding', value: fmt(s.currentBalance), color: '#ef4444' },
-          { label: 'Interest Accrued', value: fmt(s.totalInterestAccrued), color: '#a855f7' },
-          { label: 'Interest Paid', value: fmt(s.interestPaid), color: '#22c55e' },
-        ].map(c => (
-          <div key={c.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>{c.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: c.color }}>{c.value}</div>
-          </div>
-        ))}
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>Initial Principal</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{fmt(s.initialPrincipal)}</div>
+        </div>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>Outstanding</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#ef4444' }}>{fmt(s.currentBalance)}</div>
+        </div>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Total Interest Accrued</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#a855f7' }}>{fmtExact(s.totalInterestAccrued)}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>accrued to date + projected to end</div>
+        </div>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Interest Paid</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#22c55e' }}>{fmtExact(s.interestPaid)}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>settled at loan closure</div>
+        </div>
       </div>
 
       {/* Progress */}
@@ -175,19 +211,28 @@ const AnnualLoanDetailPage: React.FC = () => {
 
       {showAdd && (
         <form onSubmit={handleAddPrepayment} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          {[
-            { label: 'Date', key: 'paymentDate', type: 'date', required: true },
-            { label: 'Amount (₹)', key: 'amount', type: 'number', required: true },
-            { label: 'Interest Accrued (₹)', key: 'interestAccrued', type: 'number', required: false },
-          ].map(f => (
-            <div key={f.key} style={{ flex: 1, minWidth: 140 }}>
-              <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>{f.label}</label>
-              <input type={f.type} required={f.required}
-                value={(form as any)[f.key]}
-                onChange={e => setForm(fm => ({ ...fm, [f.key]: e.target.value }))}
-                style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12, boxSizing: 'border-box' }} />
-            </div>
-          ))}
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Date</label>
+            <input type="date" required value={form.paymentDate}
+              onChange={e => handleDateChange(e.target.value)}
+              style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12, boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Amount (₹)</label>
+            <input type="number" required value={form.amount}
+              onChange={e => setForm(fm => ({ ...fm, amount: e.target.value }))}
+              style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12, boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 160 }}>
+            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+              Interest Accrued this Period (₹)
+              {interestAutoCalc && <span style={{ marginLeft: 6, color: '#f59e0b', fontWeight: 600 }}>auto-calculated</span>}
+            </label>
+            <input type="number" value={form.interestAccrued}
+              onChange={e => { setForm(fm => ({ ...fm, interestAccrued: e.target.value })); setInterestAutoCalc(false); }}
+              placeholder="auto"
+              style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: `1px solid ${interestAutoCalc ? '#f59e0b' : 'var(--border)'}`, background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12, boxSizing: 'border-box' }} />
+          </div>
           <button type="submit" disabled={saving} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
             {saving ? 'Saving…' : 'Save'}
           </button>
@@ -201,7 +246,7 @@ const AnnualLoanDetailPage: React.FC = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 460 }}>
             <thead>
               <tr style={{ background: 'var(--bg-main)' }}>
-                {['Date', 'Amount', 'Interest Accrued', 'Running Balance', ''].map(h => (
+                {['Date', 'Principal Repaid', 'Interest Accrued (period)', 'Running Balance', ''].map(h => (
                   <th key={h} style={{ padding: '9px 14px', textAlign: h === '' ? 'center' : 'right', color: 'var(--text-muted)', fontWeight: 600, borderBottom: '1px solid var(--border)' }}>{h}</th>
                 ))}
               </tr>
@@ -215,7 +260,7 @@ const AnnualLoanDetailPage: React.FC = () => {
                 <tr key={p.id} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)' }}>
                   <td style={{ padding: '8px 14px', textAlign: 'right', color: 'var(--text-primary)' }}>{fmtDate(p.paymentDate)}</td>
                   <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: '#f59e0b' }}>{fmt(p.amount)}</td>
-                  <td style={{ padding: '8px 14px', textAlign: 'right', color: '#a855f7' }}>{p.interestAccrued ? fmt(p.interestAccrued) : '—'}</td>
+                  <td style={{ padding: '8px 14px', textAlign: 'right', color: '#a855f7' }}>{p.interestAccrued != null ? fmtExact(p.interestAccrued) : '—'}</td>
                   <td style={{ padding: '8px 14px', textAlign: 'right', color: '#ef4444' }}>{fmt(p.runningBalance)}</td>
                   <td style={{ padding: '8px 14px', textAlign: 'center' }}>
                     <button onClick={() => handleDeletePrepayment(p.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 13 }}>✕</button>
@@ -235,6 +280,9 @@ const AnnualLoanDetailPage: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Edit — {s.name}</h2>
             <button onClick={() => setShowEdit(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer' }}>×</button>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.2)', borderRadius: 7, padding: '8px 12px', marginBottom: 16 }}>
+            Total Interest is auto-calculated from rate, prepayments, and end date — no need to enter it manually.
           </div>
           <form onSubmit={handleEdit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

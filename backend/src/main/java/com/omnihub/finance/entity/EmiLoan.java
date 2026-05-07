@@ -77,6 +77,12 @@ public class EmiLoan {
     @Column(precision = 14, scale = 2)
     private BigDecimal foreclosureInterest;
 
+    @Column(precision = 14, scale = 2)
+    private BigDecimal processingCharge;
+
+    @Column(precision = 14, scale = 2)
+    private BigDecimal processingChargePaid;
+
     @Column
     private String notes;
 
@@ -129,6 +135,10 @@ public class EmiLoan {
     public void setForeclosurePrincipal(BigDecimal v) { foreclosurePrincipal = v; }
     public BigDecimal getForeclosureInterest() { return foreclosureInterest; }
     public void setForeclosureInterest(BigDecimal v) { foreclosureInterest = v; }
+    public BigDecimal getProcessingCharge() { return processingCharge; }
+    public void setProcessingCharge(BigDecimal v) { processingCharge = v; }
+    public BigDecimal getProcessingChargePaid() { return processingChargePaid; }
+    public void setProcessingChargePaid(BigDecimal v) { processingChargePaid = v; }
     public String getNotes() { return notes; }
     public void setNotes(String v) { notes = v; }
     public LocalDateTime getCreatedAt() { return createdAt; }
