@@ -94,6 +94,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             payload.put("token", token);
             payload.put("email", user.getEmail());
             payload.put("fullName", user.getFullName() != null ? user.getFullName() : user.getEmail());
+            payload.put("oauthProvider", user.getOauthProvider() != null ? user.getOauthProvider() : "");
             cache.put(code, payload);
         }
 

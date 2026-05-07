@@ -27,16 +27,19 @@ const TopNav: React.FC = () => {
     return parts[0][0].toUpperCase();
   };
 
-  const financeLinks = [
-    { to: '/', label: t('nav.dashboard'), icon: '📊', end: true },
-    { to: '/transactions', label: t('nav.transactions'), icon: '💸', end: false },
-    { to: '/budgets', label: t('nav.budgets'), icon: '🎯', end: true },
-    { to: '/analytics', label: t('nav.analytics'), icon: '📈', end: false },
-    { to: '/finance/categories', label: 'Categories & Items', icon: '🏷️', end: false },
-    { to: '/accounts', label: 'Accounts', icon: '🏦', end: false },
-    { to: '/vehicles', label: 'Vehicle Log', icon: '🚗', end: false },
-    { to: '/finance/import-export', label: 'Import / Export', icon: '📥', end: false },
+  const debtSubLinks = [
+    { to: '/finance/debt/emi',      label: 'EMI Based Loans',       end: false },
+    { to: '/finance/debt/annual',   label: 'Annual Interest Loans', end: false },
+    { to: '/finance/debt/borrowed', label: 'Borrowed',              end: false },
   ];
+
+  const incomeExpenseSubLinks = [
+    { to: '/transactions',           label: 'Transactions', end: false },
+    { to: '/budgets',                label: 'Budgets',      end: true  },
+    { to: '/analytics',              label: 'Analytics',    end: false },
+    { to: '/finance/categories',     label: 'Categories',   end: false },
+  ];
+
 
   const fitnessLinks = [
     { to: '/fitness', label: t('nav.dashboard'), icon: '🏠', end: true },
@@ -76,19 +79,112 @@ const TopNav: React.FC = () => {
                   <polyline points="6 9 12 15 18 9"/>
                 </svg>
               </button>
-              <div className="top-nav-dropdown-menu">
-                <div className="top-nav-dropdown-inner">
-                  {financeLinks.map(link => (
-                    <NavLink
-                      key={link.to}
-                      to={link.to}
-                      end={link.end}
-                      className={({ isActive }) => `top-nav-dropdown-item ${isActive ? 'active' : ''}`}
-                    >
-                      <span style={{ fontSize: 15 }}>{link.icon}</span>
-                      {link.label}
-                    </NavLink>
-                  ))}
+              <div className="top-nav-dropdown-menu" style={{ minWidth: 400 }}>
+                <div className="top-nav-dropdown-inner" style={{ padding: '8px' }}>
+
+                  {/* Finance Overview — full-width top link */}
+                  <NavLink to="/finance/overview" onClick={closeMenu}
+                    className={({ isActive }) => `top-nav-dropdown-item ${isActive ? 'active' : ''}`}
+                    style={{ fontWeight: 600 }}>
+                    <span style={{ fontSize: 15 }}>📊</span> Finance Overview
+                  </NavLink>
+
+                  <div className="top-nav-dropdown-divider" />
+
+                  {/* 2-col: Trackers | Manage */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 4px' }}>
+                    {/* Trackers column */}
+                    <div>
+                      <div className="top-nav-dropdown-section-label">Trackers</div>
+
+                      {/* Income & Expense submenu */}
+                      <div className="top-nav-submenu">
+                        <NavLink to="/finance/income-expense"
+                          className={({ isActive }) => `top-nav-dropdown-item top-nav-submenu-trigger${isActive ? ' active' : ''}`}
+                          onClick={closeMenu}>
+                          <span style={{ fontSize: 15 }}>💸</span> Income & Expense
+                          <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 'auto' }}>›</span>
+                        </NavLink>
+                        <div className="top-nav-submenu-menu">
+                          {[
+                            { to: '/transactions',           label: 'Transactions', icon: '💸', end: false },
+                            { to: '/budgets',                label: 'Budgets',      icon: '🎯', end: true  },
+                            { to: '/analytics',              label: 'Analytics',    icon: '📈', end: false },
+                            { to: '/finance/categories',     label: 'Categories',   icon: '🏷️', end: false },
+                            { to: '/accounts',               label: 'Accounts',     icon: '🏦', end: false },
+                          ].map(link => (
+                            <NavLink key={link.to} to={link.to} end={link.end}
+                              className={({ isActive }) => `top-nav-dropdown-item ${isActive ? 'active' : ''}`}
+                              onClick={closeMenu}>
+                              <span style={{ fontSize: 14 }}>{link.icon}</span> {link.label}
+                            </NavLink>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Debt submenu */}
+                      <div className="top-nav-submenu">
+                        <NavLink to="/finance/debt" end
+                          className={({ isActive }) => `top-nav-dropdown-item top-nav-submenu-trigger${isActive ? ' active' : ''}`}
+                          onClick={closeMenu}>
+                          <span style={{ fontSize: 15 }}>💳</span> Debt
+                          <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 'auto' }}>›</span>
+                        </NavLink>
+                        <div className="top-nav-submenu-menu">
+                          {[
+                            { to: '/finance/debt/emi',      label: 'EMI Based Loans',       icon: '📆', end: false },
+                            { to: '/finance/debt/annual',   label: 'Annual Interest Loans', icon: '🏦', end: false },
+                            { to: '/finance/debt/borrowed', label: 'Borrowed',              icon: '🤝', end: false },
+                          ].map(link => (
+                            <NavLink key={link.to} to={link.to} end={link.end}
+                              className={({ isActive }) => `top-nav-dropdown-item ${isActive ? 'active' : ''}`}
+                              onClick={closeMenu}>
+                              <span style={{ fontSize: 14 }}>{link.icon}</span> {link.label}
+                            </NavLink>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Investments submenu */}
+                      <div className="top-nav-submenu">
+                        <NavLink to="/finance/investments-dashboard"
+                          className={({ isActive }) => `top-nav-dropdown-item top-nav-submenu-trigger${isActive ? ' active' : ''}`}
+                          onClick={closeMenu}>
+                          <span style={{ fontSize: 15 }}>📈</span> Investments
+                          <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 'auto' }}>›</span>
+                        </NavLink>
+                        <div className="top-nav-submenu-menu">
+                          {[
+                            { to: '/finance/investments',    label: 'RD & FD',        icon: '🏦', end: false },
+                            { to: '/finance/chit',           label: 'Chit',           icon: '🔄', end: true  },
+                            { to: '/finance/emergency-fund', label: 'Emergency Fund', icon: '🛡', end: false },
+                          ].map(link => (
+                            <NavLink key={link.to} to={link.to} end={link.end}
+                              className={({ isActive }) => `top-nav-dropdown-item ${isActive ? 'active' : ''}`}
+                              onClick={closeMenu}>
+                              <span style={{ fontSize: 14 }}>{link.icon}</span> {link.label}
+                            </NavLink>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Manage column */}
+                    <div>
+                      <div className="top-nav-dropdown-section-label">Manage</div>
+                      {[
+                        { to: '/vehicles',              label: 'Vehicle Log',   icon: '🚗', end: false },
+                        { to: '/finance/import-export', label: 'Import/Export', icon: '📥', end: false },
+                      ].map(l => (
+                        <NavLink key={l.to} to={l.to} end={l.end}
+                          className={({ isActive }) => `top-nav-dropdown-item ${isActive ? 'active' : ''}`}
+                          onClick={closeMenu}>
+                          <span style={{ fontSize: 14 }}>{l.icon}</span> {l.label}
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -214,16 +310,62 @@ const TopNav: React.FC = () => {
         </div>
 
         {/* Finance */}
-        <div className="top-nav-mobile-section">💰 Finance</div>
-        {financeLinks.map(link => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.end}
-            onClick={closeMenu}
+        <div className="top-nav-mobile-section">Finance</div>
+        <NavLink to="/finance/overview" onClick={closeMenu}
+          className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}>
+          Finance Overview
+        </NavLink>
+        <NavLink to="/finance/income-expense" onClick={closeMenu}
+          className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
+          style={{ fontWeight: 600, paddingLeft: 20 }}>
+          💸 Income & Expense
+        </NavLink>
+        {incomeExpenseSubLinks.map(link => (
+          <NavLink key={link.to} to={link.to} end={link.end} onClick={closeMenu}
             className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
-          >
-            <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{link.icon}</span>
+            style={{ paddingLeft: 36 }}>
+            {link.label}
+          </NavLink>
+        ))}
+        <NavLink to="/finance/debt" end onClick={closeMenu}
+          className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
+          style={{ fontWeight: 600, paddingLeft: 20 }}>
+          💳 Debt
+        </NavLink>
+        {debtSubLinks.map(link => (
+          <NavLink key={link.to} to={link.to} end={link.end} onClick={closeMenu}
+            className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
+            style={{ paddingLeft: 36 }}>
+            {link.label}
+          </NavLink>
+        ))}
+        <NavLink to="/finance/investments-dashboard" onClick={closeMenu}
+          className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
+          style={{ fontWeight: 600, paddingLeft: 20 }}>
+          📈 Investments
+        </NavLink>
+        <NavLink to="/finance/investments" onClick={closeMenu}
+          className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
+          style={{ paddingLeft: 36 }}>
+          RD &amp; FD
+        </NavLink>
+        <NavLink to="/finance/chit" end onClick={closeMenu}
+          className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
+          style={{ paddingLeft: 32 }}>
+          🔄 Chit
+        </NavLink>
+        <NavLink to="/finance/emergency-fund" onClick={closeMenu}
+          className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
+          style={{ paddingLeft: 32 }}>
+          🛡 Emergency Fund
+        </NavLink>
+        {[
+          { to: '/accounts',              label: 'Accounts',      end: false },
+          { to: '/vehicles',              label: 'Vehicle Log',   end: false },
+          { to: '/finance/import-export', label: 'Import/Export', end: false },
+        ].map(link => (
+          <NavLink key={link.to} to={link.to} end={link.end} onClick={closeMenu}
+            className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}>
             {link.label}
           </NavLink>
         ))}

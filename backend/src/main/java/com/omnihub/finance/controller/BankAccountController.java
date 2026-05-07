@@ -43,4 +43,9 @@ public class BankAccountController {
     public ResponseEntity<BankAccountResponse> setDefault(@AuthenticationPrincipal UserDetails u, @PathVariable Long id) {
         return ResponseEntity.ok(service.setDefault(u.getUsername(), id));
     }
+
+    @PatchMapping("/{id}/emergency-fund")
+    public ResponseEntity<BankAccountResponse> toggleEmergencyFund(@AuthenticationPrincipal UserDetails u, @PathVariable Long id) {
+        return ResponseEntity.ok(service.toggleEmergencyFund(u.getUsername(), id));
+    }
 }

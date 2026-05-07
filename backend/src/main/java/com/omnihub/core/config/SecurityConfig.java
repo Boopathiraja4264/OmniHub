@@ -70,7 +70,8 @@ public class SecurityConfig {
                     "/api/auth/login", "/api/auth/register",
                     "/api/auth/verify-email", "/api/auth/resend-verification",
                     "/api/auth/forgot-password", "/api/auth/reset-password",
-                    "/api/auth/2fa/verify", "/api/auth/oauth/exchange"
+                    "/api/auth/2fa/verify", "/api/auth/oauth/exchange",
+                    "/api/auth/sso-providers"
                 ).permitAll()
                 .anyRequest().authenticated()
             )

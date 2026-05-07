@@ -55,9 +55,19 @@ const AuthPage: React.FC = () => {
   const [pushFallback, setPushFallback] = useState(false);
   const [pushCountdown, setPushCountdown] = useState(30);
 
+  const [enabledProviders, setEnabledProviders] = useState<string[]>([]);
+
   const { login, register, loginWithToken } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // Fetch which SSO providers are actually configured in the backend
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/auth/sso-providers`)
+      .then(r => r.json())
+      .then(data => setEnabledProviders(data.providers ?? []))
+      .catch(() => setEnabledProviders([]));
+  }, []);
 
   // Handle OAuth error redirect
   useEffect(() => {
@@ -369,18 +379,22 @@ const AuthPage: React.FC = () => {
 
         {error && <ErrorBanner message={error} />}
 
-        {/* SSO buttons */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
-          {ssoProviders.map(p => (
+        {/* SSO buttons — only show providers registered in the backend */}
+        {enabledProviders.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: enabledProviders.length === 1 ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 24 }}>
+          {ssoProviders.filter(p => enabledProviders.includes(p.provider)).map(p => (
             <SSOButton key={p.provider} provider={p.provider} label={p.label} logo={p.logo} />
           ))}
         </div>
+        )}
 
+        {enabledProviders.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
           <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>or continue with email</span>
           <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
         </div>
+        )}
 
         <form onSubmit={isLogin ? handleLogin : handleRegister}>
           {!isLogin && (

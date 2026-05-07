@@ -47,6 +47,7 @@ export interface BankAccount {
   totalInflow: number;
   totalOutflow: number;
   isDefault: boolean;
+  emergencyFund?: boolean;
   balanceDate?: string;
 }
 
@@ -271,6 +272,223 @@ export interface ProductivityDashboard {
   timerRunning: boolean;
   activeTimer?: TimeEntry;
 }
+
+// ─── Investments (RD / FD) ────────────────────────────────────────────────────
+
+export interface RdMonthlyPayment {
+  id: number;
+  monthNumber: number;
+  paymentDate?: string;
+  amountPaid?: number;
+  notes?: string;
+}
+
+export interface RdFdInvestment {
+  id: number;
+  type: 'RD' | 'FD';
+  name: string;
+  bankName?: string;
+  amount: number;
+  annualInterestRate: number;
+  tenureMonths: number;
+  startDate: string;
+  maturityDate: string;
+  emergencyFund: boolean;
+  status: 'ACTIVE' | 'MATURED' | 'CLOSED';
+  notes?: string;
+  totalInvested: number;
+  maturityAmount: number;
+  interestEarned: number;
+  currentValue: number;
+  efPrincipal: number;
+  monthsPaid: number;
+  payments: RdMonthlyPayment[];
+}
+
+export interface InvestmentDashboard {
+  totalInvested: number;
+  totalMaturityValue: number;
+  totalInterestEarned: number;
+  emergencyFundTotal: number;
+  activeCount: number;
+  fdList: RdFdInvestment[];
+  rdList: RdFdInvestment[];
+}
+
+export interface RdFdRequest {
+  type: 'RD' | 'FD';
+  name: string;
+  bankName?: string;
+  amount: number;
+  annualInterestRate: number;
+  tenureMonths: number;
+  startDate: string;
+  emergencyFund: boolean;
+  status?: string;
+  notes?: string;
+}
+
+// ─── Chit Tracker Types ───────────────────────────────────────────────────────
+
+export interface ChitMonthlyEntry {
+  id: number;
+  monthNumber: number;
+  monthDate: string;
+  amountPerMonth: number;
+  kasirPerMonth?: number;
+  companyYelam?: number;
+  thalliEduthathu?: number;
+}
+
+export interface ChitBatch {
+  id: number;
+  batchNumber: number;
+  dateTaken?: string;
+  amountTaken?: number;
+  monthlyEntries: ChitMonthlyEntry[];
+}
+
+export interface ChitGroup {
+  id: number;
+  name: string;
+  groupLabel: string;
+  membersCount: number;
+  totalBatches: number;
+  membersPerBatch: number;
+  monthlyAmount: number;
+  basicInterest?: number;
+  companyCommission?: number;
+  startDate: string;
+  status: 'ACTIVE' | 'COMPLETED';
+  notes?: string;
+  totalAmount: number;
+  totalPaid: number;
+  totalReceived: number;
+  totalKasir: number;
+  batches: ChitBatch[];
+}
+
+export interface ChitGroupRequest {
+  name: string;
+  groupLabel: string;
+  membersCount: number;
+  totalBatches: number;
+  membersPerBatch: number;
+  monthlyAmount: number;
+  basicInterest?: number;
+  companyCommission?: number;
+  startDate: string;
+  status?: string;
+  notes?: string;
+}
+
+// ─── Debt Tracker ─────────────────────────────────────────────────────────────
+
+export interface EmiInstallment {
+  id: number;
+  installmentNumber: number;
+  dueDate: string;
+  openingPrincipal: number;
+  emiAmount: number;
+  principalPart: number;
+  interestPart: number;
+  gstPart: number;
+  closingPrincipal: number;
+  paid: boolean;
+}
+
+export interface EmiLoanSummary {
+  id: number;
+  loanId: string;
+  name: string;
+  status: 'ACTIVE' | 'CLOSED' | 'FORECLOSED';
+  initialPrincipal: number;
+  annualInterestRate: number;
+  tenureMonths: number;
+  gstRate?: number;
+  baseEmi: number;
+  principalPaid?: number;
+  interestPaid?: number;
+  gstPaid?: number;
+  outstandingPrincipal: number;
+  futureInterest: number;
+  startDate: string;
+  endDate?: string;
+  foreclosed: boolean;
+  foreclosureDate?: string;
+  foreclosureAmount?: number;
+  foreclosurePrincipal?: number;
+  foreclosureInterest?: number;
+  notes?: string;
+}
+
+export interface EmiLoanDetail {
+  summary: EmiLoanSummary;
+  installments: EmiInstallment[];
+}
+
+export interface PrepaymentEntry {
+  id: number;
+  paymentDate: string;
+  amount: number;
+  interestAccrued?: number;
+}
+
+export interface AnnualLoanSummary {
+  id: number;
+  loanId: string;
+  name: string;
+  status: 'OUTSTANDING' | 'REPAID';
+  initialPrincipal: number;
+  annualInterestRate: number;
+  currentBalance?: number;
+  totalInterestAccrued?: number;
+  interestPaid?: number;
+  startDate: string;
+  endDate?: string;
+  notes?: string;
+}
+
+export interface AnnualLoanDetail {
+  summary: AnnualLoanSummary;
+  prepayments: PrepaymentEntry[];
+}
+
+export interface BorrowedRepayment {
+  id: number;
+  paymentDate: string;
+  amount: number;
+  note?: string;
+}
+
+export interface BorrowedLoanSummary {
+  id: number;
+  loanId: string;
+  lenderName: string;
+  status: 'OUTSTANDING' | 'REPAID';
+  amountBorrowed: number;
+  amountRepaid: number;
+  outstandingBalance: number;
+  dateBorrowed: string;
+  notes?: string;
+}
+
+export interface BorrowedLoanDetail {
+  summary: BorrowedLoanSummary;
+  repayments: BorrowedRepayment[];
+}
+
+export interface DebtDashboard {
+  totalInitialPrincipal: number;
+  totalOutstanding: number;
+  monthlyEmiOutflow: number;
+  debtFreeProgress: number;
+  emiLoans: EmiLoanSummary[];
+  annualLoans: AnnualLoanSummary[];
+  borrowedLoans: BorrowedLoanSummary[];
+}
+
+// ─── Static Categories ────────────────────────────────────────────────────────
 
 // Static fallback used by quick-add forms; full dynamic list is managed via CategoryItemSettingsPage
 export const EXPENSE_CATEGORIES = [

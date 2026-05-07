@@ -24,6 +24,20 @@ const BankAccountDetailPage     = lazy(() => import('./modules/finance/BankAccou
 const CreditCardDetailPage      = lazy(() => import('./modules/finance/CreditCardDetailPage'));
 const VehicleLogPage            = lazy(() => import('./modules/finance/VehicleLogPage'));
 const ImportExportPage          = lazy(() => import('./modules/finance/ImportExportPage'));
+const FinanceOverviewPage       = lazy(() => import('./modules/finance/FinanceOverviewPage'));
+const InvestmentsPage           = lazy(() => import('./modules/finance/InvestmentsPage'));
+const ChitTrackerPage           = lazy(() => import('./modules/finance/ChitTrackerPage'));
+const IncomeExpenseDashboard    = lazy(() => import('./modules/finance/IncomeExpenseDashboard'));
+const InvestmentsDashboard      = lazy(() => import('./modules/finance/InvestmentsDashboard'));
+const EmergencyFundPage         = lazy(() => import('./modules/finance/EmergencyFundPage'));
+const ChitGroupDetailPage       = lazy(() => import('./modules/finance/ChitGroupDetailPage'));
+const DebtTrackerPage           = lazy(() => import('./modules/finance/DebtTrackerPage'));
+const EmiLoansPage              = lazy(() => import('./modules/finance/EmiLoansPage'));
+const EmiLoanDetailPage         = lazy(() => import('./modules/finance/EmiLoanDetailPage'));
+const AnnualLoansPage           = lazy(() => import('./modules/finance/AnnualLoansPage'));
+const AnnualLoanDetailPage      = lazy(() => import('./modules/finance/AnnualLoanDetailPage'));
+const BorrowedLoansPage         = lazy(() => import('./modules/finance/BorrowedLoansPage'));
+const BorrowedLoanDetailPage    = lazy(() => import('./modules/finance/BorrowedLoanDetailPage'));
 const Dashboard        = lazy(() => import('./components/Dashboard'));
 const FitnessDashboard = lazy(() => import('./modules/fitness/FitnessDashboard'));
 const WorkoutPage      = lazy(() => import('./modules/fitness/WorkoutPage'));
@@ -71,7 +85,21 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/accounts/bank/:id" element={<BankAccountDetailPage />} />
             <Route path="/accounts/card/:id" element={<CreditCardDetailPage />} />
             <Route path="/vehicles" element={<VehicleLogPage />} />
+            <Route path="/finance/overview" element={<FinanceOverviewPage />} />
             <Route path="/finance/import-export" element={<ImportExportPage />} />
+            <Route path="/finance/investments" element={<InvestmentsPage />} />
+            <Route path="/finance/income-expense" element={<IncomeExpenseDashboard />} />
+            <Route path="/finance/investments-dashboard" element={<InvestmentsDashboard />} />
+            <Route path="/finance/chit" element={<ChitTrackerPage />} />
+            <Route path="/finance/emergency-fund" element={<EmergencyFundPage />} />
+            <Route path="/finance/chit/:id" element={<ChitGroupDetailPage />} />
+            <Route path="/finance/debt" element={<DebtTrackerPage />} />
+            <Route path="/finance/debt/emi" element={<EmiLoansPage />} />
+            <Route path="/finance/debt/emi/:id" element={<EmiLoanDetailPage />} />
+            <Route path="/finance/debt/annual" element={<AnnualLoansPage />} />
+            <Route path="/finance/debt/annual/:id" element={<AnnualLoanDetailPage />} />
+            <Route path="/finance/debt/borrowed" element={<BorrowedLoansPage />} />
+            <Route path="/finance/debt/borrowed/:id" element={<BorrowedLoanDetailPage />} />
             <Route path="/fitness" element={<FitnessDashboard />} />
             <Route path="/fitness/workout" element={<WorkoutPage />} />
             <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />
