@@ -101,7 +101,7 @@ const FinanceOverviewPage: React.FC = () => {
       </div>
 
       {/* Monthly strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
         {[
           { label: 'Monthly Income', value: fmt(monthlyIncome), color: '#22c55e', sub: 'this month' },
           { label: 'Monthly Expenses', value: fmt(monthlyExpenses), color: '#ef4444', sub: 'this month' },
@@ -201,7 +201,7 @@ const FinanceOverviewPage: React.FC = () => {
       {/* Net Position card — full width */}
       <div style={{ marginBottom: 24 }}>
         <Card>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Net Position</div>
               <div style={{ fontSize: 30, fontWeight: 800, color: netPosition >= 0 ? '#22c55e' : '#ef4444', letterSpacing: '-1px', fontVariantNumeric: 'tabular-nums' }}>
@@ -211,18 +211,20 @@ const FinanceOverviewPage: React.FC = () => {
                 Bank balance + Investments (FD/RD + Chit net) − Debt
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', gap: '5px 28px', fontSize: 12, marginTop: 4 }}>
-              <span style={{ color: 'var(--text-muted)' }}>Bank balance</span>
-              <span style={{ fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmt(summary?.balance)}</span>
-              <span style={{ color: 'var(--text-muted)' }}>FD / RD invested</span>
-              <span style={{ fontWeight: 600, color: '#3b82f6', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>+ {fmt(invTotal)}</span>
-              <span style={{ color: 'var(--text-muted)' }}>Chit net</span>
-              <span style={{ fontWeight: 600, color: chitNetPosition >= 0 ? '#22c55e' : '#ef4444', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                {chitNetPosition >= 0 ? '+ ' : '− '}{fmt(Math.abs(chitNetPosition))}
-              </span>
-              <span style={{ color: 'var(--text-muted)' }}>Debt outstanding</span>
-              <span style={{ fontWeight: 600, color: '#ef4444', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>− {fmt(totalDebt)}</span>
-            </div>
+            {!isMobile && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', gap: '5px 28px', fontSize: 12, marginTop: 4 }}>
+                <span style={{ color: 'var(--text-muted)' }}>Bank balance</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmt(summary?.balance)}</span>
+                <span style={{ color: 'var(--text-muted)' }}>FD / RD invested</span>
+                <span style={{ fontWeight: 600, color: '#3b82f6', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>+ {fmt(invTotal)}</span>
+                <span style={{ color: 'var(--text-muted)' }}>Chit net</span>
+                <span style={{ fontWeight: 600, color: chitNetPosition >= 0 ? '#22c55e' : '#ef4444', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  {chitNetPosition >= 0 ? '+ ' : '− '}{fmt(Math.abs(chitNetPosition))}
+                </span>
+                <span style={{ color: 'var(--text-muted)' }}>Debt outstanding</span>
+                <span style={{ fontWeight: 600, color: '#ef4444', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>− {fmt(totalDebt)}</span>
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -287,7 +289,7 @@ const FinanceOverviewPage: React.FC = () => {
       </div>
 
       {/* Quick links */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 12 }}>
         {[
           { label: 'Income & Expense', sub: 'Dashboard', path: '/finance/income-expense', color: '#22c55e' },
           { label: 'Transactions', sub: 'Income & expense log', path: '/transactions', color: '#3b82f6' },

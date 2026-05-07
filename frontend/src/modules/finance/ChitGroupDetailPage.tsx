@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { chitApi, bankAccountApi, transactionApi } from '../../services/api';
 import { ChitGroup, ChitBatch, ChitMonthlyEntry, ChitGroupRequest, BankAccount } from '../../types';
+import { useMobile } from '../../hooks/useMobile';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -16,6 +17,7 @@ const fmtDate = (d?: string) => {
 const ChitGroupDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isMobile = useMobile();
   const [group, setGroup] = useState<ChitGroup | null>(null);
   const [loading, setLoading] = useState(true);
   // editingKasir: { entryId -> draft string value }
@@ -200,8 +202,8 @@ const ChitGroupDetailPage: React.FC = () => {
         </div>
 
         {/* Monthly table */}
-        <div style={{ background: 'var(--bg-card)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <div style={{ background: 'var(--bg-card)', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 460 }}>
             <thead>
               <tr style={{ background: 'var(--bg-row-alt)' }}>
                 {['#', 'Month', 'Amt/Month', 'Kasir', 'Co. Yelam', 'Thalli', ''].map(h => (
@@ -299,14 +301,14 @@ const ChitGroupDetailPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
       {/* Back */}
       <button onClick={() => navigate('/finance/chit')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, marginBottom: 16, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
         ← Back to Chit Tracker
       </button>
 
       {/* Page header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{group.name}</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
@@ -314,7 +316,7 @@ const ChitGroupDetailPage: React.FC = () => {
             {group.notes ? ` · ${group.notes}` : ''}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{
             fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20,
             background: group.status === 'ACTIVE' ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.15)',
@@ -334,7 +336,7 @@ const ChitGroupDetailPage: React.FC = () => {
       </div>
 
       {/* Summary strip */}
-      <div style={{ display: 'flex', marginBottom: 24, borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.15)' }}>
+      <div style={{ display: 'flex', flexWrap: isMobile ? 'wrap' : 'nowrap', marginBottom: 24, borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.15)' }}>
         {[
           { label: 'MONTHLY', value: fmt(group.monthlyAmount), color: 'var(--text-primary)' },
           { label: 'TOTAL POT', value: fmt(totalAmount), color: 'var(--text-primary)' },
@@ -343,9 +345,14 @@ const ChitGroupDetailPage: React.FC = () => {
           { label: 'RECEIVED', value: fmt(group.totalReceived), color: '#3b82f6' },
           { label: 'NET', value: `${netGain >= 0 ? '+' : ''}${fmt(netGain)}`, color: netGain >= 0 ? '#22c55e' : '#ef4444' },
         ].map((c, i) => (
-          <div key={c.label} style={{ flex: 1, padding: '14px 18px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
+          <div key={c.label} style={{
+            flex: isMobile ? '1 1 100%' : 1,
+            padding: isMobile ? '12px 14px' : '14px 18px',
+            borderLeft: isMobile ? 'none' : i > 0 ? '1px solid var(--border-subtle)' : 'none',
+            borderTop: isMobile && i >= 3 ? '1px solid var(--border-subtle)' : 'none',
+          }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 5 }}>{c.label}</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: c.color, fontVariantNumeric: 'tabular-nums' }}>{c.value}</div>
+            <div style={{ fontSize: isMobile ? 14 : 17, fontWeight: 700, color: c.color, fontVariantNumeric: 'tabular-nums' }}>{c.value}</div>
           </div>
         ))}
       </div>
@@ -360,10 +367,10 @@ const ChitGroupDetailPage: React.FC = () => {
         </span>
       </div>
 
-      {/* Batch tables — side by side when 2 batches */}
-      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      {/* Batch tables — side by side on desktop, stacked on mobile */}
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 20, alignItems: 'flex-start' }}>
         {group.batches.map(batch => (
-          <div key={batch.id} style={{ flex: 1, minWidth: group.batches.length > 1 ? 340 : '100%' }}>
+          <div key={batch.id} style={{ flex: 1, minWidth: 0, width: '100%' }}>
             <BatchTable batch={batch} batchLabel={`Chit ${batch.batchNumber}`} />
           </div>
         ))}
@@ -426,7 +433,7 @@ const ChitGroupDetailPage: React.FC = () => {
               <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>
             </div>
             <form onSubmit={handleUpdate}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
                 {[
                   { label: 'Chit Name', key: 'name' as const, type: 'text', colSpan: 2, placeholder: 'e.g. DEC 2025 10000' },
                   { label: 'Group Label', key: 'groupLabel' as const, type: 'text', placeholder: 'A, B, C...' },

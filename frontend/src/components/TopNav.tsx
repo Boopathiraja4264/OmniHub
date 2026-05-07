@@ -38,6 +38,7 @@ const TopNav: React.FC = () => {
     { to: '/budgets',                label: 'Budgets',      end: true  },
     { to: '/analytics',              label: 'Analytics',    end: false },
     { to: '/finance/categories',     label: 'Categories',   end: false },
+    { to: '/accounts',               label: 'Accounts',     end: false },
   ];
 
 
@@ -318,7 +319,8 @@ const TopNav: React.FC = () => {
         <NavLink to="/finance/income-expense" onClick={closeMenu}
           className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
           style={{ fontWeight: 600, paddingLeft: 20 }}>
-          💸 Income & Expense
+          <span style={{ fontSize: 16, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>💸</span>
+          Income &amp; Expense
         </NavLink>
         {incomeExpenseSubLinks.map(link => (
           <NavLink key={link.to} to={link.to} end={link.end} onClick={closeMenu}
@@ -330,7 +332,8 @@ const TopNav: React.FC = () => {
         <NavLink to="/finance/debt" end onClick={closeMenu}
           className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
           style={{ fontWeight: 600, paddingLeft: 20 }}>
-          💳 Debt
+          <span style={{ fontSize: 16, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>💳</span>
+          Debt
         </NavLink>
         {debtSubLinks.map(link => (
           <NavLink key={link.to} to={link.to} end={link.end} onClick={closeMenu}
@@ -342,7 +345,8 @@ const TopNav: React.FC = () => {
         <NavLink to="/finance/investments-dashboard" onClick={closeMenu}
           className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
           style={{ fontWeight: 600, paddingLeft: 20 }}>
-          📈 Investments
+          <span style={{ fontSize: 16, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>📈</span>
+          Investments
         </NavLink>
         <NavLink to="/finance/investments" onClick={closeMenu}
           className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
@@ -352,15 +356,16 @@ const TopNav: React.FC = () => {
         <NavLink to="/finance/chit" end onClick={closeMenu}
           className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
           style={{ paddingLeft: 32 }}>
-          🔄 Chit
+          <span style={{ fontSize: 16, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>🔄</span>
+          Chit
         </NavLink>
         <NavLink to="/finance/emergency-fund" onClick={closeMenu}
           className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
           style={{ paddingLeft: 32 }}>
-          🛡 Emergency Fund
+          <span style={{ fontSize: 16, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>🛡</span>
+          Emergency Fund
         </NavLink>
         {[
-          { to: '/accounts',              label: 'Accounts',      end: false },
           { to: '/vehicles',              label: 'Vehicle Log',   end: false },
           { to: '/finance/import-export', label: 'Import/Export', end: false },
         ].map(link => (
@@ -371,7 +376,7 @@ const TopNav: React.FC = () => {
         ))}
 
         {/* Fitness */}
-        <div className="top-nav-mobile-section">💪 Fitness</div>
+        <div className="top-nav-mobile-section"><span className="top-nav-mobile-section-emoji">💪</span>Fitness</div>
         {fitnessLinks.map(link => (
           <NavLink
             key={link.to}
@@ -380,13 +385,13 @@ const TopNav: React.FC = () => {
             onClick={closeMenu}
             className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
           >
-            <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{link.icon}</span>
+            <span style={{ fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>{link.icon}</span>
             {link.label}
           </NavLink>
         ))}
 
         {/* Focus */}
-        <div className="top-nav-mobile-section">✅ Focus</div>
+        <div className="top-nav-mobile-section"><span className="top-nav-mobile-section-emoji">✅</span>Focus</div>
         {focusLinks.map(link => (
           <NavLink
             key={link.to}
@@ -395,7 +400,7 @@ const TopNav: React.FC = () => {
             onClick={closeMenu}
             className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
           >
-            <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{link.icon}</span>
+            <span style={{ fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>{link.icon}</span>
             {link.label}
           </NavLink>
         ))}
@@ -404,11 +409,11 @@ const TopNav: React.FC = () => {
         <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 8 }}>
           <NavLink to="/settings" onClick={closeMenu}
             className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}>
-            <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>⚙️</span>
+            <span style={{ fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>⚙️</span>
             {t('nav.settings')}
           </NavLink>
           <button onClick={handleLogout} className="top-nav-mobile-link" style={{ color: 'var(--danger)', width: '100%', textAlign: 'left' }}>
-            <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>🚪</span>
+            <span style={{ fontSize: 18, width: 24, textAlign: 'center', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif" }}>🚪</span>
             {t('nav.signOut')}
           </button>
         </div>

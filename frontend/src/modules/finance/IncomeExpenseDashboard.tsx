@@ -101,7 +101,7 @@ const IncomeExpenseDashboard: React.FC = () => {
       </div>
 
       {/* This month stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
         <StatCard label="This Month Income"   value={fmt(monthlyIncome)}   color="#22c55e" sub="all income sources" big />
         <StatCard label="This Month Expenses" value={fmt(monthlyExpenses)} color="#ef4444" sub="all categories"     big />
         <StatCard label="Net Savings"         value={fmt(monthlySavings)}  color={monthlySavings >= 0 ? '#3b82f6' : '#ef4444'} sub="income − expenses" big />

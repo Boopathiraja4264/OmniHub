@@ -185,8 +185,8 @@ const BorrowedLoanDetailPage: React.FC = () => {
       {repayments.length === 0 ? (
         <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '16px 0' }}>No repayments recorded yet.</div>
       ) : (
-        <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 400 }}>
             <thead>
               <tr style={{ background: 'var(--bg-main)' }}>
                 {['Date', 'Amount', 'Note', 'Running Balance', ''].map(h => (

@@ -189,7 +189,7 @@ const DebtTrackerPage: React.FC = () => {
           { label: 'MONTHLY INTEREST', value: fmt(monthlyInterest), color: '#f97316' },
           { label: 'TOTAL INITIAL', value: fmt(data.totalInitialPrincipal), color: 'var(--text-secondary)' },
         ].map((c, i) => (
-          <div key={c.label} style={{ flex: isMobile ? '1 1 40%' : 1, padding: '12px 14px', borderLeft: (!isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none', borderTop: (isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none' }}>
+          <div key={c.label} style={{ flex: isMobile ? '1 1 100%' : 1, padding: '12px 14px', borderLeft: (!isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none', borderTop: (isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none' }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 5 }}>{c.label}</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: c.color, fontVariantNumeric: 'tabular-nums' }}>{c.value}</div>
             {c.sub && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{c.sub}</div>}

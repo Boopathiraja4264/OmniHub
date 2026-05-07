@@ -197,8 +197,8 @@ const AnnualLoanDetailPage: React.FC = () => {
       {prepayments.length === 0 ? (
         <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '16px 0' }}>No prepayments recorded.</div>
       ) : (
-        <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 460 }}>
             <thead>
               <tr style={{ background: 'var(--bg-main)' }}>
                 {['Date', 'Amount', 'Interest Accrued', 'Running Balance', ''].map(h => (

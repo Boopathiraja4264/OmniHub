@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { investmentApi, bankAccountApi, transactionApi } from '../../services/api';
 import { InvestmentDashboard, RdFdInvestment, RdFdRequest, BankAccount } from '../../types';
+import { useMobile } from '../../hooks/useMobile';
 
 
 const fmt = (n?: number) =>
@@ -158,19 +159,21 @@ const FdDetailModal: React.FC<{
         </div>
 
         {/* Summary stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', borderBottom: '1px solid var(--border)' }}>
-          {[
-            { label: 'Principal',     value: fmt(inv.amount),          color: 'var(--text-primary)' },
-            { label: 'At Maturity',   value: fmt(inv.maturityAmount),   color: '#22c55e' },
-            { label: 'Interest',      value: fmt(inv.interestEarned),   color: '#a855f7' },
-            { label: 'Current Value', value: fmt(inv.currentValue),     color: '#3b82f6' },
-            { label: 'Elapsed',       value: `${elapsed}/${inv.tenureMonths}mo`, color: 'var(--text-muted)' },
-          ].map((s, i) => (
-            <div key={s.label} style={{ padding: '12px 14px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>{s.label}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
-            </div>
-          ))}
+        <div style={{ overflowX: 'auto', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(110px, 1fr))' }}>
+            {[
+              { label: 'Principal',     value: fmt(inv.amount),          color: 'var(--text-primary)' },
+              { label: 'At Maturity',   value: fmt(inv.maturityAmount),   color: '#22c55e' },
+              { label: 'Interest',      value: fmt(inv.interestEarned),   color: '#a855f7' },
+              { label: 'Current Value', value: fmt(inv.currentValue),     color: '#3b82f6' },
+              { label: 'Elapsed',       value: `${elapsed}/${inv.tenureMonths}mo`, color: 'var(--text-muted)' },
+            ].map((s, i) => (
+              <div key={s.label} style={{ padding: '12px 14px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Timeline */}
@@ -197,8 +200,8 @@ const FdDetailModal: React.FC<{
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
             Interest Growth Projection
           </div>
-          <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 360 }}>
               <thead style={{ background: 'var(--bg-card)' }}>
                 <tr>
                   <th style={thS}>Period</th>
@@ -343,19 +346,21 @@ const RdDetailModal: React.FC<{
         </div>
 
         {/* Summary stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', borderBottom: '1px solid var(--border)' }}>
-          {[
-            { label: '/Month',        value: fmt(inv.amount),          color: 'var(--text-primary)' },
-            { label: 'Total Invested', value: fmt(inv.totalInvested),   color: 'var(--text-primary)' },
-            { label: 'At Maturity',   value: fmt(inv.maturityAmount),   color: '#22c55e' },
-            { label: 'Interest',      value: fmt(inv.interestEarned),   color: '#a855f7' },
-            { label: 'Paid',          value: `${inv.monthsPaid}/${inv.tenureMonths}`, color: '#3b82f6' },
-          ].map((s, i) => (
-            <div key={s.label} style={{ padding: '12px 14px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
-              <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>{s.label}</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
-            </div>
-          ))}
+        <div style={{ overflowX: 'auto', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(110px, 1fr))' }}>
+            {[
+              { label: '/Month',        value: fmt(inv.amount),          color: 'var(--text-primary)' },
+              { label: 'Total Invested', value: fmt(inv.totalInvested),   color: 'var(--text-primary)' },
+              { label: 'At Maturity',   value: fmt(inv.maturityAmount),   color: '#22c55e' },
+              { label: 'Interest',      value: fmt(inv.interestEarned),   color: '#a855f7' },
+              { label: 'Paid',          value: `${inv.monthsPaid}/${inv.tenureMonths}`, color: '#3b82f6' },
+            ].map((s, i) => (
+              <div key={s.label} style={{ padding: '12px 14px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Monthly interest table */}
@@ -363,8 +368,8 @@ const RdDetailModal: React.FC<{
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
             Monthly Interest Accumulation
           </div>
-          <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', maxHeight: 300, overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto', maxHeight: 300, overflowY: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 380 }}>
               <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-card)', zIndex: 1 }}>
                 <tr>
                   <th style={thS}>#</th>
@@ -417,7 +422,7 @@ const RdDetailModal: React.FC<{
 
           {addingPayment && (
             <div style={{ marginBottom: 12, padding: '12px', borderRadius: 8, background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.18)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 8 }}>
                 <div>
                   <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 3 }}>Mo #</div>
                   <input type="number" min={1} max={inv.tenureMonths} value={payForm.monthNumber}
@@ -498,6 +503,7 @@ const emptyForm = (): RdFdRequest => ({
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const InvestmentsPage: React.FC = () => {
+  const isMobile = useMobile();
   const [dash, setDash] = useState<InvestmentDashboard | null>(null);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -632,10 +638,10 @@ const InvestmentsPage: React.FC = () => {
   const efInvTotal = (dash?.emergencyFundTotal ?? 0);
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1400, minHeight: '100%', background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(34,197,94,0.06) 0%, transparent 60%)' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1400, minHeight: '100%', background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(34,197,94,0.06) 0%, transparent 60%)' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px' }}>Investments</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4, marginBottom: 0 }}>Fixed deposits, recurring deposits, emergency fund</p>
@@ -648,7 +654,7 @@ const InvestmentsPage: React.FC = () => {
 
       {/* Summary strip */}
       {dash && (
-        <div style={{ display: 'flex', marginBottom: 20, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
+        <div style={{ display: 'flex', flexWrap: isMobile ? 'wrap' : 'nowrap', marginBottom: 20, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
           {[
             { label: 'TOTAL INVESTED',  value: fmt(dash.totalInvested),      color: 'var(--text-primary)' },
             { label: 'MATURITY VALUE',  value: fmt(dash.totalMaturityValue),  color: '#22c55e' },
@@ -656,7 +662,7 @@ const InvestmentsPage: React.FC = () => {
             { label: 'EMERGENCY FUND',  value: fmt(efInvTotal),               color: '#f59e0b' },
             { label: 'ACTIVE',          value: String(dash.activeCount),      color: 'var(--text-primary)' },
           ].map((c, i) => (
-            <div key={c.label} style={{ flex: 1, padding: '12px 16px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
+            <div key={c.label} style={{ flex: isMobile ? '1 1 100%' : 1, padding: '12px 16px', borderLeft: (!isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none', borderTop: (isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none' }}>
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 4 }}>{c.label}</div>
               <div style={{ fontSize: 16, fontWeight: 700, color: c.color, fontVariantNumeric: 'tabular-nums' }}>{c.value}</div>
             </div>
@@ -664,9 +670,8 @@ const InvestmentsPage: React.FC = () => {
         </div>
       )}
 
-
-      {/* FD | RD side-by-side columns */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, alignItems: 'start' }}>
+      {/* FD | RD side-by-side columns — stack on mobile */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, alignItems: 'start' }}>
 
         {/* FD column — responsive grid, click opens detail modal */}
         <div>
@@ -743,7 +748,7 @@ const InvestmentsPage: React.FC = () => {
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>
             </div>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Type</label>
                   <select value={form.type} onChange={sf('type')} style={inputS} required>

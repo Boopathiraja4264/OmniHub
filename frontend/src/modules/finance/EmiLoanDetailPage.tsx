@@ -214,8 +214,8 @@ const EmiLoanDetailPage: React.FC = () => {
         Amortization Schedule
         <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 10 }}>Click any row to mark paid/unpaid</span>
       </div>
-      <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 660 }}>
           <thead>
             <tr style={{ background: 'var(--bg-main)' }}>
               {['#', 'Due Date', 'Opening', 'EMI', 'Principal', 'Interest', 'GST', 'Closing', ''].map(h => (

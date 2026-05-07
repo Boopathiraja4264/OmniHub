@@ -99,7 +99,7 @@ const InvestmentsDashboard: React.FC = () => {
       </div>
 
       {/* Stats strip */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
         <StatCard label="Total Invested" value={fmt(totalInvested)} color="#3b82f6" sub={`${activeFds.length} FD · ${activeRds.length} RD active`} />
         <StatCard label="Maturity Value" value={fmt(totalMaturity)} color="#22c55e" sub={`gain ${fmt(totalInterest)}`} />
         <StatCard label="Monthly RD" value={fmt(rdMonthly)} color="#f59e0b" sub="committed every month" />

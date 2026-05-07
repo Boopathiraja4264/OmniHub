@@ -104,7 +104,7 @@ const ChitTrackerPage: React.FC = () => {
           { label: 'OVERALL', value: fmt(totalKasir + totalReceived), color: '#f97316' },
         ].map((item, i) => (
           <div key={item.label} style={{
-            flex: isMobile ? '1 1 40%' : 1, padding: '12px 16px',
+            flex: isMobile ? '1 1 100%' : 1, padding: '12px 16px',
             borderLeft: (!isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none',
             borderTop: (isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none',
           }}>
