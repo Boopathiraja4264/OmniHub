@@ -16,13 +16,13 @@ const fmtDate = (d?: string) => {
 };
 
 const statusColor = (s: string) => {
-  if (s === 'ACTIVE' || s === 'OUTSTANDING') return { bg: 'rgba(34,197,94,0.12)', color: '#22c55e' };
+  if (s === 'ACTIVE' || s === 'OUTSTANDING') return { bg: 'var(--income-dim)', color: 'var(--income)' };
   if (s === 'CLOSED' || s === 'REPAID') return { bg: 'rgba(148,163,184,0.15)', color: '#94a3b8' };
-  if (s === 'FORECLOSED') return { bg: 'rgba(249,115,22,0.12)', color: '#f97316' };
+  if (s === 'FORECLOSED') return { bg: 'rgba(249,115,22,0.12)', color: 'var(--warning)' };
   return { bg: 'rgba(148,163,184,0.15)', color: '#94a3b8' };
 };
 
-const CHART_COLORS = ['#ef4444', '#f59e0b', '#3b82f6'];
+const CHART_COLORS = ['#f43f5e', '#f59e0b', '#6366f1'];
 
 const DebtTrackerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -162,10 +162,12 @@ const DebtTrackerPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200, background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(239,68,68,0.06) 0%, transparent 60%)', minHeight: '100%' }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.3px' }}>Debt Dashboard</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Overview of all EMIs, gold loans, and borrowed money</p>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
+      <div className="page-header" style={{ marginBottom: 24 }}>
+        <div>
+          <h2 className="page-title">Debt Dashboard</h2>
+          <p className="page-subtitle">Overview of all EMIs, gold loans, and borrowed money</p>
+        </div>
       </div>
 
       {/* Summary Strip — unified panel */}
@@ -174,19 +176,19 @@ const DebtTrackerPage: React.FC = () => {
         <div style={{ padding: '14px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, borderRight: isMobile ? 'none' : '1px solid var(--border-subtle)', borderBottom: isMobile ? '1px solid var(--border-subtle)' : 'none', minWidth: isMobile ? '100%' : 110 }}>
           <svg width="56" height="56" viewBox="0 0 64 64">
             <circle cx="32" cy="32" r="26" fill="none" stroke="var(--border)" strokeWidth="6"/>
-            <circle cx="32" cy="32" r="26" fill="none" stroke="#22c55e" strokeWidth="6"
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#10b981" strokeWidth="6"
               strokeDasharray={`${2 * Math.PI * 26}`}
               strokeDashoffset={`${2 * Math.PI * 26 * (1 - progressPct / 100)}`}
               strokeLinecap="round" transform="rotate(-90 32 32)"/>
-            <text x="32" y="37" textAnchor="middle" fontSize="13" fontWeight="700" fill="#22c55e">{progressPct}%</text>
+            <text x="32" y="37" textAnchor="middle" fontSize="13" fontWeight="700" fill="#10b981">{progressPct}%</text>
           </svg>
           <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-muted)', textAlign: 'center', textTransform: 'uppercase' }}>Debt-Free</div>
         </div>
         {[
-          { label: 'OUTSTANDING', value: fmt(data.totalOutstanding), color: '#ef4444' },
-          { label: 'MONTHLY EMI', value: fmt(data.monthlyEmiOutflow), color: '#f59e0b' },
-          { label: 'TRUE COST', value: fmt(trueCost), sub: 'outstanding + future interest', color: '#a855f7' },
-          { label: 'MONTHLY INTEREST', value: fmt(monthlyInterest), color: '#f97316' },
+          { label: 'OUTSTANDING', value: fmt(data.totalOutstanding), color: 'var(--expense)' },
+          { label: 'MONTHLY EMI', value: fmt(data.monthlyEmiOutflow), color: 'var(--warning)' },
+          { label: 'TRUE COST', value: fmt(trueCost), sub: 'outstanding + future interest', color: 'var(--purple)' },
+          { label: 'MONTHLY INTEREST', value: fmt(monthlyInterest), color: 'var(--warning)' },
           { label: 'TOTAL INITIAL', value: fmt(data.totalInitialPrincipal), color: 'var(--text-secondary)' },
         ].map((c, i) => (
           <div key={c.label} style={{ flex: isMobile ? '1 1 100%' : 1, padding: '12px 14px', borderLeft: (!isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none', borderTop: (isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none' }}>
@@ -219,7 +221,7 @@ const DebtTrackerPage: React.FC = () => {
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
                 <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} tickFormatter={v => `₹${(v/1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v: any) => fmt(v)} />
-                <Bar dataKey="Outstanding" fill="#ef4444" radius={[4,4,0,0]} />
+                <Bar dataKey="Outstanding" fill="#f43f5e" radius={[4,4,0,0]} />
                 <Bar dataKey="Future Interest" fill="#a855f7" radius={[4,4,0,0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -248,12 +250,12 @@ const DebtTrackerPage: React.FC = () => {
                   return (
                     <tr key={l.id} onClick={() => navigate(`${l.path}/${l.id}`)}
                       style={{ cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.12s' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.06)')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-row-hover)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                       <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: 11 }}>{l.loanId}</td>
                       <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>{l.name}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{l.type}</td>
-                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: '#ef4444', fontVariantNumeric: 'tabular-nums' }}>{fmt(l.outstanding)}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--expense)', fontVariantNumeric: 'tabular-nums' }}>{fmt(l.outstanding)}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--text-muted)' }}>{fmtDate(l.endDate)}</td>
                       <td style={{ padding: '10px 14px' }}><span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: sc.bg, color: sc.color, border: `1px solid ${sc.color}22`, letterSpacing: '0.04em' }}>{l.status}</span></td>
                       <td style={{ padding: '10px 14px', color: 'var(--text-empty)', fontSize: 14 }}>›</td>
@@ -269,9 +271,9 @@ const DebtTrackerPage: React.FC = () => {
       {/* Quick links */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
         {[
-          { label: 'EMI Based Loans', sub: `${data.emiLoans.length} loans`, path: '/finance/debt/emi', color: '#ef4444' },
-          { label: 'Annual Interest Loans', sub: `${data.annualLoans.length} loans`, path: '/finance/debt/annual', color: '#f59e0b' },
-          { label: 'Borrowed', sub: `${data.borrowedLoans.length} entries`, path: '/finance/debt/borrowed', color: '#3b82f6' },
+          { label: 'EMI Based Loans', sub: `${data.emiLoans.length} loans`, path: '/finance/debt/emi', color: 'var(--expense)' },
+          { label: 'Annual Interest Loans', sub: `${data.annualLoans.length} loans`, path: '/finance/debt/annual', color: 'var(--warning)' },
+          { label: 'Borrowed', sub: `${data.borrowedLoans.length} entries`, path: '/finance/debt/borrowed', color: 'var(--primary)' },
         ].map(c => (
           <div key={c.label} onClick={() => navigate(c.path)}
             style={{ ...cardS, padding: '14px 18px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'border-color 0.18s, box-shadow 0.18s, transform 0.18s' }}
@@ -312,8 +314,8 @@ const DebtTrackerPage: React.FC = () => {
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-row-alt)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                         <td style={{ padding: '9px 16px', fontWeight: 600, color: 'var(--text-primary)' }}>{row.year}</td>
-                        <td style={{ padding: '9px 16px', textAlign: 'right', color: '#ef4444', fontVariantNumeric: 'tabular-nums' }}>{row['EMI'] > 0 ? fmt(row['EMI']) : '—'}</td>
-                        <td style={{ padding: '9px 16px', textAlign: 'right', color: '#f59e0b', fontVariantNumeric: 'tabular-nums' }}>{row['Annual Loans'] > 0 ? fmt(row['Annual Loans']) : '—'}</td>
+                        <td style={{ padding: '9px 16px', textAlign: 'right', color: 'var(--expense)', fontVariantNumeric: 'tabular-nums' }}>{row['EMI'] > 0 ? fmt(row['EMI']) : '—'}</td>
+                        <td style={{ padding: '9px 16px', textAlign: 'right', color: 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}>{row['Annual Loans'] > 0 ? fmt(row['Annual Loans']) : '—'}</td>
                         <td style={{ padding: '9px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fmt(total)}</td>
                       </tr>
                     );
@@ -322,8 +324,8 @@ const DebtTrackerPage: React.FC = () => {
                 <tfoot>
                   <tr style={{ background: 'var(--bg-row-alt)', borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '9px 16px', fontWeight: 700, color: 'var(--text-primary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</td>
-                    <td style={{ padding: '9px 16px', textAlign: 'right', fontWeight: 700, color: '#ef4444', fontVariantNumeric: 'tabular-nums' }}>{fmt(yearlyHistory.reduce((s, r) => s + r['EMI'], 0))}</td>
-                    <td style={{ padding: '9px 16px', textAlign: 'right', fontWeight: 700, color: '#f59e0b', fontVariantNumeric: 'tabular-nums' }}>{fmt(yearlyHistory.reduce((s, r) => s + r['Annual Loans'], 0))}</td>
+                    <td style={{ padding: '9px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--expense)', fontVariantNumeric: 'tabular-nums' }}>{fmt(yearlyHistory.reduce((s, r) => s + r['EMI'], 0))}</td>
+                    <td style={{ padding: '9px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}>{fmt(yearlyHistory.reduce((s, r) => s + r['Annual Loans'], 0))}</td>
                     <td style={{ padding: '9px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{fmt(yearlyHistory.reduce((s, r) => s + r['EMI'] + r['Annual Loans'], 0))}</td>
                   </tr>
                 </tfoot>

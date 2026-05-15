@@ -1,43 +1,71 @@
 # OmniHub — All-in-One Personal Tracker
 
-A modular, full-stack personal hub for tracking your life — **Finance**, **Fitness**, and **Notifications**. Built with **Java Spring Boot** (backend) and **React TypeScript** (frontend), with an **Android** (Kotlin + Jetpack Compose) companion app.
+A modular, full-stack personal hub for tracking your life — **Finance**, **Fitness**, **Productivity**, and **Notifications**. Built with **Java Spring Boot** (backend) and **React TypeScript** (frontend), with an **Android** (Kotlin + Jetpack Compose) companion app.
 
 ---
 
 ## Features
 
 ### Finance Tracker
-- **Authentication** — JWT-based register/login
-- **Transaction Management** — Add, edit, delete income & expenses with categories and items; separate forms for Expense / Income; Type auto-set from the button clicked
-- **Account-to-Account Transfer** — One click creates a matched debit + credit pair across bank accounts
-- **Bank Accounts** — Add savings/current/salary accounts with opening balance; set a default account (auto-selected on new transactions); click any account to open a detail page with full transaction history and running balance per row
-- **Credit Cards** — Track outstanding balance, credit limit, utilisation %; click any card to open a detail page with cumulative spend per row; record bill payments directly from the card
-- **Budget & Spend** — Set monthly spending limits per category with visual progress bars; Annual pivot table with per-month expand/collapse (current month open by default, others collapsed) — all theme-aware
-- **Analytics Dashboard** — Doughnut, bar, and line charts (Chart.js) for category spend, income vs expenses, net savings, and top items; annual summary charts
-- **Import / Export** — Download monthly or all-time Excel exports; annual pivot summary report with charts; bulk import from Excel template
-- **Category & Item Settings** — Manage expense categories and sub-items
-- **Vehicle Log** — Track service history, KM readings, and next service due for multiple vehicles
+
+**Income & Expense**
+- Transaction management — add, edit, delete income & expenses with categories and sub-items; auto-set type from button clicked
+- Account-to-account transfer — one click creates a matched debit + credit pair across bank accounts
+- Bank accounts — savings/current/salary accounts with opening balance, default account, full transaction history with running balance per row
+- Credit cards — outstanding balance, credit limit, utilisation %; bill payment recording; per-card transaction history with cumulative spend
+- Budget & Spend — monthly limits per category with visual progress bars; annual pivot table with per-month expand/collapse
+- Analytics — doughnut, bar, and line charts (Chart.js) for category spend, income vs expenses, net savings, and top items; annual summary charts
+- Import / Export — monthly or all-time Excel exports; annual pivot report; bulk import from Excel template
+- Category & Item settings — manage expense categories and sub-items
+- Vehicle log — service history, KM readings, and next service due for multiple vehicles
+
+**Debt Tracker**
+- EMI loans — track monthly instalments with paid/unpaid toggle, foreclosure support, processing charges, interest calculation
+- Annual interest loans — interest accrual tracking with prepayment history and running balance
+- Borrowed money — repayment log with running balance per repayment
+
+**Investments**
+- RD / FD tracker — recurring and fixed deposits with maturity value, interest rate, tenure; payment history
+- Chit tracker — chit group management with monthly entries, kasir tracking, and batch detail pages
+- Emergency fund — flag bank accounts as emergency fund; track total emergency corpus
+- Investment dashboard — consolidated view of total invested, interest earned, and active count
 
 ### Fitness Tracker
-- **Workout Logging** — Log daily workouts with sets, reps, and weight per exercise
-- **Exercise Database** — Manage your own exercise list with muscle group tags
-- **Weight Tracking** — Log daily weight; visualise trends with Recharts line graph; per-month log view
-- **Weekly Planning** — Plan your training schedule day by day; search exercises by name or muscle group; today's plan auto-expands
-- **Steps & Run Tracking** — Log daily steps and running distance
+- Workout logging — sets, reps, and weight per exercise; per-day workout history
+- Exercise database — custom exercise list with muscle group tags
+- Weight tracking — daily weight log; trend line chart; per-month view
+- Weekly planning — day-by-day training schedule; search by name or muscle group; today auto-expands
+- Steps & run tracking — daily steps and running distance log
+
+### Productivity (Focus)
+- Task board — create, update, and track tasks with priority, category, due date, and status
+- Daily plan — structured day planning with time blocks; defer incomplete items
+- Calendar — month view of planned days and tasks
+- Weekly templates — reusable day templates to auto-generate daily plans
+- Timer — start/stop focus timer tied to time blocks and tasks
+- Insights — focus score, adherence charts, daily and weekly score series
+
+### Profile & Security
+- Profile picture — upload and store a photo (base64, shown everywhere in the app)
+- Name update — edit display name inline from the profile panel
+- Password management — change password, set password for OAuth accounts, forgot-password reset link
+- Two-factor authentication — TOTP, email OTP, SMS OTP, push notification 2FA methods
 
 ### Notifications
-- **Email** — Daily personalised summaries via Microsoft Graph API (Outlook); configurable send time and content toggles
-- **SMS** — Fast2SMS integration with dual send times and content toggles
-- **Slack** — Webhook-based notifications with three templates (Morning / Finance / Full); dual send times
-- **OneDrive Backup** — Scheduled database backups to OneDrive via Microsoft Graph API
+- Email — daily personalised summaries via Microsoft Graph API (Outlook); configurable send time and content toggles
+- SMS — Fast2SMS integration with dual send times and content toggles
+- Slack — webhook-based notifications with three templates (Morning / Finance / Full); dual send times
+- OneDrive backup — scheduled database backups to OneDrive via Microsoft Graph API
 
 ### UI / UX
-- **Modern custom dropdown** — All selects across the app replaced with a floating-panel `FilterDropdown` component: click-outside close, checkmark on active option, disabled state, full-width mode
+- **Custom DatePicker** — modern calendar component with month/year quick-navigation; replaces all native `<input type="date">` fields
+- **Custom FilterDropdown** — floating-panel select with click-outside close, checkmark, disabled state, full-width mode; replaces all native `<select>` elements
 - **Dark / Light theme** — CSS variable-based theming throughout; all components theme-aware
-- **Tamil cultural content** — Daily Thirukkural and Bharathiyar poem cards on the home page with refresh
+- **Home screen overview** — finance summary, investment totals, budget progress, fitness stats, and active task count on one screen; Thirukkural (with explanation) and Bharathiyar poem cards
+- **Profile hover dropdown** — hover avatar to see name, email, login method; click to open full profile panel
 - **Internationalisation** — English and Tamil (i18next)
-- **Sentry error monitoring** — Automatic error capture in production
-- **Vercel Analytics + Speed Insights** — Page-level performance tracking
+- **Sentry error monitoring** — automatic error capture in production
+- **Vercel Analytics + Speed Insights** — page-level performance tracking
 
 ---
 
@@ -47,7 +75,7 @@ A modular, full-stack personal hub for tracking your life — **Finance**, **Fit
 |-------|-----------|
 | Backend | Java 25, Spring Boot 3.5, Spring Security, JPA/Hibernate |
 | Database | PostgreSQL |
-| Auth | JWT (jjwt) |
+| Auth | JWT (jjwt), OAuth2 (Google), 2FA (TOTP / OTP / Push) |
 | Frontend | React 18, TypeScript, Chart.js, Recharts |
 | Android | Kotlin, Jetpack Compose, Retrofit |
 | Notifications | Microsoft Graph API, Fast2SMS, Slack Webhooks |
@@ -112,86 +140,83 @@ Create `backend/.env`:
 
 ```
 omnihub/
-├── backend/                        # Spring Boot REST API
+├── backend/
 │   └── src/main/java/com/omnihub/
-│       ├── core/                   # Auth, JWT, Security, User
-│       ├── backup/                 # OneDrive backup scheduling
-│       ├── finance/                # Transactions, Budgets, Bank accounts,
-│       │                           # Credit cards, Categories, Vehicles, Import/Export
-│       ├── fitness/                # Workouts, Exercises, Weight, Weekly plan, Steps
-│       └── notification/           # Email, SMS, Slack settings & scheduling
+│       ├── core/                    # Auth, JWT, OAuth2, 2FA, user profile, security
+│       ├── finance/                 # Transactions, budgets, bank accounts, credit cards,
+│       │                            # categories, vehicles, import/export,
+│       │                            # EMI/annual/borrowed debt, RD/FD investments,
+│       │                            # chit tracker, emergency fund
+│       ├── fitness/                 # Workouts, exercises, weight, weekly plan, steps
+│       ├── productivity/            # Tasks, daily plans, time blocks, timer,
+│       │                            # weekly templates, focus score, insights
+│       ├── notification/            # Email, SMS, Slack settings & scheduling
+│       └── backup/                  # OneDrive backup scheduling
 │
-├── frontend/                       # React TypeScript SPA
+├── frontend/
 │   └── src/
 │       ├── modules/
-│       │   ├── auth/               # Login / Register
-│       │   ├── finance/            # Transactions, Accounts, Budgets, Analytics,
-│       │   │                       # Import/Export, Vehicles, Categories
-│       │   ├── fitness/            # Dashboard, Workouts, Weight, Weekly plan, Steps
-│       │   ├── home/               # Home page (Thirukkural, Bharathiyar, quick log)
-│       │   └── settings/           # Email, SMS, Slack, Backup settings
-│       ├── components/             # TopNav, Dashboard, FilterDropdown, ...
-│       ├── context/                # Auth, Theme
-│       ├── services/               # Axios API client (api.ts)
-│       └── types/                  # Shared TypeScript types
+│       │   ├── auth/                # Login, register, OAuth callback, password reset
+│       │   ├── finance/
+│       │   │   ├── FinanceOverviewPage
+│       │   │   ├── IncomeExpenseDashboard / TransactionsPage / AnalyticsPage
+│       │   │   ├── AccountsPage / BankAccountDetailPage / CreditCardDetailPage
+│       │   │   ├── BudgetsPage / AnnualBudgetPage
+│       │   │   ├── ImportExportPage / CategoryItemSettingsPage / VehicleLogPage
+│       │   │   ├── DebtTrackerPage
+│       │   │   │   ├── EmiLoansPage / EmiLoanDetailPage
+│       │   │   │   ├── AnnualLoansPage / AnnualLoanDetailPage
+│       │   │   │   └── BorrowedLoansPage / BorrowedLoanDetailPage
+│       │   │   └── InvestmentsDashboard / InvestmentsPage
+│       │   │       ChitTrackerPage / ChitGroupDetailPage / EmergencyFundPage
+│       │   ├── fitness/             # Dashboard, workout, exercises, weight, weekly plan, steps
+│       │   ├── productivity/        # Dashboard, tasks, calendar, today, templates, insights
+│       │   ├── home/                # Home overview + Thirukkural + Bharathiyar
+│       │   └── settings/            # Notifications (email/SMS/Slack), backup, 2FA
+│       ├── components/
+│       │   ├── TopNav.tsx           # Navigation + profile hover dropdown + profile panel
+│       │   ├── DatePicker.tsx       # Custom calendar picker with month/year navigation
+│       │   ├── FilterDropdown.tsx   # Custom floating-panel select
+│       │   ├── Dashboard.tsx
+│       │   └── AddTransactionModal.tsx
+│       ├── context/                 # AuthContext (user, login, logout, updateUser)
+│       ├── services/
+│       │   ├── api.ts               # Axios instance + all API methods
+│       │   └── external/            # ThirukkuralApi, BharathiyarApi
+│       └── types/                   # All shared TypeScript interfaces
 │
-└── android/                        # Kotlin + Jetpack Compose app
+└── android/
     └── src/main/java/com/omnihub/mobile/
-        ├── auth/                   # Login screen
-        ├── finance/                # Finance screens
-        └── fitness/                # Fitness screens
+        ├── auth/                    # Login screen
+        ├── finance/                 # Finance screens
+        └── fitness/                 # Fitness screens
 ```
 
 ---
 
 ## API Overview
 
-All endpoints are under `/api` and require `Authorization: Bearer <token>` except `/api/auth/**` and `/actuator/health`.
+All endpoints are under `/api` and require `Authorization: Bearer <token>` (or HttpOnly cookie) except `/api/auth/**` and `/actuator/health`.
 
 | Resource | Endpoints |
 |----------|-----------|
-| Auth | `POST /auth/register`, `POST /auth/login` |
-| Transactions | `GET/POST /transactions`, `PUT/DELETE /transactions/{id}`, `GET /transactions/by-bank-account/{id}`, `GET /transactions/by-card/{id}` |
+| Auth | `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `PATCH /auth/profile` |
+| Password | `POST /auth/change-password`, `POST /auth/set-password`, `POST /auth/forgot-password`, `POST /auth/reset-password` |
+| 2FA | `POST /auth/2fa/verify`, `POST /auth/2fa/setup/*` |
+| Transactions | `GET/POST /transactions`, `PUT/DELETE /transactions/{id}` |
 | Bank Accounts | `GET/POST /bank-accounts`, `DELETE /bank-accounts/{id}`, `PATCH /bank-accounts/{id}/default` |
 | Credit Cards | `GET/POST /credit-cards`, `DELETE /credit-cards/{id}` |
-| Budgets | `GET/POST /budgets`, `DELETE /budgets/{id}` |
-| Analytics | `GET /transactions/by-category`, `GET /transactions/monthly`, `GET /transactions/pivot`, `GET /transactions/top-items` |
+| Budgets | `GET/POST /budgets`, `DELETE /budgets/{id}`, `GET/POST /budgets/annual` |
+| Analytics | `GET /transactions/by-category`, `GET /transactions/monthly`, `GET /transactions/pivot` |
+| Debt | `GET/POST /debt/emi`, `GET/POST /debt/annual`, `GET/POST /debt/borrowed` |
+| Investments | `GET /investments/dashboard`, `GET/POST /investments`, `POST /investments/{id}/payments` |
+| Chit | `GET/POST /chit/groups`, `PUT /chit/batches/{id}`, `PUT /chit/entries/{id}/kasir` |
 | Vehicles | `GET/POST /vehicles`, `GET/POST /vehicles/logs` |
 | Import/Export | `GET /import-export/export`, `POST /import-export/import` |
 | Fitness | `/fitness/workouts`, `/fitness/exercises`, `/fitness/weight`, `/fitness/weekly-plan`, `/fitness/steps` |
-| Settings | `/settings/email`, `/settings/sms`, `/settings/slack` |
+| Productivity | `/productivity/tasks`, `/productivity/plans`, `/productivity/time-blocks`, `/productivity/timer`, `/productivity/templates`, `/productivity/reports/*` |
+| Settings | `/notifications/email-settings`, `/notifications/sms-settings`, `/notifications/slack-settings` |
 | Backup | `/backup/trigger`, `/backup/history` |
-
----
-
-## Recent Changes (2026-03-18 – 2026-03-19)
-
-### Backend
-- **Set Default bank account** — Fixed Jackson `@JsonProperty("isDefault")` serialization bug (Java `isXxx()` getter was stripping the `is` prefix); rewrote `setDefault` service to avoid Hibernate lazy-loading proxy issue by using `findByUserIdAndIsDefaultTrue` + `findByIdAndUserId` instead of bulk JPQL
-- **New transaction endpoints** — `GET /transactions/by-bank-account/{id}` and `GET /transactions/by-card/{id}` returning transactions sorted oldest→newest for running balance calculation
-- **CORS** — Added `PATCH` to allowed methods for the default bank account endpoint
-
-### Frontend
-- **Bank Account detail page** — Click any bank account card to open a full transaction history with a "Balance After" column (opening balance ± each transaction), grouped by month newest-first, with year/month filter dropdowns and prev/current/next month quick filters
-- **Credit Card detail page** — Click any credit card card to open a full transaction history with a "Cumulative Spend" column, same filter UI
-- **Set Default inline** — Default badge appears inline next to the account type badge; "Set Default" button is a small ghost pill that disappears once set
-- **Transfer feature** — New "⇄ Transfer" button in Transactions creates a matched EXPENSE from the source account and INCOME to the destination account
-- **Transaction form redesign** — Type is set by the button (+ Expense / + Income); form fields are side-by-side in a 2-column grid (Amount | Date, Category | Item, Payment Source | Account)
-- **Duplicate category fix** — Deduplicated expense categories on load
-- **Budget & Spend rename** — "Budget Tracker" → "Budget & Spend" in nav and page title
-- **Annual pivot table** — Per-month collapse/expand: current month starts expanded, all others collapsed to a thin strip; click any month header to toggle; table width adjusts dynamically; theme fixed (replaced hardcoded Excel blue with CSS variables)
-- **FilterDropdown component** — New custom dropdown with floating panel, click-outside close, checkmark on active option, chevron animation, disabled/fullWidth support; replaced every native `<select>` across the entire app:
-  - Analytics (month, year)
-  - Import/Export (summary year, month, year)
-  - Budget & Spend (year header, category in modal)
-  - Transactions (category, item, income category, deposit account, payment source, bank account, credit card, transfer from/to)
-  - Accounts (account type, card type, pay from bank account)
-  - Vehicle Log (filter, vehicle type, vehicle in log modal)
-  - Weekly Plan (muscle group filter)
-  - Settings (Slack template 1 & 2)
-  - Home (exercise select, category select)
-  - Weight page (month selector)
-  - Exercises (muscle group in add modal)
 
 ---
 

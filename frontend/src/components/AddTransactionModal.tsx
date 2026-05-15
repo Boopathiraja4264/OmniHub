@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { transactionApi, categoryItemApi, creditCardApi, bankAccountApi } from '../services/api';
 import FilterDropdown from './FilterDropdown';
+import DatePicker from './DatePicker';
 import { Transaction, CreditCard, BankAccount, ExpenseCategory, ExpenseItem, INCOME_CATEGORIES } from '../types';
 
 interface Props {
@@ -178,8 +179,8 @@ const AddTransactionModal: React.FC<Props> = ({ open, onClose, onSaved, initialT
             </div>
             <div className="form-group">
               <label>Date</label>
-              <input type="date" value={form.date}
-                onChange={e => setForm({ ...form, date: e.target.value })} required />
+              <DatePicker value={form.date}
+                onChange={e => setForm({ ...form, date: e.target.value })} required fullWidth />
             </div>
 
             {/* EXPENSE: Category | Item */}

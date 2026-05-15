@@ -53,7 +53,7 @@ const Dashboard: React.FC = () => {
         </div>
         <div className="stat-card monthly">
           <div className="stat-label">{monthName} Net</div>
-          <div className="stat-value" style={{ color: "#6a8fe8", fontSize: 24 }}>
+          <div className="stat-value" style={{ color: 'var(--sky-blue)', fontSize: 30 }}>
             {formatCurrency((summary?.monthlyIncome || 0) - (summary?.monthlyExpenses || 0))}
           </div>
         </div>

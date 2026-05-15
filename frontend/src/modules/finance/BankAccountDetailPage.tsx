@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { transactionApi, bankAccountApi } from '../../services/api';
 import { Transaction, BankAccount } from '../../types';
 import FilterDropdown from '../../components/FilterDropdown';
+import DatePicker from '../../components/DatePicker';
 
 const fmtDateInput = (d?: string) => d ? d.split('T')[0] : '';
 
@@ -215,7 +216,7 @@ const BankAccountDetailPage: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label>Balance Date</label>
-                  <input type="date" value={editForm.balanceDate} onChange={e => setEditForm({ ...editForm, balanceDate: e.target.value })} />
+                  <DatePicker value={editForm.balanceDate} onChange={e => setEditForm({ ...editForm, balanceDate: e.target.value })} fullWidth />
                 </div>
                 <div className="form-group">
                   <label>

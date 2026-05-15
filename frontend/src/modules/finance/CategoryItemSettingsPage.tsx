@@ -4,8 +4,8 @@ import { ExpenseCategory, ExpenseItem } from '../../types';
 
 // Rotating accent colours for category cards
 const PALETTE = [
-  '#3b82f6', '#22c55e', '#f59e0b', '#a855f7',
-  '#ef4444', '#0ea5e9', '#f97316', '#ec4899',
+  'var(--primary)', 'var(--income)', 'var(--warning)', 'var(--purple)',
+  'var(--expense)', '#0ea5e9', '#f97316', '#ec4899',
   '#14b8a6', '#8b5cf6', '#84cc16', '#e11d48',
 ];
 const accent = (idx: number) => PALETTE[idx % PALETTE.length];
@@ -121,9 +121,9 @@ const CategoryItemSettingsPage: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.3px' }}>
+          <h2 className="page-title">
             Categories & Items
-          </h1>
+          </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4, marginBottom: 0 }}>
             {categories.length} categories · {items.length} items total
           </p>
@@ -134,11 +134,11 @@ const CategoryItemSettingsPage: React.FC = () => {
             {deduping ? 'Fixing…' : 'Fix Duplicates'}
           </button>
           <button onClick={handleReset} disabled={resetting}
-            style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.07)', color: 'var(--expense)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             {resetting ? 'Resetting…' : 'Reset to Defaults'}
           </button>
           <button onClick={() => { setShowCatInput(v => !v); setCatError(null); setNewCatName(''); }}
-            style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(59,130,246,0.3)' }}>
+            className="btn btn-primary">
             {showCatInput ? '✕ Cancel' : '+ Category'}
           </button>
         </div>
@@ -153,13 +153,13 @@ const CategoryItemSettingsPage: React.FC = () => {
             value={newCatName}
             onChange={e => { setNewCatName(e.target.value); setCatError(null); }}
             placeholder="Category name, e.g. Food & Dining"
-            style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: `1px solid ${catError ? '#ef4444' : 'var(--border)'}`, background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 13 }}
+            style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: `1px solid ${catError ? 'var(--expense)' : 'var(--border)'}`, background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 13 }}
           />
           <button type="submit" disabled={addingCat || !newCatName.trim()}
-            style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: newCatName.trim() ? '#3b82f6' : 'var(--bg-elevated)', color: newCatName.trim() ? '#fff' : 'var(--text-muted)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: newCatName.trim() ? 'var(--primary)' : 'var(--bg-elevated)', color: newCatName.trim() ? '#fff' : 'var(--text-muted)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             {addingCat ? 'Adding…' : 'Add'}
           </button>
-          {catError && <span style={{ alignSelf: 'center', fontSize: 12, color: '#ef4444' }}>{catError}</span>}
+          {catError && <span style={{ alignSelf: 'center', fontSize: 12, color: 'var(--expense)' }}>{catError}</span>}
         </form>
       )}
 
@@ -216,7 +216,7 @@ const CategoryItemSettingsPage: React.FC = () => {
                     <button
                       onClick={() => handleDeleteCategory(cat.id)}
                       title="Delete category"
-                      style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: '#ef4444', fontSize: 14, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.07)', color: 'var(--expense)', fontSize: 14, lineHeight: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       ×
                     </button>
                   </div>
@@ -255,14 +255,14 @@ const CategoryItemSettingsPage: React.FC = () => {
                           onChange={e => { setNewItemName(e.target.value); setItemError(null); }}
                           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddItem(cat.id); } if (e.key === 'Escape') { setAddingItemForCat(null); setNewItemName(''); } }}
                           placeholder="Item name…"
-                          style={{ flex: 1, padding: '6px 10px', borderRadius: 7, border: `1px solid ${itemError ? '#ef4444' : accentBorder(color)}`, background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12 }}
+                          style={{ flex: 1, padding: '6px 10px', borderRadius: 7, border: `1px solid ${itemError ? 'var(--expense)' : accentBorder(color)}`, background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12 }}
                         />
                         <button onClick={() => handleAddItem(cat.id)} disabled={addingItem || !newItemName.trim()}
                           style={{ padding: '6px 12px', borderRadius: 7, border: 'none', background: color, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: newItemName.trim() ? 1 : 0.5 }}>
                           {addingItem ? '…' : 'Add'}
                         </button>
                       </div>
-                      {itemError && <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>{itemError}</div>}
+                      {itemError && <div style={{ fontSize: 11, color: 'var(--expense)', marginTop: 4 }}>{itemError}</div>}
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Enter to save · Esc to cancel</div>
                     </div>
                   )}

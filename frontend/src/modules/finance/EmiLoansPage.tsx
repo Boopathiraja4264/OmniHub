@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } fro
 import { debtApi } from '../../services/api';
 import { EmiLoanSummary } from '../../types';
 import { useMobile } from '../../hooks/useMobile';
+import DatePicker from '../../components/DatePicker';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -16,8 +17,8 @@ const fmtDate = (d?: string) => {
 };
 
 const statusColor = (s: string) => {
-  if (s === 'ACTIVE') return { bg: 'rgba(34,197,94,0.12)', color: '#22c55e' };
-  if (s === 'FORECLOSED') return { bg: 'rgba(249,115,22,0.12)', color: '#f97316' };
+  if (s === 'ACTIVE') return { bg: 'var(--income-dim)', color: 'var(--income)' };
+  if (s === 'FORECLOSED') return { bg: 'rgba(249,115,22,0.12)', color: 'var(--warning)' };
   return { bg: 'rgba(148,163,184,0.15)', color: '#94a3b8' };
 };
 
@@ -121,7 +122,7 @@ const EmiLoansPage: React.FC = () => {
     } catch { /* handled */ } finally { setSaving(false); }
   };
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+  const set = (k: string) => (e: { target: { value: string } }) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
   const activeLoans = loans.filter(l => l.status === 'ACTIVE');
@@ -161,8 +162,8 @@ const EmiLoansPage: React.FC = () => {
                     <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{fmt(l.initialPrincipal)}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{pct(l.annualInterestRate)}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{l.tenureMonths}M</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#f59e0b', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt(l.baseEmi)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#ef4444', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(l.outstandingPrincipal)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--warning)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt(l.baseEmi)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--expense)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmt(l.outstandingPrincipal)}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmtDate(l.startDate)}</td>
                     <td style={{ padding: '10px 12px' }}><span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: sc.bg, color: sc.color, border: `1px solid ${sc.color}25`, letterSpacing: '0.04em' }}>{l.status}</span></td>
                     <td style={{ padding: '10px 12px' }}>
@@ -181,15 +182,13 @@ const EmiLoansPage: React.FC = () => {
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200, background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(239,68,68,0.06) 0%, transparent 60%)', minHeight: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
+      <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.3px' }}>EMI Based Loans</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Monthly installment loans with amortization schedule</p>
+          <h2 className="page-title">EMI Based Loans</h2>
+          <p className="page-subtitle">Monthly installment loans with amortization schedule</p>
         </div>
-        <button onClick={openAdd} style={{ padding: '10px 22px', borderRadius: 10, border: '1px solid rgba(239,68,68,0.4)', background: 'linear-gradient(135deg, #c0392b, #ef4444)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 16px rgba(239,68,68,0.25)' }}>
-          + Add EMI Loan
-        </button>
+        <button onClick={openAdd} className="btn btn-danger">+ Add EMI Loan</button>
       </div>
 
       <LoanTable items={activeLoans} title="Active Loans" />
@@ -216,9 +215,9 @@ const EmiLoansPage: React.FC = () => {
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
                   {[
-                    { label: 'Total Principal Paid', value: fmt(totalPrincipal), color: '#22c55e' },
-                    { label: 'Total Interest Paid', value: fmt(totalInterest), color: '#ef4444' },
-                    { label: 'Interest as % of Total Cost', value: `${interestPct}%`, color: '#a855f7' },
+                    { label: 'Total Principal Paid', value: fmt(totalPrincipal), color: 'var(--income)' },
+                    { label: 'Total Interest Paid', value: fmt(totalInterest), color: 'var(--expense)' },
+                    { label: 'Interest as % of Total Cost', value: `${interestPct}%`, color: 'var(--purple)' },
                   ].map(c => (
                     <div key={c.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px' }}>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{c.label}</div>
@@ -234,8 +233,8 @@ const EmiLoansPage: React.FC = () => {
                       <YAxis tick={{ fontSize: 10, fill: 'var(--text-muted)' }} tickFormatter={v => `₹${(v / 1000).toFixed(0)}k`} />
                       <Tooltip formatter={(v: any) => fmt(v)} />
                       <Legend iconType="circle" iconSize={8} formatter={v => <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{v}</span>} />
-                      <Bar dataKey="Principal Paid" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Interest Paid" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Principal Paid" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Interest Paid" fill="#f43f5e" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -256,7 +255,7 @@ const EmiLoansPage: React.FC = () => {
               <Field label="Tenure (Months) *"><input style={inputStyle} type="number" value={form.tenureMonths} onChange={set('tenureMonths')} required placeholder="24" /></Field>
               <Field label="GST Rate (e.g. 0.18 for 18%)"><input style={inputStyle} type="number" step="0.01" value={form.gstRate} onChange={set('gstRate')} placeholder="0.18" /></Field>
               <Field label="Processing Charge (₹)"><input style={inputStyle} type="number" step="0.01" value={form.processingCharge} onChange={set('processingCharge')} placeholder="0" /></Field>
-              <Field label="Start Date *"><input style={inputStyle} type="date" value={form.startDate} onChange={set('startDate')} required /></Field>
+              <Field label="Start Date *"><DatePicker value={form.startDate} onChange={set('startDate')} required fullWidth /></Field>
               <Field label="Status">
                 <select style={inputStyle} value={form.status} onChange={set('status')}>
                   <option value="ACTIVE">Active</option>
@@ -267,8 +266,8 @@ const EmiLoansPage: React.FC = () => {
             </div>
             <Field label="Notes"><textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }} value={form.notes} onChange={set('notes')} /></Field>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button type="button" onClick={() => setShowModal(false)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{saving ? 'Saving…' : editLoan ? 'Update' : 'Create'}</button>
+              <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
+              <button type="submit" disabled={saving} className="btn btn-danger">{saving ? 'Saving…' : editLoan ? 'Update' : 'Create'}</button>
             </div>
           </form>
         </Modal>

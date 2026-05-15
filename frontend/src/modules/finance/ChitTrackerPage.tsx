@@ -67,26 +67,14 @@ const ChitTrackerPage: React.FC = () => {
   const activeCount = groups.filter(g => g.status === 'ACTIVE').length;
 
   return (
-    <div style={{
-      padding: isMobile ? '16px' : '24px 28px', maxWidth: 1100,
-      background: 'radial-gradient(ellipse 70% 40% at 15% 0%, rgba(201,168,76,0.07) 0%, transparent 65%)',
-      minHeight: '100%',
-    }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1100 }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+      <div className="page-header" style={{ marginBottom: 28 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.3px' }}>Chit Tracker</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: '5px 0 0' }}>Track all your chit fund groups</p>
+          <h2 className="page-title">Chit Tracker</h2>
+          <p className="page-subtitle">Track all your chit fund groups</p>
         </div>
-        <button onClick={() => setShowModal(true)} style={{
-          background: 'linear-gradient(135deg, #b8922e, #C9A84C)',
-          color: '#fff', border: '1px solid rgba(201,168,76,0.4)', borderRadius: 10,
-          padding: '10px 22px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(201,168,76,0.25)',
-          letterSpacing: '0.01em',
-        }}>
-          + New Chit
-        </button>
+        <button onClick={() => setShowModal(true)} className="btn btn-primary">+ New Chit</button>
       </div>
 
       {/* Summary strip — single panel */}
@@ -97,10 +85,10 @@ const ChitTrackerPage: React.FC = () => {
         boxShadow: '0 1px 3px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.15)',
       }}>
         {[
-          { label: 'ACTIVE', value: String(activeCount), sub: `of ${groups.length}`, color: '#22c55e' },
+          { label: 'ACTIVE', value: String(activeCount), sub: `of ${groups.length}`, color: 'var(--income)' },
           { label: 'INVESTED', value: fmt(totalInvested), color: '#C9A84C' },
-          { label: 'KASIR', value: fmt(totalKasir), color: '#a855f7' },
-          { label: 'RECEIVED', value: fmt(totalReceived), color: '#3b82f6' },
+          { label: 'KASIR', value: fmt(totalKasir), color: 'var(--purple)' },
+          { label: 'RECEIVED', value: fmt(totalReceived), color: 'var(--primary)' },
           { label: 'OVERALL', value: fmt(totalKasir + totalReceived), color: '#f97316' },
         ].map((item, i) => (
           <div key={item.label} style={{
@@ -184,7 +172,7 @@ const ChitTrackerPage: React.FC = () => {
                       letterSpacing: '0.04em',
                       background: isActive ? 'rgba(34,197,94,0.1)' : 'rgba(148,163,184,0.1)',
                       border: `1px solid ${isActive ? 'rgba(34,197,94,0.2)' : 'rgba(148,163,184,0.18)'}`,
-                      color: isActive ? '#22c55e' : '#94a3b8',
+                      color: isActive ? 'var(--income)' : '#94a3b8',
                     }}>{g.status}</span>
                   </div>
 
@@ -192,8 +180,8 @@ const ChitTrackerPage: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0, marginBottom: 14 }}>
                     {[
                       { label: 'Monthly', value: fmt(g.monthlyAmount), color: 'var(--text-primary)' },
-                      { label: 'Total Paid', value: fmt(g.totalPaid), color: '#f59e0b' },
-                      { label: 'Net', value: (netGain >= 0 ? '+' : '') + fmt(netGain), color: netGain >= 0 ? '#22c55e' : '#ef4444' },
+                      { label: 'Total Paid', value: fmt(g.totalPaid), color: 'var(--warning)' },
+                      { label: 'Net', value: (netGain >= 0 ? '+' : '') + fmt(netGain), color: netGain >= 0 ? 'var(--income)' : 'var(--expense)' },
                     ].map((item, i) => (
                       <div key={item.label} style={{
                         padding: '0 12px 0 0',
@@ -230,7 +218,7 @@ const ChitTrackerPage: React.FC = () => {
                     <button
                       onClick={e => { e.stopPropagation(); handleDelete(g.id, g.name); }}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(239,68,68,0.45)', fontSize: 11, padding: '2px 0', transition: 'color 0.15s' }}
-                      onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+                      onMouseEnter={e => (e.currentTarget.style.color = 'var(--expense)')}
                       onMouseLeave={e => (e.currentTarget.style.color = 'rgba(239,68,68,0.45)')}
                     >Delete</button>
                   </div>

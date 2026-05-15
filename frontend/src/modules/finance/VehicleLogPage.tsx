@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { vehicleApi } from '../../services/api';
 import FilterDropdown from '../../components/FilterDropdown';
+import DatePicker from '../../components/DatePicker';
 import { Vehicle, VehicleLog } from '../../types';
 
 const formatCurrency = (n: number) =>
@@ -205,7 +206,7 @@ const VehicleLogPage: React.FC = () => {
                 <div className="form-grid">
                   <div className="form-group">
                     <label>Date</label>
-                    <input type="date" value={logForm.date} onChange={e => setLogForm({ ...logForm, date: e.target.value })} required />
+                    <DatePicker value={logForm.date} onChange={e => setLogForm({ ...logForm, date: e.target.value })} required fullWidth />
                   </div>
                   <div className="form-group">
                     <label>KM Reading</label>
