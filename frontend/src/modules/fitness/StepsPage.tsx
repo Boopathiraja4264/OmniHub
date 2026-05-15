@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { stepsApi } from "../../services/api";
+import DatePicker from "../../components/DatePicker";
 
 const StepsPage: React.FC = () => {
   const [logs, setLogs] = useState<any[]>([]);
@@ -260,9 +261,9 @@ const StepsPage: React.FC = () => {
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             <div className="form-group" style={{ flex: 1, minWidth: 160 }}>
               <label className="form-label">DATE</label>
-              <input type="date" className="input" value={logForm.date}
+              <DatePicker value={logForm.date}
                 onChange={(e) => setLogForm((p) => ({ ...p, date: e.target.value }))}
-                disabled={!!editingLog} />
+                disabled={!!editingLog} fullWidth />
             </div>
             <div className="form-group" style={{ flex: 1, minWidth: 160 }}>
               <label className="form-label">STEPS</label>

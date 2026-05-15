@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { productivityApi } from '../../services/api';
 import { Task, TaskCategory, TaskPriority, TaskStatus } from '../../types';
 import TaskCard from './components/TaskCard';
+import DatePicker from '../../components/DatePicker';
 
 type CategoryFilter = 'ALL' | TaskCategory;
 
@@ -126,8 +127,7 @@ const TaskBoardPage: React.FC = () => {
           </div>
           <div style={{ minWidth: 130 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Due Date</label>
-            <input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
-              style={{ padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', fontSize: 13 }} />
+            <DatePicker value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} />
           </div>
           <button type="submit" disabled={saving || !form.title.trim()}
             style={{

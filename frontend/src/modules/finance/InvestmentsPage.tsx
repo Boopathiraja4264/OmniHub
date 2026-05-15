@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { investmentApi, bankAccountApi, transactionApi } from '../../services/api';
 import { InvestmentDashboard, RdFdInvestment, RdFdRequest, BankAccount } from '../../types';
 import { useMobile } from '../../hooks/useMobile';
+import DatePicker from '../../components/DatePicker';
 
 
 const fmt = (n?: number) =>
@@ -22,8 +23,8 @@ const inputS: React.CSSProperties = {
 };
 
 const statusColors: Record<string, { bg: string; color: string; border: string }> = {
-  ACTIVE:  { bg: 'rgba(34,197,94,0.12)',   color: '#22c55e', border: 'rgba(34,197,94,0.25)' },
-  MATURED: { bg: 'rgba(245,158,11,0.12)',  color: '#f59e0b', border: 'rgba(245,158,11,0.25)' },
+  ACTIVE:  { bg: 'var(--income-dim)',   color: 'var(--income)', border: 'rgba(34,197,94,0.25)' },
+  MATURED: { bg: 'rgba(245,158,11,0.12)',  color: 'var(--warning)', border: 'rgba(245,158,11,0.25)' },
   CLOSED:  { bg: 'rgba(148,163,184,0.10)', color: '#94a3b8', border: 'rgba(148,163,184,0.20)' },
 };
 
@@ -34,7 +35,7 @@ const StatusBadge: React.FC<{ s: string }> = ({ s }) => {
 
 const EfTag: React.FC = () => (
   <span style={{ fontSize: 8, fontWeight: 800, padding: '1px 5px', borderRadius: 4,
-    background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)',
+    background: 'rgba(245,158,11,0.15)', color: 'var(--warning)', border: '1px solid rgba(245,158,11,0.3)',
     letterSpacing: '0.05em' }}>EF</span>
 );
 
@@ -79,7 +80,7 @@ const FdMiniCard: React.FC<{ inv: RdFdInvestment; onClick: () => void }> = ({ in
       onClick={onClick}
       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.border = '1px solid rgba(34,197,94,0.35)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(34,197,94,0.1)'; }}
       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.border = '1px solid var(--border)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.2)'; }}>
-      <div style={{ height: 3, background: inv.status === 'ACTIVE' ? 'linear-gradient(90deg, #16a34a, #22c55e)' : inv.status === 'MATURED' ? 'linear-gradient(90deg, #d97706, #f59e0b)' : 'rgba(148,163,184,0.3)' }} />
+      <div style={{ height: 3, background: inv.status === 'ACTIVE' ? 'var(--income)' : inv.status === 'MATURED' ? 'var(--warning)' : 'rgba(148,163,184,0.3)' }} />
       <div style={{ padding: '11px 12px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -98,7 +99,7 @@ const FdMiniCard: React.FC<{ inv: RdFdInvestment; onClick: () => void }> = ({ in
           </div>
           <div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>At Maturity</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.maturityAmount)}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--income)', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.maturityAmount)}</div>
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>
@@ -106,7 +107,7 @@ const FdMiniCard: React.FC<{ inv: RdFdInvestment; onClick: () => void }> = ({ in
           <span>Matures {fmtDate(inv.maturityDate)}</span>
         </div>
         <div style={{ height: 3, background: 'var(--border-subtle)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #16a34a, #22c55e)', borderRadius: 99 }} />
+          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--income)', borderRadius: 99 }} />
         </div>
         <div style={{ marginTop: 8, fontSize: 10, color: 'rgba(34,197,94,0.7)', textAlign: 'right', fontWeight: 600 }}>View details →</div>
       </div>
@@ -163,9 +164,9 @@ const FdDetailModal: React.FC<{
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(110px, 1fr))' }}>
             {[
               { label: 'Principal',     value: fmt(inv.amount),          color: 'var(--text-primary)' },
-              { label: 'At Maturity',   value: fmt(inv.maturityAmount),   color: '#22c55e' },
-              { label: 'Interest',      value: fmt(inv.interestEarned),   color: '#a855f7' },
-              { label: 'Current Value', value: fmt(inv.currentValue),     color: '#3b82f6' },
+              { label: 'At Maturity',   value: fmt(inv.maturityAmount),   color: 'var(--income)' },
+              { label: 'Interest',      value: fmt(inv.interestEarned),   color: 'var(--purple)' },
+              { label: 'Current Value', value: fmt(inv.currentValue),     color: 'var(--primary)' },
               { label: 'Elapsed',       value: `${elapsed}/${inv.tenureMonths}mo`, color: 'var(--text-muted)' },
             ].map((s, i) => (
               <div key={s.label} style={{ padding: '12px 14px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
@@ -180,17 +181,17 @@ const FdDetailModal: React.FC<{
         <div style={{ padding: '14px 22px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>
             <span>{fmtDate(inv.startDate)}</span>
-            {elapsed < inv.tenureMonths && <span style={{ color: '#22c55e' }}>Today ({Math.round(progress)}% elapsed)</span>}
-            <span style={{ color: inv.status === 'MATURED' ? '#f59e0b' : 'var(--text-muted)' }}>{fmtDate(inv.maturityDate)}</span>
+            {elapsed < inv.tenureMonths && <span style={{ color: 'var(--income)' }}>Today ({Math.round(progress)}% elapsed)</span>}
+            <span style={{ color: inv.status === 'MATURED' ? 'var(--warning)' : 'var(--text-muted)' }}>{fmtDate(inv.maturityDate)}</span>
           </div>
           <div style={{ height: 6, background: 'var(--border-subtle)', borderRadius: 99, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #16a34a, #22c55e)', borderRadius: 99, transition: 'width 0.3s' }} />
+            <div style={{ height: '100%', width: `${progress}%`, background: 'var(--income)', borderRadius: 99, transition: 'width 0.3s' }} />
           </div>
           {inv.notes && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8, fontStyle: 'italic' }}>{inv.notes}</div>}
           {inv.emergencyFund && (
             <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 6, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
-              <span style={{ fontSize: 10, color: '#f59e0b' }}>🛡 EF Principal</span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.efPrincipal)}</span>
+              <span style={{ fontSize: 10, color: 'var(--warning)' }}>🛡 EF Principal</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.efPrincipal)}</span>
             </div>
           )}
         </div>
@@ -213,9 +214,9 @@ const FdDetailModal: React.FC<{
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={r.months} style={{ background: r.label === 'Maturity' ? 'rgba(34,197,94,0.04)' : 'transparent' }}>
-                    <td style={{ ...tdS, fontWeight: r.label === 'Maturity' ? 700 : 400, color: r.label === 'Maturity' ? '#22c55e' : 'var(--text-muted)' }}>{r.label}</td>
+                    <td style={{ ...tdS, fontWeight: r.label === 'Maturity' ? 700 : 400, color: r.label === 'Maturity' ? 'var(--income)' : 'var(--text-muted)' }}>{r.label}</td>
                     <td style={{ ...tdS, textAlign: 'right', fontWeight: 600 }}>{fmt(r.value)}</td>
-                    <td style={{ ...tdS, textAlign: 'right', color: '#a855f7' }}>{fmt(r.interest)}</td>
+                    <td style={{ ...tdS, textAlign: 'right', color: 'var(--purple)' }}>{fmt(r.interest)}</td>
                     <td style={{ ...tdS, textAlign: 'right', color: 'var(--text-muted)' }}>
                       {inv.amount > 0 ? `+${((r.interest / inv.amount) * 100).toFixed(2)}%` : '—'}
                     </td>
@@ -229,7 +230,7 @@ const FdDetailModal: React.FC<{
         {/* Footer actions */}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: '0 22px 18px' }}>
           <button onClick={onEdit} style={{ padding: '7px 18px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-row-hover)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
-          <button onClick={onDelete} style={{ padding: '7px 18px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+          <button onClick={onDelete} style={{ padding: '7px 18px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.06)', color: 'var(--expense)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
         </div>
       </div>
     </div>
@@ -247,7 +248,7 @@ const RdMiniCard: React.FC<{
       onClick={onClick}
       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.border = '1px solid rgba(59,130,246,0.3)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 4px 16px rgba(59,130,246,0.1)'; }}
       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.border = '1px solid var(--border)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 1px 4px rgba(0,0,0,0.2)'; }}>
-      <div style={{ height: 3, background: inv.status === 'ACTIVE' ? 'linear-gradient(90deg, #2563eb, #60a5fa)' : inv.status === 'MATURED' ? 'linear-gradient(90deg, #d97706, #f59e0b)' : 'rgba(148,163,184,0.3)' }} />
+      <div style={{ height: 3, background: inv.status === 'ACTIVE' ? 'var(--primary)' : inv.status === 'MATURED' ? 'var(--warning)' : 'rgba(148,163,184,0.3)' }} />
       <div style={{ padding: '11px 12px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -266,15 +267,15 @@ const RdMiniCard: React.FC<{
           </div>
           <div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>At Maturity</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.maturityAmount)}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--income)', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.maturityAmount)}</div>
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginBottom: 6 }}>
           <span>{fmtPct(inv.annualInterestRate)} p.a. · {inv.tenureMonths}mo</span>
-          <span style={{ color: '#3b82f6', fontWeight: 600 }}>{inv.monthsPaid}/{inv.tenureMonths} paid</span>
+          <span style={{ color: 'var(--primary)', fontWeight: 600 }}>{inv.monthsPaid}/{inv.tenureMonths} paid</span>
         </div>
         <div style={{ height: 3, background: 'var(--border-subtle)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #2563eb, #60a5fa)', borderRadius: 99 }} />
+          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--primary)', borderRadius: 99 }} />
         </div>
         <div style={{ marginTop: 8, fontSize: 10, color: 'rgba(59,130,246,0.7)', textAlign: 'right', fontWeight: 600 }}>View details →</div>
       </div>
@@ -351,9 +352,9 @@ const RdDetailModal: React.FC<{
             {[
               { label: '/Month',        value: fmt(inv.amount),          color: 'var(--text-primary)' },
               { label: 'Total Invested', value: fmt(inv.totalInvested),   color: 'var(--text-primary)' },
-              { label: 'At Maturity',   value: fmt(inv.maturityAmount),   color: '#22c55e' },
-              { label: 'Interest',      value: fmt(inv.interestEarned),   color: '#a855f7' },
-              { label: 'Paid',          value: `${inv.monthsPaid}/${inv.tenureMonths}`, color: '#3b82f6' },
+              { label: 'At Maturity',   value: fmt(inv.maturityAmount),   color: 'var(--income)' },
+              { label: 'Interest',      value: fmt(inv.interestEarned),   color: 'var(--purple)' },
+              { label: 'Paid',          value: `${inv.monthsPaid}/${inv.tenureMonths}`, color: 'var(--primary)' },
             ].map((s, i) => (
               <div key={s.label} style={{ padding: '12px 14px', borderLeft: i > 0 ? '1px solid var(--border-subtle)' : 'none' }}>
                 <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>{s.label}</div>
@@ -386,11 +387,11 @@ const RdDetailModal: React.FC<{
                     <td style={{ ...tdS, color: 'var(--text-muted)', fontWeight: 700 }}>{r.month}</td>
                     <td style={{ ...tdS, color: 'var(--text-muted)' }}>{fmtDate(r.date)}</td>
                     <td style={{ ...tdS, textAlign: 'right' }}>{fmt(r.deposit)}</td>
-                    <td style={{ ...tdS, textAlign: 'right', color: '#a855f7' }}>{fmt(r.interest)}</td>
-                    <td style={{ ...tdS, textAlign: 'right', color: '#22c55e', fontWeight: 600 }}>{fmt(r.matVal)}</td>
+                    <td style={{ ...tdS, textAlign: 'right', color: 'var(--purple)' }}>{fmt(r.interest)}</td>
+                    <td style={{ ...tdS, textAlign: 'right', color: 'var(--income)', fontWeight: 600 }}>{fmt(r.matVal)}</td>
                     <td style={{ ...tdS, textAlign: 'center' }}>
                       {r.paid
-                        ? <span style={{ fontSize: 10, fontWeight: 700, color: '#22c55e' }}>✓</span>
+                        ? <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--income)' }}>✓</span>
                         : <span style={{ fontSize: 10, color: 'var(--text-empty)' }}>—</span>
                       }
                     </td>
@@ -399,9 +400,9 @@ const RdDetailModal: React.FC<{
                 <tr style={{ background: 'var(--bg-row-alt)' }}>
                   <td colSpan={2} style={{ ...tdS, fontWeight: 700, color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</td>
                   <td style={{ ...tdS, textAlign: 'right', fontWeight: 700 }}>{fmt(inv.amount * inv.tenureMonths)}</td>
-                  <td style={{ ...tdS, textAlign: 'right', fontWeight: 700, color: '#a855f7' }}>{fmt(totalInterest)}</td>
-                  <td style={{ ...tdS, textAlign: 'right', fontWeight: 700, color: '#22c55e' }}>{fmt(inv.maturityAmount)}</td>
-                  <td style={{ ...tdS, textAlign: 'center', color: '#3b82f6', fontWeight: 700, fontSize: 10 }}>{inv.monthsPaid}/{inv.tenureMonths}</td>
+                  <td style={{ ...tdS, textAlign: 'right', fontWeight: 700, color: 'var(--purple)' }}>{fmt(totalInterest)}</td>
+                  <td style={{ ...tdS, textAlign: 'right', fontWeight: 700, color: 'var(--income)' }}>{fmt(inv.maturityAmount)}</td>
+                  <td style={{ ...tdS, textAlign: 'center', color: 'var(--primary)', fontWeight: 700, fontSize: 10 }}>{inv.monthsPaid}/{inv.tenureMonths}</td>
                 </tr>
               </tbody>
             </table>
@@ -414,7 +415,7 @@ const RdDetailModal: React.FC<{
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Payment Log</span>
             {!addingPayment && (
               <button onClick={() => { setAddingPayment(true); setPayForm({ monthNumber: inv.monthsPaid + 1, paymentDate: new Date().toISOString().slice(0,10), amountPaid: String(inv.amount), notes: '', bankAccountId: '' }); }}
-                style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                style={{ padding: '4px 12px', borderRadius: 6, border: 'none', background: 'var(--primary)', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                 + Log Payment
               </button>
             )}
@@ -431,9 +432,9 @@ const RdDetailModal: React.FC<{
                 </div>
                 <div>
                   <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 3 }}>Date</div>
-                  <input type="date" value={payForm.paymentDate}
+                  <DatePicker value={payForm.paymentDate}
                     onChange={e => setPayForm(f => ({ ...f, paymentDate: e.target.value }))}
-                    style={{ ...inputS, fontSize: 12, padding: '6px 8px' }} />
+                    fullWidth size="sm" />
                 </div>
                 <div>
                   <div style={{ fontSize: 9, color: 'var(--text-muted)', marginBottom: 3 }}>Amount (₹)</div>
@@ -460,7 +461,7 @@ const RdDetailModal: React.FC<{
                     ))}
                   </select>
                 </div>
-                <button onClick={handleSave} disabled={saving} style={{ padding: '8px 16px', borderRadius: 6, background: '#3b82f6', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>{saving ? 'Saving…' : '✓ Save'}</button>
+                <button onClick={handleSave} disabled={saving} style={{ padding: '8px 16px', borderRadius: 6, background: 'var(--primary)', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>{saving ? 'Saving…' : '✓ Save'}</button>
                 <button onClick={() => setAddingPayment(false)} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer' }}>✕</button>
               </div>
             </div>
@@ -472,9 +473,9 @@ const RdDetailModal: React.FC<{
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {inv.payments.map(p => (
                 <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: 7, background: 'var(--bg-row-alt)', border: '1px solid var(--border-subtle)', fontSize: 12 }}>
-                  <span style={{ color: '#3b82f6', fontWeight: 700, minWidth: 28 }}>#{p.monthNumber}</span>
+                  <span style={{ color: 'var(--primary)', fontWeight: 700, minWidth: 28 }}>#{p.monthNumber}</span>
                   <span style={{ color: 'var(--text-muted)' }}>{fmtDate(p.paymentDate)}</span>
-                  <span style={{ color: '#22c55e', fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginLeft: 'auto' }}>{fmt(p.amountPaid)}</span>
+                  <span style={{ color: 'var(--income)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', marginLeft: 'auto' }}>{fmt(p.amountPaid)}</span>
                   {p.notes && <span style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.notes}</span>}
                   <button onClick={() => onDeletePayment(p.id)} style={{ padding: '2px 7px', borderRadius: 4, border: '1px solid rgba(239,68,68,0.2)', background: 'transparent', color: 'rgba(239,68,68,0.6)', fontSize: 10, cursor: 'pointer' }}>✕</button>
                 </div>
@@ -486,7 +487,7 @@ const RdDetailModal: React.FC<{
         {/* Footer actions */}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: '0 22px 18px' }}>
           <button onClick={onEdit} style={{ padding: '7px 18px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-row-hover)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
-          <button onClick={onDelete} style={{ padding: '7px 18px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.06)', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+          <button onClick={onDelete} style={{ padding: '7px 18px', borderRadius: 7, border: '1px solid rgba(239,68,68,0.25)', background: 'rgba(239,68,68,0.06)', color: 'var(--expense)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
         </div>
       </div>
     </div>
@@ -626,8 +627,8 @@ const InvestmentsPage: React.FC = () => {
     await load();
   };
 
-  const sf = (k: keyof RdFdRequest) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const val = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked
+  const sf = (k: keyof RdFdRequest) => (e: { target: { value: string; type?: string; checked?: boolean } }) => {
+    const val = e.target.type === 'checkbox' ? e.target.checked
       : e.target.type === 'number' ? parseFloat(e.target.value) || 0
       : e.target.value;
     setForm(f => ({ ...f, [k]: val }));
@@ -638,17 +639,17 @@ const InvestmentsPage: React.FC = () => {
   const efInvTotal = (dash?.emergencyFundTotal ?? 0);
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1400, minHeight: '100%', background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(34,197,94,0.06) 0%, transparent 60%)' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1400 }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
+      <div className="page-header" style={{ marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px' }}>Investments</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4, marginBottom: 0 }}>Fixed deposits, recurring deposits, emergency fund</p>
+          <h2 className="page-title">Investments</h2>
+          <p className="page-subtitle">Fixed deposits, recurring deposits, emergency fund</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => openAdd('FD')} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #16a34a, #22c55e)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(34,197,94,0.3)' }}>+ Add FD</button>
-          <button onClick={() => openAdd('RD')} style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #0369a1, #3b82f6)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(59,130,246,0.3)' }}>+ Add RD</button>
+          <button onClick={() => openAdd('FD')} className="btn btn-income" style={{ fontSize: 13 }}>+ Add FD</button>
+          <button onClick={() => openAdd('RD')} className="btn btn-primary" style={{ fontSize: 13 }}>+ Add RD</button>
         </div>
       </div>
 
@@ -657,9 +658,9 @@ const InvestmentsPage: React.FC = () => {
         <div style={{ display: 'flex', flexWrap: isMobile ? 'wrap' : 'nowrap', marginBottom: 20, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
           {[
             { label: 'TOTAL INVESTED',  value: fmt(dash.totalInvested),      color: 'var(--text-primary)' },
-            { label: 'MATURITY VALUE',  value: fmt(dash.totalMaturityValue),  color: '#22c55e' },
-            { label: 'INTEREST EARNED', value: fmt(dash.totalInterestEarned), color: '#a855f7' },
-            { label: 'EMERGENCY FUND',  value: fmt(efInvTotal),               color: '#f59e0b' },
+            { label: 'MATURITY VALUE',  value: fmt(dash.totalMaturityValue),  color: 'var(--income)' },
+            { label: 'INTEREST EARNED', value: fmt(dash.totalInterestEarned), color: 'var(--purple)' },
+            { label: 'EMERGENCY FUND',  value: fmt(efInvTotal),               color: 'var(--warning)' },
             { label: 'ACTIVE',          value: String(dash.activeCount),      color: 'var(--text-primary)' },
           ].map((c, i) => (
             <div key={c.label} style={{ flex: isMobile ? '1 1 100%' : 1, padding: '12px 16px', borderLeft: (!isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none', borderTop: (isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none' }}>
@@ -677,13 +678,13 @@ const InvestmentsPage: React.FC = () => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Fixed Deposits</h2>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e' }}>{dash?.fdList.length ?? 0}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: 'var(--income)' }}>{dash?.fdList.length ?? 0}</span>
           </div>
           {!dash?.fdList.length ? (
             <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '24px', textAlign: 'center', borderRadius: 12, border: '1px dashed var(--border)' }}>
               No fixed deposits yet.
               <br />
-              <button onClick={() => openAdd('FD')} style={{ marginTop: 8, padding: '6px 14px', borderRadius: 6, border: 'none', background: 'rgba(34,197,94,0.1)', color: '#22c55e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Add FD</button>
+              <button onClick={() => openAdd('FD')} style={{ marginTop: 8, padding: '6px 14px', borderRadius: 6, border: 'none', background: 'rgba(34,197,94,0.1)', color: 'var(--income)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Add FD</button>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
@@ -698,13 +699,13 @@ const InvestmentsPage: React.FC = () => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Recurring Deposits</h2>
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#3b82f6' }}>{dash?.rdList.length ?? 0}</span>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: 'var(--primary)' }}>{dash?.rdList.length ?? 0}</span>
           </div>
           {!dash?.rdList.length ? (
             <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '24px', textAlign: 'center', borderRadius: 12, border: '1px dashed var(--border)' }}>
               No recurring deposits yet.
               <br />
-              <button onClick={() => openAdd('RD')} style={{ marginTop: 8, padding: '6px 14px', borderRadius: 6, border: 'none', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Add RD</button>
+              <button onClick={() => openAdd('RD')} style={{ marginTop: 8, padding: '6px 14px', borderRadius: 6, border: 'none', background: 'rgba(59,130,246,0.1)', color: 'var(--primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Add RD</button>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
@@ -778,7 +779,7 @@ const InvestmentsPage: React.FC = () => {
                 </div>
                 <div>
                   <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Start Date *</label>
-                  <input style={inputS} type="date" value={form.startDate} onChange={sf('startDate')} required />
+                  <DatePicker value={form.startDate} onChange={sf('startDate')} required fullWidth />
                 </div>
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Status</label>
@@ -795,17 +796,17 @@ const InvestmentsPage: React.FC = () => {
                 <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" id="ef" checked={form.emergencyFund}
                     onChange={e => setForm(f => ({ ...f, emergencyFund: e.target.checked }))}
-                    style={{ width: 16, height: 16, accentColor: '#f59e0b', cursor: 'pointer' }} />
+                    style={{ width: 16, height: 16, accentColor: 'var(--warning)', cursor: 'pointer' }} />
                   <label htmlFor="ef" style={{ fontSize: 13, color: 'var(--text-primary)', cursor: 'pointer' }}>🛡 Mark as Emergency Fund</label>
                 </div>
                 {/* Bank debit — only shown when creating, not editing */}
                 {!editItem && (
                   <div style={{ gridColumn: '1/-1', padding: '12px 14px', borderRadius: 8, background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.15)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#3b82f6', marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--primary)', marginBottom: 8 }}>
                       Debit from savings account
                       {txBankAccountId && form.amount > 0 && (
                         <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 8 }}>
-                          → creates <strong style={{ color: '#ef4444' }}>−{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(form.type === 'FD' ? form.amount : form.amount)}</strong> expense transaction
+                          → creates <strong style={{ color: 'var(--expense)' }}>−{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(form.type === 'FD' ? form.amount : form.amount)}</strong> expense transaction
                         </span>
                       )}
                     </div>
@@ -832,13 +833,13 @@ const InvestmentsPage: React.FC = () => {
                 else { for (let m = 1; m <= n; m++) maturity += P * Math.pow(1 + q, (n - m) / 3); }
                 const invested = form.type === 'FD' ? P : P * n;
                 return (
-                  <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.15)' }}>
-                    <div style={{ fontSize: 10, color: '#22c55e', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Preview</div>
+                  <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(99,102,241,0.03)', border: '1px solid rgba(34,197,94,0.15)' }}>
+                    <div style={{ fontSize: 10, color: 'var(--income)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Preview</div>
                     <div style={{ display: 'flex', gap: 20 }}>
                       {[
                         { label: 'Invested',   value: fmt(invested) },
-                        { label: 'At Maturity',value: fmt(maturity),           color: '#22c55e' },
-                        { label: 'Interest',   value: fmt(maturity - invested), color: '#a855f7' },
+                        { label: 'At Maturity',value: fmt(maturity),           color: 'var(--income)' },
+                        { label: 'Interest',   value: fmt(maturity - invested), color: 'var(--purple)' },
                       ].map(s => (
                         <div key={s.label}>
                           <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{s.label}</div>
@@ -851,8 +852,8 @@ const InvestmentsPage: React.FC = () => {
               })()}
 
               <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-                <button type="submit" disabled={saving} style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #16a34a, #22c55e)', color: '#fff', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13 }}>
+                <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
+                <button type="submit" disabled={saving} className="btn btn-income" style={{ flex: 1 }}>
                   {saving ? 'Saving…' : editItem ? 'Update' : 'Create'}
                 </button>
               </div>

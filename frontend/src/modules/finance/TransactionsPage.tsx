@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { transactionApi, categoryItemApi, creditCardApi, bankAccountApi } from '../../services/api';
 import FilterDropdown from '../../components/FilterDropdown';
 import AddTransactionModal from '../../components/AddTransactionModal';
+import DatePicker from '../../components/DatePicker';
 import { Transaction, BankAccount } from '../../types';
 
 const formatCurrency = (n: number) =>
@@ -13,26 +14,43 @@ const emptyTransfer = {
   amount: '', date: today(), fromAccountId: '', toAccountId: '', notes: '',
 };
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 20;
 
 type SortField = 'description' | 'category' | 'date' | 'type' | 'paymentSource' | 'amount';
-
-// Columns that support value-based quick filter (checkboxes)
 const VALUE_FILTER_COLS: SortField[] = ['category', 'type', 'paymentSource'];
 
-// Funnel SVG icon
-const FunnelIcon = ({ active, filtered }: { active: boolean; filtered: boolean }) => (
-  <svg
-    width="11" height="11" viewBox="0 0 12 12" fill="currentColor"
-    style={{
-      color: filtered ? 'var(--primary)' : active ? 'var(--text-secondary)' : 'var(--text-muted)',
-      opacity: filtered || active ? 1 : 0.4,
-      flexShrink: 0,
-      transition: 'all 0.15s',
-    }}
-  >
-    <path d="M1 2h10L7 6v4l-2-1V6L1 2z" />
-  </svg>
+const CAT_COLORS = [
+  'var(--primary)', 'var(--income)', 'var(--warning)', 'var(--purple)',
+  'var(--expense)', '#0ea5e9', '#f97316', '#ec4899',
+];
+const catColor = (cat: string) => {
+  let h = 0;
+  for (let i = 0; i < cat.length; i++) h = (h * 31 + cat.charCodeAt(i)) & 0xffff;
+  return CAT_COLORS[h % CAT_COLORS.length];
+};
+
+const formatDateLabel = (dateStr: string) => {
+  const now = new Date();
+  const y = new Date(now); y.setDate(y.getDate() - 1);
+  if (dateStr === now.toISOString().split('T')[0]) return 'Today';
+  if (dateStr === y.toISOString().split('T')[0]) return 'Yesterday';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-IN', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    ...(d.getFullYear() !== now.getFullYear() ? { year: 'numeric' } : {}),
+  });
+};
+
+const Chip: React.FC<{ label: string; onRemove: () => void }> = ({ label, onRemove }) => (
+  <span style={{
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    padding: '3px 10px 3px 8px', borderRadius: 20,
+    background: 'var(--primary-dim)', border: '1px solid var(--primary-glow)',
+    fontSize: 11, color: 'var(--primary)', fontWeight: 600,
+  }}>
+    {label}
+    <button onClick={onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontSize: 13, lineHeight: 1, padding: 0, display: 'flex', alignItems: 'center' }}>×</button>
+  </span>
 );
 
 const TransactionsPage: React.FC = () => {
@@ -49,23 +67,12 @@ const TransactionsPage: React.FC = () => {
   const [transferLoading, setTransferLoading] = useState(false);
 
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
-
-  // Sort
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-
-  // Column filters
   const [colFilters, setColFilters] = useState<Partial<Record<SortField, string[]>>>({});
   const [descSearch, setDescSearch] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
-
-  // Popover
-  const [openPopover, setOpenPopover] = useState<{ col: SortField; x: number; y: number } | null>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
-
-  // Timestamp-based double-click detection (reliable across re-renders)
-  const lastClickTs = useRef<Partial<Record<SortField, number>>>({});
-
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
   const load = () => transactionApi.getAll().then(r => setTransactions(Array.isArray(r.data) ? r.data : []));
@@ -82,22 +89,6 @@ const TransactionsPage: React.FC = () => {
     categoryItemApi.getCategories().catch(() => {});
   }, []);
 
-  // Close popover when clicking outside.
-  // Skip closing if a date input is focused — the browser's native date picker
-  // (month selector, navigation arrows) fires events outside the DOM so we must
-  // not dismiss the popover while the user is interacting with it.
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const active = document.activeElement as HTMLElement | null;
-      if (active?.getAttribute('type') === 'date') return;
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        setOpenPopover(null);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
   const getColRawVal = useCallback((t: Transaction, col: SortField): string => {
     if (col === 'description') return t.description;
     if (col === 'category') return t.category;
@@ -107,7 +98,6 @@ const TransactionsPage: React.FC = () => {
     return String(t.amount);
   }, []);
 
-  // Unique values for checkbox-filter columns (from ALL transactions)
   const uniqueVals = useMemo(() => {
     const result: Partial<Record<SortField, string[]>> = {};
     VALUE_FILTER_COLS.forEach(col => {
@@ -119,17 +109,14 @@ const TransactionsPage: React.FC = () => {
 
   const filtered = useMemo(() => {
     let list = transactions.filter(t => typeFilter === 'ALL' || t.type === typeFilter);
-
     if (descSearch.trim()) {
       const q = descSearch.toLowerCase();
       list = list.filter(t => t.description.toLowerCase().includes(q));
     }
-
     (Object.entries(colFilters) as [SortField, string[]][]).forEach(([col, vals]) => {
       if (!vals || vals.length === 0) return;
       list = list.filter(t => vals.includes(getColRawVal(t, col)));
     });
-
     if (selectedDate) list = list.filter(t => t.date === selectedDate);
 
     return [...list].sort((a, b) => {
@@ -146,25 +133,15 @@ const TransactionsPage: React.FC = () => {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const filteredIncome = useMemo(() => filtered.reduce((s, t) => t.type === 'INCOME' ? s + t.amount : s, 0), [filtered]);
+  const filteredExpense = useMemo(() => filtered.reduce((s, t) => t.type === 'EXPENSE' ? s + t.amount : s, 0), [filtered]);
+
   useEffect(() => { setCurrentPage(1); }, [typeFilter, colFilters, descSearch, selectedDate, sortField]);
 
-  const isColFiltered = (col: SortField) => {
-    if (col === 'description') return !!descSearch.trim();
-    if (col === 'date') return !!selectedDate;
-    return (colFilters[col]?.length ?? 0) > 0;
-  };
-
   const hasAnyFilter =
-    Object.values(colFilters).some(v => v && v.length > 0) ||
-    !!descSearch.trim() || !!selectedDate;
-
-  const openFilter = (e: React.MouseEvent, col: SortField) => {
-    e.stopPropagation();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setOpenPopover(prev =>
-      prev?.col === col ? null : { col, x: rect.left, y: rect.bottom + 6 }
-    );
-  };
+    Object.values(colFilters).some(v => v && v.length > 0) || !!descSearch.trim() || !!selectedDate;
+  const activeFilterCount = Object.values(colFilters).filter(v => v && v.length > 0).length +
+    (descSearch.trim() ? 1 : 0) + (selectedDate ? 1 : 0);
 
   const toggleValueFilter = (col: SortField, val: string) => {
     setColFilters(prev => {
@@ -175,32 +152,6 @@ const TransactionsPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const clearColFilter = (col: SortField) => {
-    if (col === 'description') setDescSearch('');
-    else if (col === 'date') setSelectedDate('');
-    else setColFilters(prev => ({ ...prev, [col]: [] }));
-  };
-
-  // Single click on column name — detect double-click via timestamp (reliable across re-renders)
-  const handleColNameClick = (col: SortField) => {
-    const now = Date.now();
-    const last = lastClickTs.current[col] ?? 0;
-    if (now - last < 350) {
-      // double-click: sort
-      lastClickTs.current[col] = 0;
-      if (sortField === col) {
-        setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-      } else {
-        setSortField(col);
-        setSortDir('asc');
-      }
-      setCurrentPage(1);
-      setOpenPopover(null);
-    } else {
-      lastClickTs.current[col] = now;
-    }
-  };
-
   const resetAll = () => {
     setColFilters({});
     setDescSearch('');
@@ -208,7 +159,6 @@ const TransactionsPage: React.FC = () => {
     setSortField('date');
     setSortDir('desc');
     setCurrentPage(1);
-    setOpenPopover(null);
   };
 
   const handleOpen = (type: 'INCOME' | 'EXPENSE', t?: Transaction) => {
@@ -257,258 +207,248 @@ const TransactionsPage: React.FC = () => {
     return b ? `${b.name}${b.bankName ? ` (${b.bankName})` : ''}` : '';
   };
 
-  // Rendered as a plain function call (not <ColHeader/>) to avoid remounting on re-render,
-  // which would break the browser's double-click detection.
-  const colTh = (
-    col: SortField,
-    label: string,
-    { align = 'left' as 'left' | 'right', pl, pr, showFilter = true, width }:
-    { align?: 'left' | 'right'; pl?: number; pr?: number; showFilter?: boolean; width?: string } = {}
-  ) => {
-    const active = sortField === col;
-    const isFiltered = isColFiltered(col);
-    return (
-      <th style={{ paddingLeft: pl, paddingRight: pr, textAlign: align, userSelect: 'none', width }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
-          <span
-            onClick={() => handleColNameClick(col)}
-            title="Double-click to sort"
-            style={{ cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--text-muted)' }}
-          >
-            {label}
-          </span>
-          {active && (
-            <span style={{ fontSize: 10, color: 'var(--primary)', lineHeight: 1 }}>
-              {sortDir === 'asc' ? '↑' : '↓'}
-            </span>
-          )}
-          {showFilter && (
-            <span onClick={e => openFilter(e, col)} title="Click to filter"
-              style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', lineHeight: 1 }}>
-              <FunnelIcon active={openPopover?.col === col} filtered={isFiltered} />
-            </span>
-          )}
+  // Group paginated transactions by date preserving sort order
+  const dateGroups = useMemo(() => {
+    const groups: { date: string; txns: Transaction[] }[] = [];
+    const seen = new Map<string, Transaction[]>();
+    paginated.forEach(t => {
+      if (!seen.has(t.date)) {
+        const arr: Transaction[] = [];
+        seen.set(t.date, arr);
+        groups.push({ date: t.date, txns: arr });
+      }
+      seen.get(t.date)!.push(t);
+    });
+    return groups;
+  }, [paginated]);
+
+  const net = filteredIncome - filteredExpense;
+
+  return (
+    <div style={{ padding: '24px 28px', maxWidth: 1200, minHeight: '100%' }}>
+
+      {/* Header */}
+      <div className="page-header">
+        <div>
+          <h2 className="page-title">Transactions</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2, marginBottom: 0 }}>
+            {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
+            {hasAnyFilter ? ' · filtered' : ''}
+          </p>
         </div>
-      </th>
-    );
-  };
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button onClick={() => handleOpen('EXPENSE')} className="txn-action-btn txn-action-expense">
+            <span className="txn-action-icon">−</span>
+            <span>Expense</span>
+          </button>
+          <button onClick={() => handleOpen('INCOME')} className="txn-action-btn txn-action-income">
+            <span className="txn-action-icon">+</span>
+            <span>Income</span>
+          </button>
+          <button onClick={() => {
+            setTransferForm({ ...emptyTransfer, date: today(), fromAccountId: defaultBankId ? String(defaultBankId) : '' });
+            setShowTransferModal(true);
+          }} className="txn-action-btn txn-action-transfer">
+            <span className="txn-action-icon">⇄</span>
+            <span>Transfer</span>
+          </button>
+        </div>
+      </div>
 
-  // Called as renderPopover() not <Popover/> to avoid unmounting on re-render.
-  // Unmounting destroys the native date picker — same fix as the colTh double-click issue.
-  const renderPopover = () => {
-    if (!openPopover) return null;
-    const { col, x, y } = openPopover;
-    const isDesc = col === 'description';
-    const isDate = col === 'date';
-    const hasValues = VALUE_FILTER_COLS.includes(col);
-    const vals = uniqueVals[col] || [];
-    const selected = colFilters[col] || [];
-    const active = isColFiltered(col);
-
-    const inputStyle: React.CSSProperties = {
-      width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 5,
-      border: '1px solid var(--border)', background: 'var(--bg-elevated)',
-      color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box',
-    };
-
-    return (
-      <div
-        ref={popoverRef}
-        style={{
-          position: 'fixed', top: y, left: Math.min(x, window.innerWidth - 215),
-          width: 210,
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          borderRadius: 9,
-          boxShadow: '0 10px 36px rgba(0,0,0,0.35)',
-          zIndex: 2000,
-          overflow: 'hidden',
-        }}
-      >
-        <div style={{ padding: '8px 12px 10px', maxHeight: 340, overflowY: 'auto' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              {isDate && (
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="1" y="2" width="14" height="13" rx="2"/>
-                  <line x1="1" y1="6" x2="15" y2="6"/>
-                  <line x1="5" y1="1" x2="5" y2="4"/>
-                  <line x1="11" y1="1" x2="11" y2="4"/>
-                </svg>
-              )}
-              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                Filter
-              </span>
+      {/* Summary strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+        {[
+          { label: 'Income', value: filteredIncome, color: 'var(--income)', bg: 'var(--income-dim)', prefix: '+' },
+          { label: 'Expense', value: filteredExpense, color: 'var(--expense)', bg: 'var(--expense-dim)', prefix: '-' },
+          { label: 'Net', value: Math.abs(net), color: net >= 0 ? 'var(--income)' : 'var(--expense)', bg: net >= 0 ? 'var(--income-dim)' : 'var(--expense-dim)', prefix: net >= 0 ? '+' : '-' },
+        ].map(s => (
+          <div key={s.label} style={{ borderRadius: 14, padding: '16px 20px', background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>{s.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>
+              {s.prefix}{formatCurrency(s.value)}
             </div>
-            {active && (
-              <button onClick={() => clearColFilter(col)}
-                style={{ fontSize: 10, color: 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                Clear
-              </button>
-            )}
           </div>
+        ))}
+      </div>
 
-          {/* Description: text search */}
-          {isDesc && (
-            <input
-              autoFocus
-              value={descSearch}
-              onChange={e => { setDescSearch(e.target.value); setCurrentPage(1); }}
-              placeholder="Search description..."
-              style={inputStyle}
-            />
-          )}
+      {/* Filter bar */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Search */}
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 15, pointerEvents: 'none' }}>⌕</span>
+          <input
+            value={descSearch}
+            onChange={e => { setDescSearch(e.target.value); setCurrentPage(1); }}
+            placeholder="Search by description…"
+            style={{ width: '100%', padding: '9px 12px 9px 32px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13, boxSizing: 'border-box', outline: 'none' }}
+          />
+        </div>
 
-          {/* Date: single date picker */}
-          {isDate && (
-            <input
-              autoFocus
-              type="date"
-              value={selectedDate}
-              onChange={e => { setSelectedDate(e.target.value); setCurrentPage(1); }}
-              style={inputStyle}
-            />
-          )}
+        {/* Type toggle */}
+        <div style={{ display: 'flex', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-card)', overflow: 'hidden', flexShrink: 0 }}>
+          {(['ALL', 'INCOME', 'EXPENSE'] as const).map(f => (
+            <button key={f} onClick={() => setTypeFilter(f)} style={{
+              padding: '8px 14px', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+              background: typeFilter === f
+                ? (f === 'INCOME' ? 'var(--income)' : f === 'EXPENSE' ? 'var(--expense)' : 'var(--primary)')
+                : 'transparent',
+              color: typeFilter === f ? '#fff' : 'var(--text-muted)',
+              transition: 'all 0.15s',
+            }}>{f}</button>
+          ))}
+        </div>
 
-          {/* Checkbox filter for category / type / source */}
-          {hasValues && vals.map(v => {
-            const on = selected.includes(v);
+        {/* Date picker */}
+        <DatePicker
+          value={selectedDate}
+          onChange={e => { setSelectedDate(e.target.value); setCurrentPage(1); }}
+          placeholder="Filter by date"
+          style={{ flexShrink: 0 }}
+        />
+
+        {/* Sort */}
+        <select
+          value={`${sortField}:${sortDir}`}
+          onChange={e => {
+            const [f, d] = e.target.value.split(':');
+            setSortField(f as SortField);
+            setSortDir(d as 'asc' | 'desc');
+            setCurrentPage(1);
+          }}
+          style={{ padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 12, cursor: 'pointer', flexShrink: 0 }}
+        >
+          <option value="date:desc">Date ↓</option>
+          <option value="date:asc">Date ↑</option>
+          <option value="amount:desc">Amount ↓</option>
+          <option value="amount:asc">Amount ↑</option>
+          <option value="description:asc">Name A–Z</option>
+          <option value="description:desc">Name Z–A</option>
+        </select>
+
+        {/* Filters button */}
+        <button
+          onClick={() => setShowFilterPanel(v => !v)}
+          style={{
+            padding: '8px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            border: `1px solid ${showFilterPanel || activeFilterCount > 0 ? 'var(--primary)' : 'var(--border)'}`,
+            background: showFilterPanel || activeFilterCount > 0 ? 'var(--primary-dim)' : 'var(--bg-card)',
+            color: showFilterPanel || activeFilterCount > 0 ? 'var(--primary)' : 'var(--text-muted)',
+            flexShrink: 0,
+          }}
+        >
+          Filters{activeFilterCount > 0 ? ` · ${activeFilterCount}` : ''}
+        </button>
+
+        {hasAnyFilter && (
+          <button onClick={resetAll} style={{ padding: '8px 12px', borderRadius: 10, border: 'none', background: 'none', color: 'var(--primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+            ✕ Clear
+          </button>
+        )}
+      </div>
+
+      {/* Expandable filter panel */}
+      {showFilterPanel && (
+        <div style={{ marginBottom: 14, padding: '16px 20px', borderRadius: 12, background: 'var(--bg-card)', border: '1px solid var(--border)', display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+          {VALUE_FILTER_COLS.map(col => {
+            const vals = uniqueVals[col] || [];
+            const selected = colFilters[col] || [];
+            const colLabel = col === 'paymentSource' ? 'Source' : col.charAt(0).toUpperCase() + col.slice(1);
             return (
-              <div
-                key={v}
-                onClick={() => toggleValueFilter(col, v)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '5px 5px', borderRadius: 5, cursor: 'pointer',
-                  background: on ? 'color-mix(in srgb, var(--primary) 12%, transparent)' : 'transparent',
-                  marginBottom: 1,
-                }}
-              >
-                <div style={{
-                  width: 13, height: 13, borderRadius: 3, flexShrink: 0,
-                  border: `1.5px solid ${on ? 'var(--primary)' : 'var(--border)'}`,
-                  background: on ? 'var(--primary)' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  {on && <span style={{ color: '#fff', fontSize: 8, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+              <div key={col}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{colLabel}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {vals.map(v => {
+                    const on = selected.includes(v);
+                    return (
+                      <button key={v} onClick={() => toggleValueFilter(col, v)} style={{
+                        padding: '4px 12px', borderRadius: 20, cursor: 'pointer', fontSize: 11, fontWeight: on ? 700 : 500,
+                        border: `1px solid ${on ? 'var(--primary)' : 'var(--border)'}`,
+                        background: on ? 'var(--primary-dim)' : 'var(--bg-elevated)',
+                        color: on ? 'var(--primary)' : 'var(--text-secondary)',
+                        transition: 'all 0.12s',
+                      }}>
+                        {v === '—' ? '(none)' : v}
+                      </button>
+                    );
+                  })}
                 </div>
-                <span style={{ fontSize: 12, color: v === '—' ? 'var(--text-muted)' : 'var(--text-primary)', fontStyle: v === '—' ? 'italic' : 'normal' }}>
-                  {v === '—' ? '(none)' : v}
-                </span>
               </div>
             );
           })}
         </div>
-      </div>
-    );
-  };
+      )}
 
-  return (
-    <div>
-      <div className="page-header">
-        <h2 className="page-title">Transactions</h2>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn btn-danger" onClick={() => handleOpen('EXPENSE')}>+ Expense</button>
-          <button className="btn btn-income" onClick={() => handleOpen('INCOME')}>+ Income</button>
-          <button className="btn btn-secondary" onClick={() => {
-            setTransferForm({ ...emptyTransfer, date: today(), fromAccountId: defaultBankId ? String(defaultBankId) : '' });
-            setShowTransferModal(true);
-          }}>⇄ Transfer</button>
-        </div>
-      </div>
-
-      <div className="card" style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          {(['ALL', 'INCOME', 'EXPENSE'] as const).map(f => (
-            <button key={f} className={`btn btn-sm ${typeFilter === f ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setTypeFilter(f)}>{f}</button>
-          ))}
-          {hasAnyFilter && (
-            <button className="btn btn-sm btn-secondary" onClick={resetAll}
-              style={{ fontSize: 11, color: 'var(--primary)' }}>
-              ✕ Clear filters
-            </button>
+      {/* Active filter chips */}
+      {hasAnyFilter && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14, alignItems: 'center' }}>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: 2 }}>Active:</span>
+          {descSearch.trim() && <Chip label={`"${descSearch}"`} onRemove={() => setDescSearch('')} />}
+          {selectedDate && <Chip label={selectedDate} onRemove={() => setSelectedDate('')} />}
+          {(Object.entries(colFilters) as [SortField, string[]][]).flatMap(([col, vals]) =>
+            (vals || []).map(v => (
+              <Chip key={`${col}:${v}`} label={`${col === 'paymentSource' ? 'source' : col}: ${v}`} onRemove={() => toggleValueFilter(col, v)} />
+            ))
           )}
-          <span style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: 13 }}>
-            Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}
-          </span>
         </div>
+      )}
+
+      {/* Count line */}
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+        Showing {filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}
       </div>
 
-      <div className="card" style={{ padding: '0' }}>
-        <div className="table-container">
-          <table className="table">
-            <thead>
-              <tr>
-                {colTh('description', 'Description', { pl: 24, width: '28%' })}
-                {colTh('category', 'Category', { width: '18%' })}
-                {colTh('date', 'Date', { width: '13%' })}
-                {colTh('type', 'Type', { width: '10%' })}
-                {colTh('paymentSource', 'Source', { width: '10%' })}
-                {colTh('amount', 'Amount', { align: 'right', width: '13%', pr: 8, showFilter: false })}
-                <th style={{ width: '10%', paddingRight: 24 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginated.length === 0 && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px' }}>
-                  No transactions found
-                </td></tr>
-              )}
-              {paginated.map(t => (
-                <tr key={t.id}>
-                  <td style={{ color: 'var(--text-primary)', paddingLeft: 24 }}>
-                    {t.description}
-                    {t.notes && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t.notes}</div>}
-                  </td>
-                  <td>
-                    <div style={{ fontSize: 13 }}>{t.category}</div>
-                    {t.itemName && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{t.itemName}</div>}
-                  </td>
-                  <td>{new Date(t.date).toLocaleDateString()}</td>
-                  <td><span className={`badge ${t.type.toLowerCase()}`}>{t.type}</span></td>
-                  <td>
-                    {t.paymentSource && (
-                      <span className="badge" style={{ fontSize: 10 }}>
-                        {t.paymentSource === 'CREDIT_CARD' ? 'CC' : t.paymentSource}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <span className={`amount-${t.type.toLowerCase()}`}>
-                      {t.type === 'EXPENSE' ? '-' : '+'}{formatCurrency(t.amount)}
-                    </span>
-                  </td>
-                  <td style={{ paddingRight: 24 }}>
-                    <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <button className="btn btn-sm btn-secondary" onClick={() => handleOpen(t.type, t)}>Edit</button>
-                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(t.id)}>Del</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Transaction feed */}
+      <div style={{ borderRadius: 16, border: '1px solid var(--border)', background: 'var(--bg-card)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.10), 0 4px 16px rgba(0,0,0,0.06)' }}>
+        {paginated.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--text-muted)', fontSize: 14 }}>
+            No transactions found
+          </div>
+        ) : (
+          dateGroups.map(({ date, txns }, gi) => (
+            <div key={date}>
+              {/* Date separator */}
+              <div style={{
+                padding: '7px 20px', display: 'flex', alignItems: 'center', gap: 12,
+                background: 'var(--bg-elevated)',
+                borderTop: gi > 0 ? '1px solid var(--border-subtle)' : undefined,
+                borderBottom: '1px solid var(--border-subtle)',
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.6, flexShrink: 0 }}>
+                  {formatDateLabel(date)}
+                </span>
+                <div style={{ flex: 1, height: 1, background: 'var(--border-subtle)' }} />
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
+                  {txns.length} {txns.length === 1 ? 'entry' : 'entries'}
+                </span>
+              </div>
 
-        {/* Pagination */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: 8, padding: '14px 24px', borderTop: '1px solid var(--border-subtle)',
-        }}>
+              {/* Rows */}
+              {txns.map((t, idx) => (
+                <TxnRow
+                  key={t.id}
+                  t={t}
+                  isLast={idx === txns.length - 1 && gi === dateGroups.length - 1}
+                  onEdit={() => handleOpen(t.type, t)}
+                  onDelete={() => handleDelete(t.id)}
+                />
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '18px 0 4px' }}>
           <button className="btn btn-sm btn-secondary" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>«</button>
           <button className="btn btn-sm btn-secondary" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1}>‹</button>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)', minWidth: 160, textAlign: 'center' }}>
-            Page {currentPage} of {totalPages}
+          <span style={{ fontSize: 13, color: 'var(--text-muted)', minWidth: 120, textAlign: 'center' }}>
+            {currentPage} / {totalPages}
           </span>
           <button className="btn btn-sm btn-secondary" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages}>›</button>
           <button className="btn btn-sm btn-secondary" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>»</button>
         </div>
-      </div>
-
-      {/* Filter popover — called as plain function to avoid unmounting native date picker */}
-      {renderPopover()}
+      )}
 
       {/* Add/Edit modal */}
       <AddTransactionModal
@@ -539,8 +479,8 @@ const TransactionsPage: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label>Date</label>
-                  <input type="date" value={transferForm.date}
-                    onChange={e => setTransferForm({ ...transferForm, date: e.target.value })} required />
+                  <DatePicker value={transferForm.date}
+                    onChange={e => setTransferForm({ ...transferForm, date: e.target.value })} required fullWidth />
                 </div>
                 <div className="form-group">
                   <label>From Account</label>
@@ -581,6 +521,81 @@ const TransactionsPage: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// Extracted to avoid re-defining inside map; hover handled via CSS class
+const TxnRow: React.FC<{
+  t: Transaction;
+  isLast: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}> = ({ t, isLast, onEdit, onDelete }) => {
+  const color = catColor(t.category);
+  const isIncome = t.type === 'INCOME';
+
+  return (
+    <div className="txn-row" style={{
+      display: 'flex', alignItems: 'center', gap: 14,
+      padding: '13px 20px',
+      borderBottom: isLast ? 'none' : '1px solid var(--border-subtle)',
+      borderLeft: `3px solid ${isIncome ? 'var(--income)' : 'var(--expense)'}`,
+    }}>
+      {/* Category avatar */}
+      <div style={{
+        width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+        background: `${color}18`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color }}>{t.category.charAt(0).toUpperCase()}</span>
+      </div>
+
+      {/* Description + category */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>
+            {t.description}
+          </span>
+          <span style={{
+            fontSize: 10, padding: '2px 8px', borderRadius: 20, flexShrink: 0,
+            background: `${color}18`, color, fontWeight: 700,
+          }}>
+            {t.category}
+          </span>
+          {t.itemName && (
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t.itemName}</span>
+          )}
+        </div>
+        {t.notes && (
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{t.notes}</div>
+        )}
+      </div>
+
+      {/* Right side */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        {t.paymentSource && (
+          <span style={{
+            fontSize: 10, padding: '3px 8px', borderRadius: 20,
+            background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)',
+            color: 'var(--text-muted)', fontWeight: 600, letterSpacing: 0.3,
+          }}>
+            {t.paymentSource === 'CREDIT_CARD' ? 'CC' : t.paymentSource}
+          </span>
+        )}
+
+        <span style={{
+          fontSize: 15, fontWeight: 800, minWidth: 100, textAlign: 'right',
+          color: isIncome ? 'var(--income)' : 'var(--expense)',
+        }}>
+          {isIncome ? '+' : '-'}{formatCurrency(t.amount)}
+        </span>
+
+        <div style={{ display: 'flex', gap: 4 }} className="txn-actions">
+          <button className="btn btn-sm btn-secondary" onClick={onEdit}>Edit</button>
+          <button className="btn btn-sm btn-danger" onClick={onDelete}>Del</button>
+        </div>
+      </div>
     </div>
   );
 };

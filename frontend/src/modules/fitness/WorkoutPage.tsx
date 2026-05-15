@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import api from '../../services/api';
+import DatePicker from '../../components/DatePicker';
 
 const DAYS = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
 
@@ -111,7 +112,7 @@ const WorkoutPage: React.FC = () => {
       <p className="page-subtitle">Log your sets, reps and weights</p>
 
       <div className="workout-action-bar">
-        <input type="date" className="input" style={{ flex: 1 }} value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+        <DatePicker value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={{ flex: 1 }} fullWidth />
         <button className="btn btn-primary" onClick={openAdd}>+ Add Set</button>
         <button className="btn btn-secondary" onClick={saveWorkout} disabled={saving}>{saving ? 'Saving...' : '💾 Save'}</button>
       </div>

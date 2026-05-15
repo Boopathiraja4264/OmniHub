@@ -4,6 +4,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } fro
 import { debtApi } from '../../services/api';
 import { AnnualLoanSummary } from '../../types';
 import { useMobile } from '../../hooks/useMobile';
+import DatePicker from '../../components/DatePicker';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -128,7 +129,7 @@ const AnnualLoansPage: React.FC = () => {
     } catch { /* handled */ } finally { setSaving(false); }
   };
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+  const set = (k: string) => (e: { target: { value: string } }) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
   const active = loans.filter(l => l.status === 'OUTSTANDING');
@@ -162,7 +163,7 @@ const AnnualLoansPage: React.FC = () => {
             </thead>
             <tbody>
               {items.map(l => {
-                const sc = l.status === 'OUTSTANDING' ? { bg: 'rgba(34,197,94,0.12)', color: '#22c55e', border: 'rgba(34,197,94,0.25)' } : { bg: 'rgba(148,163,184,0.10)', color: '#94a3b8', border: 'rgba(148,163,184,0.20)' };
+                const sc = l.status === 'OUTSTANDING' ? { bg: 'var(--income-dim)', color: 'var(--income)', border: 'rgba(16,185,129,0.25)' } : { bg: 'rgba(148,163,184,0.10)', color: '#94a3b8', border: 'rgba(148,163,184,0.20)' };
                 return (
                   <tr key={l.id} onClick={() => navigate(`/finance/debt/annual/${l.id}`)}
                     style={{ cursor: 'pointer', borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.15s' }}
@@ -172,9 +173,9 @@ const AnnualLoansPage: React.FC = () => {
                     <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-primary)' }}>{l.name}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-primary)' }}>{fmt(l.initialPrincipal)}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{pct(l.annualInterestRate)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#ef4444', fontWeight: 700 }}>{fmt(l.currentBalance)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#a855f7' }}>{fmt(l.totalInterestAccrued)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#22c55e' }}>{fmt(l.interestPaid)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--expense)', fontWeight: 700 }}>{fmt(l.currentBalance)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--purple)' }}>{fmt(l.totalInterestAccrued)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--income)' }}>{fmt(l.interestPaid)}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmtDate(l.startDate)}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmtDate(l.endDate)}</td>
                     <td style={{ padding: '10px 12px' }}>
@@ -182,7 +183,7 @@ const AnnualLoansPage: React.FC = () => {
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <button onClick={e => openEdit(l, e)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', transition: 'all 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(245,158,11,0.4)'; e.currentTarget.style.color = '#f59e0b'; }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(245,158,11,0.4)'; e.currentTarget.style.color = 'var(--warning)'; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}>Edit</button>
                     </td>
                   </tr>
@@ -198,15 +199,13 @@ const AnnualLoansPage: React.FC = () => {
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200, minHeight: '100%', background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(245,158,11,0.07) 0%, transparent 60%)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
+      <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px' }}>Annual Interest Loans</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Gold loans and other annual-interest loans with prepayment tracking</p>
+          <h2 className="page-title">Annual Interest Loans</h2>
+          <p className="page-subtitle">Gold loans and other annual-interest loans with prepayment tracking</p>
         </div>
-        <button onClick={openAdd} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #d97706, #f59e0b)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(245,158,11,0.3)' }}>
-          + Add Annual Loan
-        </button>
+        <button onClick={openAdd} className="btn btn-primary">+ Add Annual Loan</button>
       </div>
 
       <LoanTable items={active} title="Outstanding" />
@@ -233,9 +232,9 @@ const AnnualLoansPage: React.FC = () => {
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', marginBottom: 16, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: '0 1px 3px rgba(0,0,0,0.25), 0 4px 16px rgba(0,0,0,0.12)' }}>
                   {[
-                    { label: 'Total Principal', value: fmt(totalPrincipal), color: '#f59e0b' },
-                    { label: 'Total Interest Paid', value: fmt(totalInterest), color: '#ef4444' },
-                    { label: 'Interest % of Total Cost', value: `${interestPct}%`, color: '#a855f7' },
+                    { label: 'Total Principal', value: fmt(totalPrincipal), color: 'var(--warning)' },
+                    { label: 'Total Interest Paid', value: fmt(totalInterest), color: 'var(--expense)' },
+                    { label: 'Interest % of Total Cost', value: `${interestPct}%`, color: 'var(--purple)' },
                   ].map((c, i) => (
                     <div key={c.label} style={{ padding: '14px 20px', borderLeft: (!isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none', borderTop: (isMobile && i > 0) ? '1px solid var(--border-subtle)' : 'none' }}>
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{c.label}</div>
@@ -252,7 +251,7 @@ const AnnualLoansPage: React.FC = () => {
                       <Tooltip formatter={(v: any) => fmt(v)} />
                       <Legend iconType="circle" iconSize={8} formatter={v => <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{v}</span>} />
                       <Bar dataKey="Principal" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="Interest Paid" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="Interest Paid" fill="#f43f5e" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -270,8 +269,8 @@ const AnnualLoansPage: React.FC = () => {
               <Field label="Name *"><input style={inputStyle} value={form.name} onChange={set('name')} required placeholder="TMB Gold Loan" /></Field>
               <Field label="Initial Principal (₹) *"><input style={inputStyle} type="number" value={form.initialPrincipal} onChange={set('initialPrincipal')} required /></Field>
               <Field label="Annual Interest Rate (e.g. 0.099 for 9.9%) *"><input style={inputStyle} type="number" step="0.0001" value={form.annualInterestRate} onChange={set('annualInterestRate')} required /></Field>
-              <Field label="Start Date *"><input style={inputStyle} type="date" value={form.startDate} onChange={set('startDate')} required /></Field>
-              <Field label="End Date (due date)"><input style={inputStyle} type="date" value={form.endDate} onChange={set('endDate')} /></Field>
+              <Field label="Start Date *"><DatePicker value={form.startDate} onChange={set('startDate')} required fullWidth /></Field>
+              <Field label="End Date (due date)"><DatePicker value={form.endDate} onChange={set('endDate')} fullWidth /></Field>
               <Field label="Current Balance (₹)"><input style={inputStyle} type="number" value={form.currentBalance} onChange={set('currentBalance')} placeholder="Leave blank = full principal" /></Field>
               <Field label="Interest Paid (₹)"><input style={inputStyle} type="number" value={form.interestPaid} onChange={set('interestPaid')} placeholder="0" /></Field>
               <Field label="Status">
@@ -283,8 +282,8 @@ const AnnualLoansPage: React.FC = () => {
             </div>
             <Field label="Notes"><textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }} value={form.notes} onChange={set('notes')} /></Field>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button type="button" onClick={() => setShowModal(false)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{saving ? 'Saving…' : editLoan ? 'Update' : 'Create'}</button>
+              <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
+              <button type="submit" disabled={saving} className="btn btn-primary">{saving ? 'Saving…' : editLoan ? 'Update' : 'Create'}</button>
             </div>
           </form>
         </Modal>

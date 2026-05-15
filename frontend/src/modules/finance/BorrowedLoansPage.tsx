@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { debtApi } from '../../services/api';
+import DatePicker from '../../components/DatePicker';
 import { BorrowedLoanSummary } from '../../types';
 import { useMobile } from '../../hooks/useMobile';
 
@@ -114,7 +115,7 @@ const BorrowedLoansPage: React.FC = () => {
     } catch { /* handled */ } finally { setSaving(false); }
   };
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+  const set = (k: string) => (e: { target: { value: string } }) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
   const outstanding = loans.filter(l => l.status === 'OUTSTANDING');
@@ -145,7 +146,7 @@ const BorrowedLoansPage: React.FC = () => {
             </thead>
             <tbody>
               {items.map(l => {
-                const sc = l.status === 'OUTSTANDING' ? { bg: 'rgba(34,197,94,0.12)', color: '#22c55e', border: 'rgba(34,197,94,0.25)' } : { bg: 'rgba(148,163,184,0.10)', color: '#94a3b8', border: 'rgba(148,163,184,0.20)' };
+                const sc = l.status === 'OUTSTANDING' ? { bg: 'var(--income-dim)', color: 'var(--income)', border: 'rgba(16,185,129,0.25)' } : { bg: 'rgba(148,163,184,0.10)', color: '#94a3b8', border: 'rgba(148,163,184,0.20)' };
                 const progress = l.amountBorrowed > 0 ? Math.min(100, (l.amountRepaid / l.amountBorrowed) * 100) : 0;
                 return (
                   <tr key={l.id} onClick={() => navigate(`/finance/debt/borrowed/${l.id}`)}
@@ -156,12 +157,12 @@ const BorrowedLoansPage: React.FC = () => {
                     <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-primary)' }}>{l.lenderName}</td>
                     <td style={{ padding: '10px 12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmtDate(l.dateBorrowed)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-primary)' }}>{fmt(l.amountBorrowed)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', color: '#22c55e' }}>{fmt(l.amountRepaid)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--income)' }}>{fmt(l.amountRepaid)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                      <div style={{ fontWeight: 700, color: l.outstandingBalance > 0 ? '#ef4444' : '#94a3b8' }}>{fmt(l.outstandingBalance)}</div>
+                      <div style={{ fontWeight: 700, color: l.outstandingBalance > 0 ? 'var(--expense)' : '#94a3b8' }}>{fmt(l.outstandingBalance)}</div>
                       {l.amountBorrowed > 0 && (
                         <div style={{ height: 3, background: 'var(--border-subtle)', borderRadius: 99, marginTop: 4, width: 60, marginLeft: 'auto' }}>
-                          <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #2563eb, #60a5fa)', borderRadius: 99 }} />
+                          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--primary)', borderRadius: 99 }} />
                         </div>
                       )}
                     </td>
@@ -170,7 +171,7 @@ const BorrowedLoansPage: React.FC = () => {
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <button onClick={e => openEdit(l, e)} style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', transition: 'all 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.4)'; e.currentTarget.style.color = '#60a5fa'; }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary-glow)'; e.currentTarget.style.color = 'var(--primary-light)'; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}>Edit</button>
                     </td>
                   </tr>
@@ -186,15 +187,13 @@ const BorrowedLoansPage: React.FC = () => {
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1100, minHeight: '100%', background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(59,130,246,0.07) 0%, transparent 60%)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1100 }}>
+      <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px' }}>Borrowed</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Money borrowed from friends and family</p>
+          <h2 className="page-title">Borrowed</h2>
+          <p className="page-subtitle">Money borrowed from friends and family</p>
         </div>
-        <button onClick={openAdd} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #2563eb, #3b82f6)', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(59,130,246,0.3)' }}>
-          + Add Borrowed
-        </button>
+        <button onClick={openAdd} className="btn btn-primary">+ Add Borrowed</button>
       </div>
 
       <LoanTable items={outstanding} title="Outstanding" />
@@ -206,7 +205,7 @@ const BorrowedLoansPage: React.FC = () => {
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               <Field label="Loan ID *"><input style={inputStyle} value={form.loanId} onChange={set('loanId')} required placeholder="BR001" /></Field>
               <Field label="Lender Name *"><input style={inputStyle} value={form.lenderName} onChange={set('lenderName')} required placeholder="Name" /></Field>
-              <Field label="Date Borrowed *"><input style={inputStyle} type="date" value={form.dateBorrowed} onChange={set('dateBorrowed')} required /></Field>
+              <Field label="Date Borrowed *"><DatePicker value={form.dateBorrowed} onChange={set('dateBorrowed')} required fullWidth /></Field>
               <Field label="Amount Borrowed (₹) *"><input style={inputStyle} type="number" value={form.amountBorrowed} onChange={set('amountBorrowed')} required /></Field>
               <Field label="Amount Repaid (₹)"><input style={inputStyle} type="number" value={form.amountRepaid} onChange={set('amountRepaid')} placeholder="0" /></Field>
               <Field label="Status">
@@ -218,8 +217,8 @@ const BorrowedLoansPage: React.FC = () => {
             </div>
             <Field label="Notes"><textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 60 }} value={form.notes} onChange={set('notes')} /></Field>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button type="button" onClick={() => setShowModal(false)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#3b82f6', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{saving ? 'Saving…' : editLoan ? 'Update' : 'Create'}</button>
+              <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">Cancel</button>
+              <button type="submit" disabled={saving} className="btn btn-primary">{saving ? 'Saving…' : editLoan ? 'Update' : 'Create'}</button>
             </div>
           </form>
         </Modal>

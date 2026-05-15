@@ -41,12 +41,31 @@ public class AuthManagementController {
     public ResponseEntity<?> getMe(Authentication auth) {
         User user = userRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(Map.of(
-                "email", user.getEmail(),
-                "fullName", user.getFullName(),
-                "emailVerified", user.isEmailVerified(),
-                "twoFactorMethod", user.getTwoFactorMethod(),
-                "oauthProvider", user.getOauthProvider() != null ? user.getOauthProvider() : ""
-        ));
+        java.util.Map<String, Object> resp = new java.util.LinkedHashMap<>();
+        resp.put("email", user.getEmail());
+        resp.put("fullName", user.getFullName());
+        resp.put("emailVerified", user.isEmailVerified());
+        resp.put("twoFactorMethod", user.getTwoFactorMethod());
+        resp.put("oauthProvider", user.getOauthProvider() != null ? user.getOauthProvider() : "");
+        resp.put("profilePicture", user.getProfilePicture() != null ? user.getProfilePicture() : "");
+        return ResponseEntity.ok(resp);
+    }
+
+    @PatchMapping("/profile")
+    public ResponseEntity<?> updateProfile(Authentication auth,
+                                            @RequestBody Map<String, String> body) {
+        User user = userRepository.findByEmail(auth.getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        String name = body.get("fullName");
+        if (name != null && !name.isBlank()) user.setFullName(name.trim());
+        if (body.containsKey("profilePicture")) {
+            String pic = body.get("profilePicture");
+            user.setProfilePicture((pic != null && !pic.isBlank()) ? pic : null);
+        }
+        userRepository.save(user);
+        java.util.Map<String, Object> resp = new java.util.LinkedHashMap<>();
+        resp.put("fullName", user.getFullName());
+        resp.put("profilePicture", user.getProfilePicture() != null ? user.getProfilePicture() : "");
+        return ResponseEntity.ok(resp);
     }
 }

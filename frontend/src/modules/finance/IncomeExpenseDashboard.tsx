@@ -14,14 +14,6 @@ interface MonthPoint { month: number; total: number; }
 interface CategoryPoint { category: string; total: number; }
 interface Budget { category: string; limitAmount: number; spent: number; }
 
-const StatCard: React.FC<{ label: string; value: string; sub?: string; color: string; big?: boolean }> = ({ label, value, sub, color, big }) => (
-  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px' }}>
-    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>{label}</div>
-    <div style={{ fontSize: big ? 24 : 20, fontWeight: 800, color, fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>{value}</div>
-    {sub && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>{sub}</div>}
-  </div>
-);
-
 const IncomeExpenseDashboard: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useMobile();
@@ -58,7 +50,7 @@ const IncomeExpenseDashboard: React.FC = () => {
   const monthlyExpenses = summary?.monthlyExpenses  ?? 0;
   const monthlySavings  = monthlyIncome - monthlyExpenses;
   const savingsRate     = monthlyIncome > 0 ? (monthlySavings / monthlyIncome) * 100 : 0;
-  const savingsColor    = savingsRate >= 20 ? '#22c55e' : savingsRate >= 10 ? '#f59e0b' : '#ef4444';
+  const savingsColor    = savingsRate >= 20 ? 'var(--income)' : savingsRate >= 10 ? 'var(--warning)' : 'var(--expense)';
 
   // Last 6 months for trend
   const last6: { label: string; income: number; expense: number; savings: number }[] = [];
@@ -69,83 +61,100 @@ const IncomeExpenseDashboard: React.FC = () => {
     const exp = expData.find(p => p.month === m)?.total ?? 0;
     last6.push({ label: MOS[m - 1], income: inc, expense: exp, savings: inc - exp });
   }
-  const maxVal   = Math.max(...last6.map(m => Math.max(m.income, m.expense)), 1);
+  const maxVal = Math.max(...last6.map(m => Math.max(m.income, m.expense)), 1);
 
   // Budget summary
-  const budgetTotal   = budgets.reduce((s, b) => s + (b.limitAmount ?? 0), 0);
-  const budgetUsed    = budgets.reduce((s, b) => s + (b.spent ?? 0), 0);
-  const budgetPct     = budgetTotal > 0 ? (budgetUsed / budgetTotal) * 100 : 0;
-  const overBudget    = budgets.filter(b => b.spent > b.limitAmount);
+  const budgetTotal = budgets.reduce((s, b) => s + (b.limitAmount ?? 0), 0);
+  const budgetUsed  = budgets.reduce((s, b) => s + (b.spent ?? 0), 0);
+  const budgetPct   = budgetTotal > 0 ? (budgetUsed / budgetTotal) * 100 : 0;
+  const overBudget  = budgets.filter(b => b.spent > b.limitAmount);
 
   // Top 6 categories
   const topCats = categories.slice(0, 6);
   const maxCat  = topCats[0]?.total ?? 1;
 
+  const barColors = ['var(--expense)', 'var(--warning)', 'var(--primary)', 'var(--purple)', 'var(--income)', 'var(--sky-blue)'];
+
+  const budgetBarColor = (pct: number) => pct > 100 ? 'var(--expense)' : pct > 80 ? 'var(--warning)' : 'var(--income)';
+
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200, minHeight: '100%',
-      background: 'radial-gradient(ellipse 60% 35% at 5% 0%, rgba(34,197,94,0.05) 0%, transparent 55%)' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
+      <div className="page-header" style={{ marginBottom: 22 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px' }}>Income & Expense</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4, marginBottom: 0 }}>
-            {MOS[CM - 1]} {CY} · your money in and out
-          </p>
+          <h2 className="page-title">Income &amp; Expense</h2>
+          <p className="page-subtitle">{MOS[CM - 1]} {CY} · your money in and out</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => navigate('/transactions')} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(34,197,94,0.3)', background: 'rgba(34,197,94,0.07)', color: '#22c55e', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Add Transaction</button>
-          <button onClick={() => navigate('/budgets')} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Budgets</button>
-          <button onClick={() => navigate('/analytics')} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Analytics</button>
+          <button onClick={() => navigate('/transactions')} className="btn btn-primary" style={{ fontSize: 12 }}>+ Add Transaction</button>
+          <button onClick={() => navigate('/budgets')} className="btn btn-secondary" style={{ fontSize: 12 }}>Budgets</button>
+          <button onClick={() => navigate('/analytics')} className="btn btn-secondary" style={{ fontSize: 12 }}>Analytics</button>
         </div>
       </div>
 
       {/* This month stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
-        <StatCard label="This Month Income"   value={fmt(monthlyIncome)}   color="#22c55e" sub="all income sources" big />
-        <StatCard label="This Month Expenses" value={fmt(monthlyExpenses)} color="#ef4444" sub="all categories"     big />
-        <StatCard label="Net Savings"         value={fmt(monthlySavings)}  color={monthlySavings >= 0 ? '#3b82f6' : '#ef4444'} sub="income − expenses" big />
-        <StatCard label="Savings Rate"        value={`${savingsRate.toFixed(1)}%`} color={savingsColor} sub={savingsRate >= 20 ? 'Great! Keep it up' : savingsRate >= 10 ? 'Decent, aim for 20%' : 'Low — review expenses'} big />
+      <div className="stats-grid" style={{ marginBottom: 22 }}>
+        <div className="stat-card income">
+          <div className="stat-label">This Month Income</div>
+          <div className="stat-value income" style={{ fontSize: 26 }}>{fmt(monthlyIncome)}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>all income sources</div>
+        </div>
+        <div className="stat-card expense">
+          <div className="stat-label">This Month Expenses</div>
+          <div className="stat-value expense" style={{ fontSize: 26 }}>{fmt(monthlyExpenses)}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>all categories</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Net Savings</div>
+          <div className="stat-value" style={{ fontSize: 26, color: monthlySavings >= 0 ? 'var(--primary)' : 'var(--expense)' }}>{fmt(monthlySavings)}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>income − expenses</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Savings Rate</div>
+          <div className="stat-value" style={{ fontSize: 26, color: savingsColor }}>{savingsRate.toFixed(1)}%</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+            {savingsRate >= 20 ? 'Great! Keep it up' : savingsRate >= 10 ? 'Decent, aim for 20%' : 'Low — review expenses'}
+          </div>
+        </div>
       </div>
 
       {/* Trend + Categories row */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.4fr 1fr', gap: 16, marginBottom: 20 }}>
 
         {/* 6-month trend */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+        <div className="page-card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 16 }}>
             Last 6 Months
             <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-muted)', marginLeft: 10 }}>
-              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#22c55e', marginRight: 4 }} />Income
-              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: '#ef4444', marginLeft: 10, marginRight: 4 }} />Expense
+              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: 'var(--income)', marginRight: 4 }} />Income
+              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: 'var(--expense)', marginLeft: 10, marginRight: 4 }} />Expense
             </span>
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 120 }}>
             {last6.map((m, i) => (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-                {/* Bars */}
                 <div style={{ width: '100%', display: 'flex', gap: 2, alignItems: 'flex-end', height: 90, justifyContent: 'center' }}>
-                  <div style={{ flex: 1, borderRadius: '3px 3px 0 0', background: '#22c55e',
+                  <div style={{ flex: 1, borderRadius: '3px 3px 0 0', background: 'var(--income)',
                     height: `${maxVal > 0 ? (m.income / maxVal) * 90 : 0}%`,
                     minHeight: m.income > 0 ? 3 : 0, transition: 'height 0.3s' }} />
-                  <div style={{ flex: 1, borderRadius: '3px 3px 0 0', background: '#ef4444',
+                  <div style={{ flex: 1, borderRadius: '3px 3px 0 0', background: 'var(--expense)',
                     height: `${maxVal > 0 ? (m.expense / maxVal) * 90 : 0}%`,
                     minHeight: m.expense > 0 ? 3 : 0, transition: 'height 0.3s' }} />
                 </div>
-                {/* Month label */}
                 <div style={{ fontSize: 9, fontWeight: i === 5 ? 700 : 400,
                   color: i === 5 ? 'var(--text-primary)' : 'var(--text-muted)' }}>{m.label}</div>
               </div>
             ))}
           </div>
-          {/* Values for current month */}
           <div style={{ borderTop: '1px solid var(--border)', marginTop: 12, paddingTop: 10,
             display: 'flex', justifyContent: 'space-between' }}>
             {last6.slice(-1).map(m => (
               <React.Fragment key="cur">
                 <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  <span style={{ color: '#22c55e', fontWeight: 600 }}>{fmtK(m.income)}</span> in · <span style={{ color: '#ef4444', fontWeight: 600 }}>{fmtK(m.expense)}</span> out
-                  {' · '}<span style={{ color: m.savings >= 0 ? '#3b82f6' : '#ef4444', fontWeight: 600 }}>{fmtK(m.savings)} saved</span>
+                  <span style={{ color: 'var(--income)', fontWeight: 600 }}>{fmtK(m.income)}</span> in
+                  {' · '}<span style={{ color: 'var(--expense)', fontWeight: 600 }}>{fmtK(m.expense)}</span> out
+                  {' · '}<span style={{ color: m.savings >= 0 ? 'var(--primary)' : 'var(--expense)', fontWeight: 600 }}>{fmtK(m.savings)} saved</span>
                 </div>
                 <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{MOS[CM-1]} {CY}</span>
               </React.Fragment>
@@ -154,10 +163,10 @@ const IncomeExpenseDashboard: React.FC = () => {
         </div>
 
         {/* Top categories */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Top Spend · {MOS[CM - 1]}</div>
-            <button onClick={() => navigate('/analytics')} style={{ fontSize: 10, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>See all →</button>
+        <div className="page-card" style={{ padding: '18px 20px' }}>
+          <div className="section-header" style={{ marginBottom: 14 }}>
+            <div className="section-title">Top Spend · {MOS[CM - 1]}</div>
+            <button onClick={() => navigate('/analytics')} className="section-link">See all →</button>
           </div>
           {topCats.length === 0 ? (
             <div style={{ fontSize: 12, color: 'var(--text-muted)', paddingTop: 8 }}>No expenses this month.</div>
@@ -165,7 +174,6 @@ const IncomeExpenseDashboard: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {topCats.map((c, i) => {
                 const pct = maxCat > 0 ? (c.total / maxCat) * 100 : 0;
-                const barColors = ['#ef4444','#f59e0b','#3b82f6','#a855f7','#22c55e','#0ea5e9'];
                 return (
                   <div key={c.category}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
@@ -187,43 +195,38 @@ const IncomeExpenseDashboard: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.4fr 1fr', gap: 16 }}>
 
         {/* Budget */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-              Budget · {MOS[CM - 1]}
+        <div className="page-card" style={{ padding: '18px 20px' }}>
+          <div className="section-header" style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div className="section-title">Budget · {MOS[CM - 1]}</div>
               {overBudget.length > 0 && (
-                <span style={{ marginLeft: 10, fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5,
-                  background: 'rgba(239,68,68,0.12)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
-                  {overBudget.length} over budget
-                </span>
+                <span className="badge expense">{overBudget.length} over budget</span>
               )}
             </div>
-            <button onClick={() => navigate('/budgets')} style={{ fontSize: 10, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Manage →</button>
+            <button onClick={() => navigate('/budgets')} className="section-link">Manage →</button>
           </div>
           {budgets.length === 0 ? (
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
               No budgets set for this month.{' '}
-              <button onClick={() => navigate('/budgets')} style={{ color: '#3b82f6', background: 'none', border: 'none', fontSize: 12, cursor: 'pointer', padding: 0, fontWeight: 600 }}>Set budgets →</button>
+              <button onClick={() => navigate('/budgets')} className="section-link" style={{ fontSize: 12, padding: 0 }}>Set budgets →</button>
             </div>
           ) : (
             <>
-              {/* Overall utilization bar */}
               <div style={{ marginBottom: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 11 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Overall: {fmt(budgetUsed)} of {fmt(budgetTotal)}</span>
-                  <span style={{ color: budgetPct > 100 ? '#ef4444' : budgetPct > 80 ? '#f59e0b' : '#22c55e', fontWeight: 700 }}>{budgetPct.toFixed(1)}%</span>
+                  <span style={{ color: budgetBarColor(budgetPct), fontWeight: 700 }}>{budgetPct.toFixed(1)}%</span>
                 </div>
                 <div style={{ height: 6, background: 'var(--border)', borderRadius: 99 }}>
                   <div style={{ height: '100%', width: `${Math.min(budgetPct, 100)}%`,
-                    background: budgetPct > 100 ? '#ef4444' : budgetPct > 80 ? '#f59e0b' : '#22c55e',
+                    background: budgetBarColor(budgetPct),
                     borderRadius: 99, transition: 'width 0.3s' }} />
                 </div>
               </div>
-              {/* Per-category rows (top 5) */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {budgets.slice(0, 5).map(b => {
                   const pct = b.limitAmount > 0 ? (b.spent / b.limitAmount) * 100 : 0;
-                  const color = pct > 100 ? '#ef4444' : pct > 80 ? '#f59e0b' : '#22c55e';
+                  const color = budgetBarColor(pct);
                   return (
                     <div key={b.category}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
@@ -237,7 +240,7 @@ const IncomeExpenseDashboard: React.FC = () => {
                   );
                 })}
                 {budgets.length > 5 && (
-                  <button onClick={() => navigate('/budgets')} style={{ fontSize: 11, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
+                  <button onClick={() => navigate('/budgets')} className="section-link" style={{ textAlign: 'left', padding: 0, fontSize: 11, color: 'var(--text-muted)' }}>
                     +{budgets.length - 5} more categories →
                   </button>
                 )}
@@ -247,29 +250,29 @@ const IncomeExpenseDashboard: React.FC = () => {
         </div>
 
         {/* All-time totals */}
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+        <div className="page-card" style={{ padding: '18px 20px' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 14 }}>All-Time Picture</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
             {[
-              { label: 'Total Income',   value: fmt(summary?.totalIncome),   color: '#22c55e' },
-              { label: 'Total Expenses', value: fmt(summary?.totalExpenses),  color: '#ef4444' },
-              { label: 'Net Balance',    value: fmt(summary?.balance),        color: summary?.balance >= 0 ? 'var(--text-primary)' : '#ef4444' },
+              { label: 'Total Income',   value: fmt(summary?.totalIncome),  color: 'var(--income)' },
+              { label: 'Total Expenses', value: fmt(summary?.totalExpenses), color: 'var(--expense)' },
+              { label: 'Net Balance',    value: fmt(summary?.balance),       color: (summary?.balance ?? 0) >= 0 ? 'var(--text-primary)' : 'var(--expense)' },
             ].map(r => (
-              <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', borderRadius: 8, background: 'var(--bg-elevated)' }}>
+              <div key={r.label} className="data-row">
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.label}</span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: r.color, fontVariantNumeric: 'tabular-nums' }}>{r.value}</span>
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {[
-              { label: 'Transactions', path: '/transactions', color: '#3b82f6' },
-              { label: 'Analytics',    path: '/analytics',    color: '#f59e0b' },
-              { label: 'Categories',   path: '/finance/categories', color: '#a855f7' },
+              { label: 'Transactions', path: '/transactions', color: 'var(--primary)',  bg: 'var(--primary-dim)',          border: 'var(--primary-glow)' },
+              { label: 'Analytics',    path: '/analytics',    color: 'var(--warning)',  bg: 'rgba(245,158,11,0.08)',        border: 'rgba(245,158,11,0.28)' },
+              { label: 'Categories',   path: '/finance/categories', color: 'var(--purple)', bg: 'rgba(168,85,247,0.08)',   border: 'rgba(168,85,247,0.28)' },
             ].map(l => (
               <button key={l.path} onClick={() => navigate(l.path)}
-                style={{ padding: '6px 10px', borderRadius: 7, border: `1px solid ${l.color}33`,
-                  background: `${l.color}0d`, color: l.color, fontSize: 11, fontWeight: 600,
+                style={{ padding: '6px 10px', borderRadius: 'var(--radius-xs)', border: `1px solid ${l.border}`,
+                  background: l.bg, color: l.color, fontSize: 11, fontWeight: 600,
                   cursor: 'pointer', textAlign: 'left' }}>
                 {l.label} →
               </button>

@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { bankAccountApi, creditCardApi, transactionApi } from '../../services/api';
 import FilterDropdown from '../../components/FilterDropdown';
+import DatePicker from '../../components/DatePicker';
 import { BankAccount, CreditCard } from '../../types';
 
 const EfBadge: React.FC = () => (
   <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4,
-    background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)',
+    background: 'rgba(245,158,11,0.15)', color: 'var(--warning)', border: '1px solid rgba(245,158,11,0.3)',
     letterSpacing: '0.05em' }}>EF</span>
 );
 
@@ -52,14 +53,14 @@ const NetworkLogo: React.FC<{ type?: string }> = ({ type }) => {
 // ─── Account type badge ───────────────────────────────────────────────────────
 const AccTypeBadge: React.FC<{ type: string }> = ({ type }) => {
   const colors: Record<string, string> = {
-    SAVINGS: 'rgba(138,159,74,0.15)',
+    SAVINGS: 'var(--income-dim)',
     CURRENT: 'rgba(14,165,233,0.15)',
     SALARY:  'rgba(245,158,11,0.15)',
   };
   const textColors: Record<string, string> = {
     SAVINGS: 'var(--income)',
-    CURRENT: '#0ea5e9',
-    SALARY:  '#f59e0b',
+    CURRENT: 'var(--sky-blue)',
+    SALARY:  'var(--warning)',
   };
   return (
     <span style={{
@@ -162,7 +163,7 @@ const BankTab: React.FC = () => {
                       fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 10,
                       border: acc.emergencyFund ? '1px solid rgba(245,158,11,0.4)' : '1px solid var(--border)',
                       background: acc.emergencyFund ? 'rgba(245,158,11,0.1)' : 'transparent',
-                      color: acc.emergencyFund ? '#f59e0b' : 'var(--text-muted)', cursor: 'pointer', lineHeight: 1.4,
+                      color: acc.emergencyFund ? 'var(--warning)' : 'var(--text-muted)', cursor: 'pointer', lineHeight: 1.4,
                     }}>🛡 EF</button>
                   </div>
                   {acc.bankName && (
@@ -189,11 +190,11 @@ const BankTab: React.FC = () => {
 
               {/* Inflow / Outflow */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={{ background: 'rgba(138,159,74,0.08)', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ background: 'var(--income-dim)', borderRadius: 8, padding: '10px 12px' }}>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>Total Inflow</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--income)' }}>+{fmt(acc.totalInflow)}</div>
                 </div>
-                <div style={{ background: 'rgba(192,57,43,0.08)', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ background: 'var(--expense-dim)', borderRadius: 8, padding: '10px 12px' }}>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3 }}>Total Outflow</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--expense)' }}>-{fmt(acc.totalOutflow)}</div>
                 </div>
@@ -233,8 +234,8 @@ const BankTab: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label>Balance Date</label>
-                  <input type="date" value={form.balanceDate}
-                    onChange={e => setForm({ ...form, balanceDate: e.target.value })} />
+                  <DatePicker value={form.balanceDate}
+                    onChange={e => setForm({ ...form, balanceDate: e.target.value })} fullWidth />
                 </div>
                 <div className="form-group">
                   <label>
@@ -252,7 +253,7 @@ const BankTab: React.FC = () => {
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={form.emergencyFund} onChange={e => setForm({ ...form, emergencyFund: e.target.checked })} style={{ accentColor: '#f59e0b' }} />
+                    <input type="checkbox" checked={form.emergencyFund} onChange={e => setForm({ ...form, emergencyFund: e.target.checked })} style={{ accentColor: 'var(--warning)' }} />
                     <span>🛡 Mark as Emergency Fund (shown in EF tracker)</span>
                   </label>
                 </div>
@@ -637,8 +638,8 @@ const CardsTab: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label>Balance Date</label>
-                  <input type="date" value={form.balanceDate}
-                    onChange={e => setForm({ ...form, balanceDate: e.target.value })} />
+                  <DatePicker value={form.balanceDate}
+                    onChange={e => setForm({ ...form, balanceDate: e.target.value })} fullWidth />
                 </div>
                 <div className="form-group">
                   <label>
@@ -690,8 +691,8 @@ const CardsTab: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label>Date</label>
-                  <input type="date" value={payForm.date}
-                    onChange={e => setPayForm({ ...payForm, date: e.target.value })} required />
+                  <DatePicker value={payForm.date}
+                    onChange={e => setPayForm({ ...payForm, date: e.target.value })} required fullWidth />
                 </div>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>

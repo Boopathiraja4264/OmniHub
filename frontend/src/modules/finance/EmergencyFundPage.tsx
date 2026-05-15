@@ -14,8 +14,8 @@ const fmtDate = (d?: string) => {
 };
 
 const statusColors: Record<string, string> = {
-  ACTIVE: '#22c55e', MATURED: '#f59e0b', CLOSED: '#94a3b8',
-  OUTSTANDING: '#ef4444', REPAID: '#22c55e', SAVINGS: '#22c55e', CURRENT: '#0ea5e9', SALARY: '#f59e0b',
+  ACTIVE: 'var(--income)', MATURED: 'var(--warning)', CLOSED: '#94a3b8',
+  OUTSTANDING: 'var(--expense)', REPAID: 'var(--income)', SAVINGS: 'var(--income)', CURRENT: '#0ea5e9', SALARY: 'var(--warning)',
 };
 
 const StatusBadge: React.FC<{ s: string }> = ({ s }) => (
@@ -41,8 +41,8 @@ const SectionLabel: React.FC<{ label: string; count: number; total: number }> = 
   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
     <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{label}</h2>
     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 5,
-      background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', color: '#f59e0b' }}>{count}</span>
-    <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 700, color: '#f59e0b', fontVariantNumeric: 'tabular-nums' }}>{fmt(total)}</span>
+      background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', color: 'var(--warning)' }}>{count}</span>
+    <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 700, color: 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}>{fmt(total)}</span>
   </div>
 );
 
@@ -52,7 +52,7 @@ const FdEfCard: React.FC<{ inv: any; onClick: () => void }> = ({ inv, onClick })
   const progress = inv.tenureMonths > 0 ? Math.min(100, (elapsed / inv.tenureMonths) * 100) : 0;
   return (
     <Card onClick={onClick}>
-      <div style={{ height: 3, background: 'linear-gradient(90deg, #d97706, #f59e0b)' }} />
+      <div style={{ height: 3, background: 'var(--warning)' }} />
       <div style={{ padding: '11px 13px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
           <div>
@@ -64,11 +64,11 @@ const FdEfCard: React.FC<{ inv: any; onClick: () => void }> = ({ inv, onClick })
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', marginBottom: 8 }}>
           <div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EF Principal</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.efPrincipal)}</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.efPrincipal)}</div>
           </div>
           <div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>At Maturity</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.maturityAmount)}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--income)', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.maturityAmount)}</div>
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginBottom: 5 }}>
@@ -76,7 +76,7 @@ const FdEfCard: React.FC<{ inv: any; onClick: () => void }> = ({ inv, onClick })
           <span>Matures {fmtDate(inv.maturityDate)}</span>
         </div>
         <div style={{ height: 3, background: 'var(--border-subtle)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #d97706, #f59e0b)', borderRadius: 99 }} />
+          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--warning)', borderRadius: 99 }} />
         </div>
       </div>
     </Card>
@@ -88,7 +88,7 @@ const RdEfCard: React.FC<{ inv: any; onClick: () => void }> = ({ inv, onClick })
   const progress = inv.tenureMonths > 0 ? Math.min(100, (inv.monthsPaid / inv.tenureMonths) * 100) : 0;
   return (
     <Card onClick={onClick}>
-      <div style={{ height: 3, background: 'linear-gradient(90deg, #b45309, #f59e0b)' }} />
+      <div style={{ height: 3, background: 'var(--warning)' }} />
       <div style={{ padding: '11px 13px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
           <div>
@@ -100,19 +100,19 @@ const RdEfCard: React.FC<{ inv: any; onClick: () => void }> = ({ inv, onClick })
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 8px', marginBottom: 8 }}>
           <div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EF Invested</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#f59e0b', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.efPrincipal)}</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.efPrincipal)}</div>
           </div>
           <div>
             <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>At Maturity</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.maturityAmount)}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--income)', fontVariantNumeric: 'tabular-nums' }}>{fmt(inv.maturityAmount)}</div>
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginBottom: 5 }}>
           <span>{fmt(inv.amount)}/mo · {fmtPct(inv.annualInterestRate)} p.a.</span>
-          <span style={{ color: '#f59e0b', fontWeight: 600 }}>{inv.monthsPaid}/{inv.tenureMonths} paid</span>
+          <span style={{ color: 'var(--warning)', fontWeight: 600 }}>{inv.monthsPaid}/{inv.tenureMonths} paid</span>
         </div>
         <div style={{ height: 3, background: 'var(--border-subtle)', borderRadius: 99, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #b45309, #f59e0b)', borderRadius: 99 }} />
+          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--warning)', borderRadius: 99 }} />
         </div>
       </div>
     </Card>
@@ -122,7 +122,7 @@ const RdEfCard: React.FC<{ inv: any; onClick: () => void }> = ({ inv, onClick })
 // ─── Account EF Card ──────────────────────────────────────────────────────────
 const AccountEfCard: React.FC<{ acc: BankAccount; onClick: () => void }> = ({ acc, onClick }) => (
   <Card onClick={onClick}>
-    <div style={{ height: 3, background: 'linear-gradient(90deg, #92400e, #f59e0b)' }} />
+    <div style={{ height: 3, background: 'var(--warning)' }} />
     <div style={{ padding: '11px 13px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div>
@@ -133,16 +133,16 @@ const AccountEfCard: React.FC<{ acc: BankAccount; onClick: () => void }> = ({ ac
       </div>
       <div style={{ marginBottom: 8 }}>
         <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Current Balance (EF)</div>
-        <div style={{ fontSize: 18, fontWeight: 800, color: '#f59e0b', fontVariantNumeric: 'tabular-nums' }}>{fmt(acc.currentBalance)}</div>
+        <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--warning)', fontVariantNumeric: 'tabular-nums' }}>{fmt(acc.currentBalance)}</div>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 8px' }}>
         <div>
           <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Inflow</div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#22c55e', fontVariantNumeric: 'tabular-nums' }}>+{fmt(acc.totalInflow)}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--income)', fontVariantNumeric: 'tabular-nums' }}>+{fmt(acc.totalInflow)}</div>
         </div>
         <div>
           <div style={{ fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Outflow</div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#ef4444', fontVariantNumeric: 'tabular-nums' }}>-{fmt(acc.totalOutflow)}</div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--expense)', fontVariantNumeric: 'tabular-nums' }}>-{fmt(acc.totalOutflow)}</div>
         </div>
       </div>
     </div>
@@ -190,24 +190,19 @@ const EmergencyFundPage: React.FC = () => {
   const hasAny = efFds.length > 0 || efRds.length > 0 || efAccs.length > 0;
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200, minHeight: '100%',
-      background: 'radial-gradient(ellipse 65% 40% at 10% 0%, rgba(245,158,11,0.07) 0%, transparent 60%)' }}>
+    <div style={{ padding: '24px 28px', maxWidth: 1200 }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+      <div className="page-header" style={{ marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px' }}>
-            🛡 Emergency Fund
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4, marginBottom: 0 }}>
-            Principal-only view of all assets marked as emergency fund
-          </p>
+          <h2 className="page-title">Emergency Fund</h2>
+          <p className="page-subtitle">Principal-only view of all assets marked as emergency fund</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => navigate('/finance/investments')} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.07)', color: '#f59e0b', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => navigate('/finance/investments')} className="btn btn-secondary" style={{ fontSize: 12 }}>
             Manage FD / RD
           </button>
-          <button onClick={() => navigate('/accounts')} style={{ padding: '7px 14px', borderRadius: 8, border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.07)', color: '#f59e0b', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => navigate('/accounts')} className="btn btn-secondary" style={{ fontSize: 12 }}>
             Manage Accounts
           </button>
         </div>
@@ -218,7 +213,7 @@ const EmergencyFundPage: React.FC = () => {
         border: '1px solid rgba(245,158,11,0.25)', background: 'var(--bg-card)',
         boxShadow: '0 2px 12px rgba(245,158,11,0.08)' }}>
         {[
-          { label: 'TOTAL EF',         value: fmt(grandTotal),               color: '#f59e0b', big: true },
+          { label: 'TOTAL EF',         value: fmt(grandTotal),               color: 'var(--warning)', big: true },
           { label: 'FIXED DEPOSITS',   value: fmt(fdTotal),                  color: 'var(--text-primary)', count: efFds.length },
           { label: 'RECURRING DEP.',   value: fmt(rdTotal),                  color: 'var(--text-primary)', count: efRds.length },
           { label: 'BANK ACCOUNTS',    value: fmt(accTotal),                 color: 'var(--text-primary)', count: efAccs.length },
@@ -228,7 +223,7 @@ const EmergencyFundPage: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.07em', color: 'var(--text-muted)' }}>{c.label}</div>
               {'count' in c && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4,
-                background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>{c.count}</span>}
+                background: 'rgba(245,158,11,0.1)', color: 'var(--warning)' }}>{c.count}</span>}
             </div>
             <div style={{ fontSize: c.big ? 22 : 15, fontWeight: c.big ? 800 : 700, color: c.color, fontVariantNumeric: 'tabular-nums' }}>{c.value}</div>
           </div>
@@ -242,10 +237,10 @@ const EmergencyFundPage: React.FC = () => {
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>No emergency fund assets yet</div>
           <div style={{ fontSize: 13, marginBottom: 20 }}>Mark FDs, RDs, or bank accounts as Emergency Fund to track them here.</div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-            <button onClick={() => navigate('/finance/investments')} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={() => navigate('/finance/investments')} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'rgba(245,158,11,0.15)', color: 'var(--warning)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               Go to Investments
             </button>
-            <button onClick={() => navigate('/accounts')} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={() => navigate('/accounts')} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'rgba(245,158,11,0.15)', color: 'var(--warning)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               Go to Accounts
             </button>
           </div>

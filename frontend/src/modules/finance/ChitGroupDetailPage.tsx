@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { chitApi, bankAccountApi, transactionApi } from '../../services/api';
 import { ChitGroup, ChitBatch, ChitMonthlyEntry, ChitGroupRequest, BankAccount } from '../../types';
 import { useMobile } from '../../hooks/useMobile';
+import DatePicker from '../../components/DatePicker';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -182,9 +183,10 @@ const ChitGroupDetailPage: React.FC = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div>
               <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>Date Taken</div>
-              <input type="date" defaultValue={batch.dateTaken?.split('T')[0] ?? ''}
+              <DatePicker
+                value={editBatch[batch.id]?.dateTaken ?? batch.dateTaken?.split('T')[0] ?? ''}
                 onChange={e => setEditBatch(s => ({ ...s, [batch.id]: { ...s[batch.id] ?? { dateTaken: '', amountTaken: String(batch.amountTaken ?? '') }, dateTaken: e.target.value } }))}
-                style={inputSm} />
+                fullWidth size="sm" />
             </div>
             <div>
               <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>Amount Taken (₹)</div>
@@ -265,7 +267,7 @@ const ChitGroupDetailPage: React.FC = () => {
                     <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
                       {entry.companyYelam ? fmt(entry.companyYelam) : '—'}
                     </td>
-                    <td style={{ padding: '8px 10px', textAlign: 'right', color: entry.thalliEduthathu ? '#3b82f6' : 'var(--text-empty)', fontVariantNumeric: 'tabular-nums' }}>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', color: entry.thalliEduthathu ? 'var(--primary)' : 'var(--text-empty)', fontVariantNumeric: 'tabular-nums' }}>
                       {entry.thalliEduthathu ? fmt(entry.thalliEduthathu) : '—'}
                     </td>
                     <td style={{ padding: '8px 8px', textAlign: 'right' }}>
@@ -273,7 +275,7 @@ const ChitGroupDetailPage: React.FC = () => {
                         <button
                           onClick={() => openPayModal(entry, batchLabel)}
                           title="Record payment from bank account"
-                          style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(34,197,94,0.3)', background: 'rgba(34,197,94,0.07)', color: '#22c55e', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                          style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(34,197,94,0.3)', background: 'rgba(34,197,94,0.07)', color: 'var(--income)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                           Pay
                         </button>
                       )}
@@ -310,7 +312,7 @@ const ChitGroupDetailPage: React.FC = () => {
       {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{group.name}</h1>
+          <h2 className="page-title">{group.name}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
             Group {group.groupLabel} · {group.membersCount} members · {group.totalBatches} {group.totalBatches === 1 ? 'chit' : 'chits'} · Started {fmtDate(group.startDate)}
             {group.notes ? ` · ${group.notes}` : ''}
@@ -319,8 +321,8 @@ const ChitGroupDetailPage: React.FC = () => {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{
             fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20,
-            background: group.status === 'ACTIVE' ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.15)',
-            color: group.status === 'ACTIVE' ? '#22c55e' : '#94a3b8',
+            background: group.status === 'ACTIVE' ? 'var(--income-dim)' : 'rgba(148,163,184,0.15)',
+            color: group.status === 'ACTIVE' ? 'var(--income)' : '#94a3b8',
           }}>{group.status}</span>
           <button onClick={openEdit} style={{
             padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)',
@@ -329,7 +331,7 @@ const ChitGroupDetailPage: React.FC = () => {
           }}>Edit</button>
           <button onClick={handleDelete} style={{
             padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
-            background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: 12,
+            background: 'rgba(239,68,68,0.08)', color: 'var(--expense)', fontSize: 12,
             fontWeight: 600, cursor: 'pointer',
           }}>Delete</button>
         </div>
@@ -340,10 +342,10 @@ const ChitGroupDetailPage: React.FC = () => {
         {[
           { label: 'MONTHLY', value: fmt(group.monthlyAmount), color: 'var(--text-primary)' },
           { label: 'TOTAL POT', value: fmt(totalAmount), color: 'var(--text-primary)' },
-          { label: 'TOTAL PAID', value: fmt(group.totalPaid), color: '#f59e0b' },
-          { label: 'KASIR', value: fmt(group.totalKasir), color: '#a855f7' },
-          { label: 'RECEIVED', value: fmt(group.totalReceived), color: '#3b82f6' },
-          { label: 'NET', value: `${netGain >= 0 ? '+' : ''}${fmt(netGain)}`, color: netGain >= 0 ? '#22c55e' : '#ef4444' },
+          { label: 'TOTAL PAID', value: fmt(group.totalPaid), color: 'var(--warning)' },
+          { label: 'KASIR', value: fmt(group.totalKasir), color: 'var(--purple)' },
+          { label: 'RECEIVED', value: fmt(group.totalReceived), color: 'var(--primary)' },
+          { label: 'NET', value: `${netGain >= 0 ? '+' : ''}${fmt(netGain)}`, color: netGain >= 0 ? 'var(--income)' : 'var(--expense)' },
         ].map((c, i) => (
           <div key={c.label} style={{
             flex: isMobile ? '1 1 100%' : 1,
@@ -388,11 +390,11 @@ const ChitGroupDetailPage: React.FC = () => {
             </div>
             <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'var(--bg-elevated)', fontSize: 12, color: 'var(--text-muted)' }}>
               <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>{group.name} · {payModal.batchLabel} · Month {payModal.entry.monthNumber}</div>
-              <div>Amount: <span style={{ fontWeight: 700, color: '#22c55e' }}>{fmt(payModal.entry.amountPerMonth)}</span></div>
+              <div>Amount: <span style={{ fontWeight: 700, color: 'var(--income)' }}>{fmt(payModal.entry.amountPerMonth)}</span></div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>Pay from Bank Account <span style={{ color: '#ef4444' }}>*</span></label>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>Pay from Bank Account <span style={{ color: 'var(--expense)' }}>*</span></label>
                 <select value={payBankId} onChange={e => setPayBankId(e.target.value)}
                   style={{ width: '100%', padding: '8px 10px', borderRadius: 8, fontSize: 13, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)' }}>
                   <option value="">Select account…</option>
@@ -403,14 +405,13 @@ const ChitGroupDetailPage: React.FC = () => {
               </div>
               <div>
                 <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 5 }}>Payment Date</label>
-                <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: 8, fontSize: 13, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', boxSizing: 'border-box' }} />
+                <DatePicker value={payDate} onChange={e => setPayDate(e.target.value)} fullWidth />
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
               <button onClick={() => setPayModal(null)} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
               <button onClick={handlePay} disabled={!payBankId || paying}
-                style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: paying || !payBankId ? 'rgba(34,197,94,0.3)' : '#22c55e', color: '#fff', fontWeight: 600, cursor: !payBankId || paying ? 'not-allowed' : 'pointer', fontSize: 13 }}>
+                style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: paying || !payBankId ? 'rgba(34,197,94,0.3)' : 'var(--income)', color: '#fff', fontWeight: 600, cursor: !payBankId || paying ? 'not-allowed' : 'pointer', fontSize: 13 }}>
                 {paying ? 'Recording…' : 'Record Payment'}
               </button>
             </div>

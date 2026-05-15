@@ -104,7 +104,7 @@ const BorrowedLoanDetailPage: React.FC = () => {
   const totalRepaid = repayments.reduce((sum, r) => sum + r.amount, 0);
   const outstanding = Math.max(0, s.amountBorrowed - totalRepaid);
   const progress = s.amountBorrowed > 0 ? Math.min(100, (totalRepaid / s.amountBorrowed) * 100) : 0;
-  const statusColor = s.status === 'OUTSTANDING' ? '#22c55e' : '#94a3b8';
+  const statusColor = s.status === 'OUTSTANDING' ? 'var(--income)' : '#94a3b8';
 
   return (
     <>
@@ -116,7 +116,7 @@ const BorrowedLoanDetailPage: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{s.lenderName}</h1>
+          <h2 className="page-title">{s.lenderName}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
             {s.loanId} · Borrowed on {fmtDate(s.dateBorrowed)}
             {s.notes ? ` · ${s.notes}` : ''}
@@ -125,7 +125,7 @@ const BorrowedLoanDetailPage: React.FC = () => {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, background: `${statusColor}20`, color: statusColor }}>{s.status}</span>
           <button onClick={openEdit} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
-          <button onClick={handleDelete} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+          <button onClick={handleDelete} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: 'var(--expense)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
         </div>
       </div>
 
@@ -133,8 +133,8 @@ const BorrowedLoanDetailPage: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
         {[
           { label: 'Amount Borrowed', value: fmt(s.amountBorrowed), color: 'var(--text-primary)' },
-          { label: 'Total Repaid', value: fmt(totalRepaid), color: '#22c55e' },
-          { label: 'Still Owed', value: fmt(outstanding), color: outstanding > 0 ? '#ef4444' : '#94a3b8' },
+          { label: 'Total Repaid', value: fmt(totalRepaid), color: 'var(--income)' },
+          { label: 'Still Owed', value: fmt(outstanding), color: outstanding > 0 ? 'var(--expense)' : '#94a3b8' },
         ].map(c => (
           <div key={c.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px' }}>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{c.label}</div>
@@ -149,14 +149,14 @@ const BorrowedLoanDetailPage: React.FC = () => {
           <span>Repayment progress</span><span>{Math.round(progress)}% returned</span>
         </div>
         <div style={{ height: 8, background: 'var(--bg-main)', borderRadius: 99 }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: '#3b82f6', borderRadius: 99 }} />
+          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--primary)', borderRadius: 99 }} />
         </div>
       </div>
 
       {/* Repayment log */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Repayment Log</span>
-        <button onClick={() => setShowAdd(v => !v)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+        <button onClick={() => setShowAdd(v => !v)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
           {showAdd ? 'Cancel' : '+ Add Repayment'}
         </button>
       </div>
@@ -176,7 +176,7 @@ const BorrowedLoanDetailPage: React.FC = () => {
                 style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12, boxSizing: 'border-box' }} />
             </div>
           ))}
-          <button type="submit" disabled={saving} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#3b82f6', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+          <button type="submit" disabled={saving} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
             {saving ? 'Saving…' : 'Save'}
           </button>
         </form>
@@ -200,13 +200,13 @@ const BorrowedLoanDetailPage: React.FC = () => {
                 acc.push({ ...r, runningBalance: Math.max(0, prev - r.amount) });
                 return acc;
               }, [] as any[]).map((r: any, i: number) => (
-                <tr key={r.id} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)' }}>
+                <tr key={r.id} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-row-alt)' }}>
                   <td style={{ padding: '8px 14px', textAlign: 'right', color: 'var(--text-primary)' }}>{fmtDate(r.paymentDate)}</td>
-                  <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: '#22c55e' }}>{fmt(r.amount)}</td>
+                  <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--income)' }}>{fmt(r.amount)}</td>
                   <td style={{ padding: '8px 14px', textAlign: 'right', color: 'var(--text-muted)' }}>{r.note || '—'}</td>
-                  <td style={{ padding: '8px 14px', textAlign: 'right', color: r.runningBalance > 0 ? '#ef4444' : '#94a3b8', fontWeight: 600 }}>{fmt(r.runningBalance)}</td>
+                  <td style={{ padding: '8px 14px', textAlign: 'right', color: r.runningBalance > 0 ? 'var(--expense)' : '#94a3b8', fontWeight: 600 }}>{fmt(r.runningBalance)}</td>
                   <td style={{ padding: '8px 14px', textAlign: 'center' }}>
-                    <button onClick={() => handleDeleteRepayment(r.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 13 }}>✕</button>
+                    <button onClick={() => handleDeleteRepayment(r.id)} style={{ background: 'none', border: 'none', color: 'var(--expense)', cursor: 'pointer', fontSize: 13 }}>✕</button>
                   </td>
                 </tr>
               ))}
@@ -214,9 +214,9 @@ const BorrowedLoanDetailPage: React.FC = () => {
             <tfoot>
               <tr style={{ background: 'var(--bg-main)', borderTop: '2px solid var(--border)' }}>
                 <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>Total</td>
-                <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: '#22c55e' }}>{fmt(totalRepaid)}</td>
+                <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--income)' }}>{fmt(totalRepaid)}</td>
                 <td />
-                <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: outstanding > 0 ? '#ef4444' : '#94a3b8' }}>{fmt(outstanding)}</td>
+                <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: outstanding > 0 ? 'var(--expense)' : '#94a3b8' }}>{fmt(outstanding)}</td>
                 <td />
               </tr>
             </tfoot>
@@ -261,7 +261,7 @@ const BorrowedLoanDetailPage: React.FC = () => {
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setShowEdit(false)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" disabled={editSaving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#3b82f6', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{editSaving ? 'Saving…' : 'Update'}</button>
+              <button type="submit" disabled={editSaving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{editSaving ? 'Saving…' : 'Update'}</button>
             </div>
           </form>
         </div>

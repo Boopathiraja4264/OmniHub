@@ -3,6 +3,7 @@ export interface User {
   fullName: string;
   token: string;
   oauthProvider?: string;
+  profilePicture?: string;
 }
 
 export type TransactionType = 'INCOME' | 'EXPENSE';

@@ -42,6 +42,8 @@ export const authApi = {
     api.post("/auth/change-password", { currentPassword, newPassword }),
   setPassword: (newPassword: string) =>
     api.post("/auth/set-password", { newPassword }),
+  updateProfile: (data: { fullName?: string; profilePicture?: string }) =>
+    api.patch("/auth/profile", data),
   get2FAStatus: () => api.get("/auth/2fa/status"),
   setupTotp: () => api.post("/auth/2fa/setup/totp"),
   verifyTotpSetup: (code: string) => api.post("/auth/2fa/setup/verify", { code }),

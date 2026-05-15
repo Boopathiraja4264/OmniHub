@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import api from "../../services/api";
 import FilterDropdown from "../../components/FilterDropdown";
+import DatePicker from "../../components/DatePicker";
 
 const WeightPage: React.FC = () => {
   const [rawStats, setRawStats] = useState<any>(null);
@@ -615,13 +616,7 @@ const WeightPage: React.FC = () => {
             >
               <div style={{ flex: 1, minWidth: 160 }}>
                 <label className="form-label">Start Date</label>
-                <input
-                  type="date"
-                  className="input"
-                  value={scheduleStartDate}
-                  readOnly
-                  style={{ cursor: "default", opacity: 0.8 }}
-                />
+                <DatePicker value={scheduleStartDate} onChange={() => {}} disabled fullWidth />
               </div>
               <div style={{ flex: 1, minWidth: 160 }}>
                 <label className="form-label">Start Weight (kg)</label>
@@ -1088,16 +1083,10 @@ const WeightPage: React.FC = () => {
             </div>
             <div className="form-group">
               <label className="form-label">Schedule Start Date</label>
-              <input
-                type="date"
-                className="input"
+              <DatePicker
                 value={setupForm.scheduleStartDate}
-                onChange={(e) =>
-                  setSetupForm((p) => ({
-                    ...p,
-                    scheduleStartDate: e.target.value,
-                  }))
-                }
+                onChange={(e) => setSetupForm((p) => ({ ...p, scheduleStartDate: e.target.value }))}
+                fullWidth
               />
             </div>
             <div className="form-group">
@@ -1155,13 +1144,10 @@ const WeightPage: React.FC = () => {
             </div>
             <div className="form-group">
               <label className="form-label">Date</label>
-              <input
-                type="date"
-                className="input"
+              <DatePicker
                 value={form.date}
-                onChange={(e) =>
-                  setForm((p) => ({ ...p, date: e.target.value }))
-                }
+                onChange={(e) => setForm((p) => ({ ...p, date: e.target.value }))}
+                fullWidth
               />
             </div>
             <div className="form-group">

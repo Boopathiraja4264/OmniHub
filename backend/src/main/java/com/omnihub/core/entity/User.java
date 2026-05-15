@@ -64,6 +64,10 @@ public class User {
     @Column
     private String oauthProviderId;
 
+    // Profile picture stored as base64 data URL
+    @Column(columnDefinition = "TEXT")
+    private String profilePicture;
+
     // Push notification approval token (login challenge token, for push 2FA)
     @Column
     private String pendingPushChallengeToken;
@@ -158,4 +162,6 @@ public class User {
     public void setPendingPushChallengeToken(String v) { pendingPushChallengeToken = v; }
     public String getPushChallengeStatus() { return pushChallengeStatus; }
     public void setPushChallengeStatus(String v) { pushChallengeStatus = v; }
+    public String getProfilePicture() { return profilePicture; }
+    public void setProfilePicture(String v) { profilePicture = v; }
 }

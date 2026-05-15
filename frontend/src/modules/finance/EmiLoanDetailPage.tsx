@@ -134,7 +134,7 @@ const EmiLoanDetailPage: React.FC = () => {
   const { summary: s, installments } = detail;
   const paidCount = installments.filter(i => i.paid).length;
   const progress = s.initialPrincipal > 0 ? Math.min(100, ((s.principalPaid || 0) / s.initialPrincipal) * 100) : 0;
-  const statusColor = s.status === 'ACTIVE' ? '#22c55e' : s.status === 'FORECLOSED' ? '#f97316' : '#94a3b8';
+  const statusColor = s.status === 'ACTIVE' ? 'var(--income)' : s.status === 'FORECLOSED' ? '#f97316' : '#94a3b8';
 
   return (
     <>
@@ -146,7 +146,7 @@ const EmiLoanDetailPage: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{s.name}</h1>
+          <h2 className="page-title">{s.name}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
             {s.loanId} · {s.tenureMonths} months @ {pct(s.annualInterestRate)} p.a.
             {s.gstRate ? ` + ${pct(s.gstRate)} GST` : ''} · Started {fmtDate(s.startDate)}
@@ -158,7 +158,7 @@ const EmiLoanDetailPage: React.FC = () => {
           {s.status === 'ACTIVE' && (
             <button onClick={() => setShowForeclose(true)} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(249,115,22,0.4)', background: 'rgba(249,115,22,0.08)', color: '#f97316', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Foreclose</button>
           )}
-          <button onClick={handleDelete} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+          <button onClick={handleDelete} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: 'var(--expense)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
         </div>
       </div>
 
@@ -166,9 +166,9 @@ const EmiLoanDetailPage: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 14 }}>
         {[
           { label: 'Amount Financed', value: fmt(s.initialPrincipal), color: 'var(--text-primary)' },
-          { label: 'Base EMI', value: fmt(s.baseEmi), color: '#f59e0b' },
+          { label: 'Base EMI', value: fmt(s.baseEmi), color: 'var(--warning)' },
           { label: 'GST Rate', value: s.gstRate ? pct(s.gstRate) : 'None', color: 'var(--text-muted)' },
-          { label: 'Installments Paid', value: `${paidCount} / ${s.tenureMonths}`, color: '#22c55e' },
+          { label: 'Installments Paid', value: `${paidCount} / ${s.tenureMonths}`, color: 'var(--income)' },
         ].map(c => (
           <div key={c.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px' }}>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>{c.label}</div>
@@ -178,16 +178,16 @@ const EmiLoanDetailPage: React.FC = () => {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: (s.processingCharge ?? 0) > 0 ? 'repeat(5, 1fr)' : 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
-          { label: 'Principal Paid', value: fmt(s.principalPaid), color: '#22c55e' },
-          { label: 'Interest Paid', value: fmt(s.interestPaid), color: '#f59e0b' },
-          { label: 'Outstanding Principal', value: fmt(s.outstandingPrincipal), color: '#ef4444' },
-          { label: 'Future Interest', value: fmt(s.futureInterest), color: '#a855f7' },
+          { label: 'Principal Paid', value: fmt(s.principalPaid), color: 'var(--income)' },
+          { label: 'Interest Paid', value: fmt(s.interestPaid), color: 'var(--warning)' },
+          { label: 'Outstanding Principal', value: fmt(s.outstandingPrincipal), color: 'var(--expense)' },
+          { label: 'Future Interest', value: fmt(s.futureInterest), color: 'var(--purple)' },
           ...((s.processingCharge ?? 0) > 0 ? [{ label: 'Processing Charge', value: fmt(s.processingCharge), color: '#64748b', sub: (s.processingChargePaid ?? 0) > 0 ? 'paid' : 'due with 1st EMI' }] : []),
         ].map(c => (
           <div key={c.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px' }}>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>{c.label}</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: c.color }}>{c.value}</div>
-            {(c as any).sub && <div style={{ fontSize: 10, color: (s.processingChargePaid ?? 0) > 0 ? '#22c55e' : '#f59e0b', marginTop: 3 }}>{(c as any).sub}</div>}
+            {(c as any).sub && <div style={{ fontSize: 10, color: (s.processingChargePaid ?? 0) > 0 ? 'var(--income)' : 'var(--warning)', marginTop: 3 }}>{(c as any).sub}</div>}
           </div>
         ))}
       </div>
@@ -199,7 +199,7 @@ const EmiLoanDetailPage: React.FC = () => {
           <span>{Math.round(progress)}% paid off</span>
         </div>
         <div style={{ height: 8, background: 'var(--bg-main)', borderRadius: 99 }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: '#22c55e', borderRadius: 99, transition: 'width 0.3s' }} />
+          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--income)', borderRadius: 99, transition: 'width 0.3s' }} />
         </div>
       </div>
 
@@ -236,16 +236,16 @@ const EmiLoanDetailPage: React.FC = () => {
                 <tr key={inst.id}
                   onClick={() => handleToggle(inst.id)}
                   style={{
-                    background: inst.paid ? 'rgba(34,197,94,0.06)' : isCurrent ? 'rgba(245,158,11,0.08)' : i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)',
+                    background: inst.paid ? 'rgba(34,197,94,0.06)' : isCurrent ? 'rgba(245,158,11,0.08)' : i % 2 === 0 ? 'transparent' : 'var(--bg-row-alt)',
                     cursor: 'pointer', transition: 'background 0.15s',
-                    borderLeft: isCurrent ? '3px solid #f59e0b' : inst.paid ? '3px solid #22c55e' : '3px solid transparent',
+                    borderLeft: isCurrent ? '3px solid var(--warning)' : inst.paid ? '3px solid var(--income)' : '3px solid transparent',
                     opacity: toggling === inst.id ? 0.5 : 1,
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(201,168,76,0.08)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = inst.paid ? 'rgba(34,197,94,0.06)' : isCurrent ? 'rgba(245,158,11,0.08)' : i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = inst.paid ? 'rgba(34,197,94,0.06)' : isCurrent ? 'rgba(245,158,11,0.08)' : i % 2 === 0 ? 'transparent' : 'var(--bg-row-alt)')}
                 >
-                  <td style={{ padding: '7px 12px', textAlign: 'center', color: inst.paid ? '#22c55e' : 'var(--text-muted)', fontWeight: inst.paid ? 700 : 400 }}>{inst.installmentNumber}</td>
-                  <td style={{ padding: '7px 12px', textAlign: 'right', color: inst.paid ? '#22c55e' : isCurrent ? '#f59e0b' : 'var(--text-muted)', fontWeight: isCurrent ? 700 : 400, whiteSpace: 'nowrap' }}>{fmtDate(inst.dueDate)}</td>
+                  <td style={{ padding: '7px 12px', textAlign: 'center', color: inst.paid ? 'var(--income)' : 'var(--text-muted)', fontWeight: inst.paid ? 700 : 400 }}>{inst.installmentNumber}</td>
+                  <td style={{ padding: '7px 12px', textAlign: 'right', color: inst.paid ? 'var(--income)' : isCurrent ? 'var(--warning)' : 'var(--text-muted)', fontWeight: isCurrent ? 700 : 400, whiteSpace: 'nowrap' }}>{fmtDate(inst.dueDate)}</td>
                   <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--text-muted)' }}>{fmtD(inst.openingPrincipal, 0)}</td>
                   <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--text-primary)', fontWeight: 600 }}>
                     {fmtD(inst.emiAmount, 0)}
@@ -255,15 +255,15 @@ const EmiLoanDetailPage: React.FC = () => {
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: '7px 12px', textAlign: 'right', color: '#22c55e' }}>{fmtD(inst.principalPart, 0)}</td>
-                  <td style={{ padding: '7px 12px', textAlign: 'right', color: '#f59e0b' }}>{fmtD(inst.interestPart, 0)}</td>
-                  <td style={{ padding: '7px 12px', textAlign: 'right', color: '#a855f7' }}>{fmtD(inst.gstPart, 0)}</td>
+                  <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--income)' }}>{fmtD(inst.principalPart, 0)}</td>
+                  <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--warning)' }}>{fmtD(inst.interestPart, 0)}</td>
+                  <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--purple)' }}>{fmtD(inst.gstPart, 0)}</td>
                   <td style={{ padding: '7px 12px', textAlign: 'right', color: 'var(--text-muted)' }}>{fmtD(inst.closingPrincipal, 0)}</td>
                   <td style={{ padding: '7px 12px', textAlign: 'center' }}>
                     {inst.paid
-                      ? <span style={{ color: '#22c55e', fontSize: 14 }}>✓</span>
+                      ? <span style={{ color: 'var(--income)', fontSize: 14 }}>✓</span>
                       : isCurrent
-                      ? <span style={{ color: '#f59e0b', fontSize: 11, fontWeight: 600 }}>DUE</span>
+                      ? <span style={{ color: 'var(--warning)', fontSize: 11, fontWeight: 600 }}>DUE</span>
                       : null}
                   </td>
                 </tr>
@@ -282,13 +282,13 @@ const EmiLoanDetailPage: React.FC = () => {
                   </div>
                 )}
               </td>
-              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#22c55e' }}>
+              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--income)' }}>
                 {fmt(installments.reduce((sum, i) => sum + i.principalPart, 0))}
               </td>
-              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#f59e0b' }}>
+              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--warning)' }}>
                 {fmt(installments.reduce((sum, i) => sum + i.interestPart, 0))}
               </td>
-              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: '#a855f7' }}>
+              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--purple)' }}>
                 {fmt(installments.reduce((sum, i) => sum + i.gstPart, 0))}
               </td>
               <td colSpan={2} />
@@ -336,7 +336,7 @@ const EmiLoanDetailPage: React.FC = () => {
               </div>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowEdit(false)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-                <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#ef4444', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{saving ? 'Saving…' : 'Update'}</button>
+                <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--expense)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{saving ? 'Saving…' : 'Update'}</button>
               </div>
             </form>
           </div>

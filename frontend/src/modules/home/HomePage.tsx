@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { fetchFitnessDashboard, fetchExercises, logWeight, logWorkout } from './homeApi';
-import { transactionApi, categoryItemApi, creditCardApi, bankAccountApi } from '../../services/api';
+import { transactionApi, categoryItemApi, creditCardApi, bankAccountApi, productivityApi, investmentApi, budgetApi } from '../../services/api';
 import FilterDropdown from '../../components/FilterDropdown';
+import DatePicker from '../../components/DatePicker';
 import { getDailyKuralNum, getCachedKural, fetchKural, pickNewKuralNum, setCachedDailyNum, getExplanation } from '../../services/external/thirukkuralApi';
 import { loadBharathiPoems, getDailyBharathiIdx, pickNewBharathiIdx, setCachedDailyBharathiIdx, BharathiPoem } from '../../services/external/bharathiyarApi';
-import { ExpenseCategory, ExpenseItem, CreditCard, BankAccount } from '../../types';
+import { ExpenseCategory, ExpenseItem, CreditCard, BankAccount, Summary, Budget, InvestmentDashboard } from '../../types';
 
 type DrawerType = 'weight' | 'workout' | 'expense' | null;
 const todayStr = () => new Date().toISOString().split('T')[0];
@@ -23,12 +25,43 @@ interface PendingExpense extends ExpenseForm { _id: number; }
 const fmtAmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
 
+// Shared ghost button used inside data cards
+const CardBtn: React.FC<{ onClick: () => void; children: React.ReactNode; full?: boolean }> = ({ onClick, children, full }) => (
+  <button
+    onClick={onClick}
+    style={{
+      width: full ? '100%' : undefined, flex: full ? undefined : 1,
+      padding: '8px 10px', borderRadius: 8,
+      border: '1px solid var(--border)', background: 'transparent',
+      color: 'var(--text-secondary)', cursor: 'pointer',
+      fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+      transition: 'background 0.15s, color 0.15s',
+    }}
+    onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+  >
+    {children}
+  </button>
+);
+
+const Stat: React.FC<{ label: string; value: React.ReactNode; color?: string }> = ({ label, value, color }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{label}</span>
+    <span style={{ fontSize: 15, fontWeight: 700, color: color || 'var(--text-primary)' }}>{value}</span>
+  </div>
+);
+
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const lang = i18n.language;
 
   const [fitness, setFitness] = useState<any>(null);
+  const [financeSummary, setFinanceSummary] = useState<Summary | null>(null);
+  const [investDash, setInvestDash] = useState<InvestmentDashboard | null>(null);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [activeTasks, setActiveTasks] = useState<number | null>(null);
   const [kuralData, setKuralData] = useState<any>(null);
   const [kuralLoading, setKuralLoading] = useState(false);
   const [bharathiPoem, setBharathiPoem] = useState<BharathiPoem | null>(null);
@@ -68,6 +101,16 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     fetchFitnessDashboard().then(r => setFitness(r.data)).catch(() => {});
+    transactionApi.getSummary().then(r => setFinanceSummary(r.data)).catch(() => {});
+    investmentApi.getDashboard().then(r => setInvestDash(r.data)).catch(() => {});
+    const now = new Date();
+    budgetApi.getForMonth(now.getMonth() + 1, now.getFullYear())
+      .then(r => setBudgets(Array.isArray(r.data) ? r.data : []))
+      .catch(() => {});
+    productivityApi.getActiveTasks().then(r => {
+      setActiveTasks(Array.isArray(r.data) ? r.data.length : 0);
+    }).catch(() => setActiveTasks(0));
+
     const cached = getCachedKural();
     if (cached) { setKuralData(cached); } else { loadKural(getDailyKuralNum()); }
 
@@ -80,7 +123,6 @@ const HomePage: React.FC = () => {
       .catch(() => setBharathiError(true))
       .finally(() => setBharathiLoading(false));
 
-    // Pre-load expense data so drawer opens instantly
     categoryItemApi.getCategories().then(r => {
       const arr = Array.isArray(r.data) ? r.data : [];
       const seen = new Set<string>();
@@ -116,7 +158,6 @@ const HomePage: React.FC = () => {
     setBharathiPoem(bharathiPoems[idx]);
   };
 
-  // If bank accounts finish loading while expense drawer is already open, fill in the default
   useEffect(() => {
     if (drawer === 'expense' && eForm.paymentSource === 'BANK' && !eForm.bankAccountId && defaultBankId) {
       setEForm(f => ({ ...f, bankAccountId: defaultBankId }));
@@ -152,14 +193,7 @@ const HomePage: React.FC = () => {
     if (pendingExpenses.length >= 50) return;
     setPendingExpenses(p => [...p, { ...eForm, _id: pendingNextId }]);
     setPendingNextId(n => n + 1);
-    // Reset form but keep date and payment info
-    setEForm(f => ({
-      ...emptyExpense,
-      date: f.date,
-      paymentSource: f.paymentSource,
-      bankAccountId: f.bankAccountId,
-      cardId: f.cardId,
-    }));
+    setEForm(f => ({ ...emptyExpense, date: f.date, paymentSource: f.paymentSource, bankAccountId: f.bankAccountId, cardId: f.cardId }));
     setExpenseItems([]);
   };
 
@@ -170,6 +204,7 @@ const HomePage: React.FC = () => {
       await logWeight(parseFloat(wForm.weight), wForm.date, wForm.notes);
       setDrawerMsg(t('drawer.savedWeight'));
       setWForm({ weight: '', date: todayStr(), notes: '' });
+      fetchFitnessDashboard().then(r => setFitness(r.data)).catch(() => {});
     } catch { setDrawerMsg(t('drawer.failed')); }
     finally { setSaving(false); }
   };
@@ -192,6 +227,7 @@ const HomePage: React.FC = () => {
       await logWorkout(workoutDate, sets.map(s => ({ exerciseId: s.exerciseId, sets: s.sets, reps: s.reps, weight: s.weight })));
       setDrawerMsg(t('drawer.savedWorkout'));
       setSets([]);
+      fetchFitnessDashboard().then(r => setFitness(r.data)).catch(() => {});
     } catch { setDrawerMsg(t('drawer.failed')); }
     finally { setSaving(false); }
   };
@@ -199,11 +235,8 @@ const HomePage: React.FC = () => {
   const buildExpensePayload = (f: ExpenseForm) => ({
     type: 'EXPENSE' as const,
     description: f.itemName ? `${f.categoryName} – ${f.itemName}` : f.categoryName,
-    category: f.categoryName,
-    itemName: f.itemName || undefined,
-    amount: parseFloat(f.amount),
-    date: f.date,
-    notes: f.notes || undefined,
+    category: f.categoryName, itemName: f.itemName || undefined,
+    amount: parseFloat(f.amount), date: f.date, notes: f.notes || undefined,
     paymentSource: f.paymentSource,
     bankAccountId: f.paymentSource === 'BANK' && f.bankAccountId ? parseInt(f.bankAccountId) : undefined,
     cardId: f.paymentSource === 'CREDIT_CARD' && f.cardId ? parseInt(f.cardId) : undefined,
@@ -218,6 +251,7 @@ const HomePage: React.FC = () => {
       setPendingExpenses([]);
       setEForm({ ...emptyExpense, date: todayStr(), bankAccountId: defaultBankId });
       setExpenseItems([]);
+      transactionApi.getSummary().then(r => setFinanceSummary(r.data)).catch(() => {});
     } catch { setDrawerMsg(t('drawer.failed')); }
     finally { setSaving(false); }
   };
@@ -227,72 +261,88 @@ const HomePage: React.FC = () => {
     : 'Add Expense';
 
   const kuralLines: string[] = kuralData?.kural || [];
-  const tamilExplanation = kuralData ? getExplanation(kuralData) : '';
+  const tamilFont: React.CSSProperties = { fontFamily: "'Noto Sans Tamil', 'Latha', serif" };
+
+  // ── shared card accent bar style
+  const accentCard = (color: string): React.CSSProperties => ({
+    borderTop: `3px solid ${color}`,
+    borderRadius: 14,
+    background: 'var(--bg-card)',
+    border: `1px solid var(--border)`,
+    borderTopColor: color,
+    padding: '18px 20px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 0,
+    boxShadow: 'var(--shadow)',
+  });
+  const accentCardClass = 'home-accent-card';
 
   return (
-    <div>
-      {/* Greeting */}
+    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+
+      {/* ── Greeting ── */}
       <div style={{ marginBottom: 28 }}>
         <h1 className="page-title">{greeting}, {user?.fullName?.split(' ')[0]}! 🌴</h1>
         <p className="page-subtitle">{dateStr}</p>
       </div>
 
-      {/* Poems row — side by side on wide screens, stacked on mobile */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20, marginBottom: 24 }}>
+      {/* ── Daily Wisdom ── */}
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
+        Daily Wisdom
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, marginBottom: 32 }}>
 
         {/* Thirukkural */}
-        <div className="card" style={{ borderLeft: '4px solid var(--gold)', position: 'relative' }}>
-          <button
-            onClick={refreshKural} disabled={kuralLoading} title="மற்றொரு குறள்"
-            style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: 4, lineHeight: 1, opacity: kuralLoading ? 0.4 : 1 }}
-          >↻</button>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderLeft: '3px solid var(--gold)', borderRadius: 14, padding: '16px 18px', position: 'relative', boxShadow: 'var(--shadow)' }}>
+          <button onClick={refreshKural} disabled={kuralLoading} title="மற்றொரு குறள்"
+            style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 15, padding: 4, lineHeight: 1, opacity: kuralLoading ? 0.4 : 1 }}>↻</button>
+
+          {(kuralData?.section || kuralData?.chapter) && (
+            <div style={{ fontSize: 10, color: 'var(--gold)', fontWeight: 700, marginBottom: 8, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+              {kuralData.section}{kuralData.section && kuralData.chapter ? ' › ' : ''}{kuralData.chapter}
+            </div>
+          )}
 
           {!kuralData || kuralLoading ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('common.loading')}</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
           ) : kuralData.fallback ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>இணையம் இல்லாமல் ஏற்றமுடியவில்லை.</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>இணையம் இல்லாமல் ஏற்றமுடியவில்லை.</div>
           ) : (
             <>
-              {(kuralData.section || kuralData.chapter) && (
-                <div style={{ fontSize: 12, color: 'var(--gold)', fontWeight: 600, marginBottom: 12, letterSpacing: 0.5 }}>
-                  {kuralData.section}{kuralData.section && kuralData.chapter ? ' › ' : ''}{kuralData.chapter}
-                </div>
-              )}
-              <div style={{ fontFamily: "'Noto Sans Tamil', 'Latha', serif", fontSize: 22, lineHeight: 2, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 6, letterSpacing: 0.4 }}>
+              <div style={{ ...tamilFont, fontSize: 17, lineHeight: 1.85, color: 'var(--text-primary)', fontWeight: 700, letterSpacing: 0.3, marginBottom: 10, paddingRight: 24 }}>
                 {kuralLines[0]}<br />{kuralLines[1]}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'right', marginBottom: 14 }}>
-                — திருவள்ளுவர்
-              </div>
-              {tamilExplanation && (
-                <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.9, fontFamily: "'Noto Sans Tamil', 'Latha', sans-serif", borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }}>
-                  {tamilExplanation}
+              {getExplanation(kuralData) && (
+                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: 8, paddingTop: 8, borderTop: '1px solid var(--border-subtle)', ...tamilFont }}>
+                  {getExplanation(kuralData)}
                 </div>
               )}
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'right' }}>
+                — திருவள்ளுவர்
+              </div>
             </>
           )}
         </div>
 
         {/* Bharathiyar */}
-        <div className="card" style={{ borderLeft: '4px solid #7c9fd4', position: 'relative' }}>
-          <button
-            onClick={refreshBharathi} title="மற்றொரு பாடல்"
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderLeft: '3px solid #7c9fd4', borderRadius: 14, padding: '16px 18px', position: 'relative', boxShadow: 'var(--shadow)' }}>
+          <button onClick={refreshBharathi} title="மற்றொரு பாடல்"
             disabled={bharathiLoading || bharathiPoems.length === 0}
-            style={{ position: 'absolute', top: 14, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: 4, lineHeight: 1, opacity: bharathiLoading ? 0.4 : 1 }}
-          >↻</button>
+            style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 15, padding: 4, lineHeight: 1, opacity: bharathiLoading ? 0.4 : 1 }}>↻</button>
 
           {bharathiLoading ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>{t('common.loading')}</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</div>
           ) : bharathiError ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: 14 }}>பாரதியார் பாடல்கள் ஏற்றமுடியவில்லை.</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>பாரதியார் பாடல்கள் ஏற்றமுடியவில்லை.</div>
           ) : bharathiPoem ? (
             <>
-              <div style={{ fontFamily: "'Noto Sans Tamil', 'Latha', serif", fontSize: 22, lineHeight: 2, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 14, letterSpacing: 0.4 }}>
+              <div style={{ ...tamilFont, fontSize: 18, lineHeight: 1.85, color: 'var(--text-primary)', fontWeight: 700, letterSpacing: 0.3, marginBottom: 8, paddingRight: 24 }}>
                 {bharathiPoem.lines.slice(0, 4).map((line, i) => (
                   <React.Fragment key={i}>{line}{i < Math.min(bharathiPoem.lines.length, 4) - 1 && <br />}</React.Fragment>
                 ))}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'right', marginTop: 4 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', textAlign: 'right' }}>
                 — மகாகவி சுப்பிரமணிய பாரதியார்
               </div>
             </>
@@ -301,47 +351,132 @@ const HomePage: React.FC = () => {
 
       </div>
 
-      {/* Fitness stat cards */}
-      <div className="stats-grid" style={{ marginBottom: 24 }}>
-        <div className="stat-card">
-          <div className="stat-label">{t('home.workoutsThisWeek')}</div>
-          <div className="stat-value" style={{ color: 'var(--primary)' }}>{fitness?.workoutsThisWeek ?? '--'}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">{t('home.totalWorkouts')}</div>
-          <div className="stat-value" style={{ color: 'var(--primary)' }}>{fitness?.totalWorkouts ?? '--'}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">{t('home.currentWeight')}</div>
-          <div className="stat-value" style={{ color: 'var(--gold)' }}>
-            {fitness?.latestWeight ? `${fitness.latestWeight} kg` : '--'}
+      {/* ── Financial Overview ── */}
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
+        Financial Overview
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
+
+        {/* Finance card */}
+        <div className={accentCardClass} style={accentCard('var(--primary)')}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
+            This Month
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 16, flex: 1 }}>
+            <Stat label="Spent" value={financeSummary ? fmtAmt(financeSummary.monthlyExpenses) : '—'} color="var(--expense)" />
+            <Stat label="Income" value={financeSummary ? fmtAmt(financeSummary.monthlyIncome) : '—'} color="var(--income)" />
+            <Stat label="Net balance" value={financeSummary ? fmtAmt(financeSummary.balance) : '—'} color="var(--primary)" />
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <CardBtn onClick={() => openDrawer('expense')}>+ Expense</CardBtn>
+            <CardBtn onClick={() => navigate('/transactions')}>Transactions</CardBtn>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-label">{t('home.todayPlan')}</div>
-          <div className="stat-value" style={{ color: 'var(--gold)', fontSize: 20 }}>{fitness?.todayPlan || t('home.restDay')}</div>
+
+        {/* Investments card */}
+        <div className={accentCardClass} style={accentCard('#7c9fd4')}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
+            Investments
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 16, flex: 1 }}>
+            <Stat label="Total invested" value={investDash ? fmtAmt(investDash.totalInvested) : '—'} color="#7c9fd4" />
+            <Stat label="Interest earned" value={investDash ? fmtAmt(investDash.totalInterestEarned) : '—'} color="var(--income)" />
+            <Stat label="Active FD / RD" value={investDash ? `${investDash.fdList.length} FD · ${investDash.rdList.length} RD` : '—'} />
+          </div>
+          <CardBtn onClick={() => navigate('/finance/investments-dashboard')} full>View Details →</CardBtn>
         </div>
+
+        {/* Budget card */}
+        {(() => {
+          const totalLimit  = budgets.reduce((s, b) => s + b.limitAmount, 0);
+          const totalSpent  = budgets.reduce((s, b) => s + b.spent, 0);
+          const overCount   = budgets.filter(b => b.spent > b.limitAmount).length;
+          const pct         = totalLimit > 0 ? Math.min(100, Math.round((totalSpent / totalLimit) * 100)) : 0;
+          const barColor    = pct >= 90 ? 'var(--expense)' : pct >= 70 ? 'var(--gold)' : 'var(--primary)';
+          const top3        = [...budgets].sort((a, b) => b.spent - a.spent).slice(0, 3);
+          return (
+            <div className={accentCardClass} style={accentCard(barColor)}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
+                Budget — {new Date().toLocaleString('en-IN', { month: 'long' })}
+              </div>
+              <div style={{ flex: 1, marginBottom: 16 }}>
+                {budgets.length === 0 ? (
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '8px 0' }}>No budgets set for this month.</div>
+                ) : (
+                  <>
+                    {/* Progress bar */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{fmtAmt(totalSpent)} spent</span>
+                        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{fmtAmt(totalLimit)} limit</span>
+                      </div>
+                      <div style={{ height: 5, borderRadius: 3, background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 3, transition: 'width 0.4s' }} />
+                      </div>
+                      <div style={{ fontSize: 11, color: barColor, fontWeight: 700, marginTop: 4, textAlign: 'right' }}>{pct}% used{overCount > 0 ? ` · ${overCount} over limit` : ''}</div>
+                    </div>
+                    {/* Top 3 */}
+                    {top3.map(b => {
+                      const bPct = b.limitAmount > 0 ? Math.min(100, Math.round((b.spent / b.limitAmount) * 100)) : 0;
+                      const bColor = bPct >= 90 ? 'var(--expense)' : bPct >= 70 ? 'var(--gold)' : 'var(--primary)';
+                      return (
+                        <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+                          <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>{b.category}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: bColor, flexShrink: 0 }}>{bPct}%</span>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+              <CardBtn onClick={() => navigate('/budgets')} full>Manage Budgets →</CardBtn>
+            </div>
+          );
+        })()}
+
       </div>
 
-      {/* Quick log links */}
-      <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-        {([
-          { label: t('home.logWeight'), type: 'weight' as DrawerType },
-          { label: t('home.logWorkout'), type: 'workout' as DrawerType },
-          { label: t('home.addExpense') || 'Add Expense', type: 'expense' as DrawerType },
-        ]).map((item, i, arr) => (
-          <React.Fragment key={item.type}>
-            <button
-              onClick={() => openDrawer(item.type)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, padding: 0, fontFamily: 'inherit' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--primary-light)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >
-              {item.label}
-            </button>
-            {i < arr.length - 1 && <span style={{ color: 'var(--border)', userSelect: 'none' }}>|</span>}
-          </React.Fragment>
-        ))}
+      {/* ── Personal Overview ── */}
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
+        Personal Overview
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+
+        {/* Fitness card */}
+        <div className={accentCardClass} style={accentCard('var(--gold)')}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
+            Fitness
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 16, flex: 1 }}>
+            <Stat label="Current weight" value={fitness?.latestWeight ? `${fitness.latestWeight} kg` : '—'} color="var(--gold)" />
+            <Stat label="Workouts this week" value={fitness?.workoutsThisWeek ?? '—'} color="var(--primary)" />
+            <Stat label="Today's plan" value={fitness?.todayPlan || t('home.restDay')} color="var(--gold)" />
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <CardBtn onClick={() => openDrawer('weight')}>Log Weight</CardBtn>
+            <CardBtn onClick={() => openDrawer('workout')}>Log Workout</CardBtn>
+          </div>
+        </div>
+
+        {/* Focus card */}
+        <div className={accentCardClass} style={accentCard('#a78bfa')}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 14 }}>
+            Focus
+          </div>
+          <div style={{ flex: 1, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <span style={{ fontSize: 36, fontWeight: 800, color: '#a78bfa', lineHeight: 1 }}>{activeTasks ?? '—'}</span>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>active tasks</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.5 }}>
+              {activeTasks === 0 ? 'All clear — nothing pending!'
+                : activeTasks === 1 ? '1 task needs your attention.'
+                : `${activeTasks} tasks in progress.`}
+            </div>
+          </div>
+          <CardBtn onClick={() => navigate('/productivity/tasks')} full>View Tasks →</CardBtn>
+        </div>
+
       </div>
 
       {/* ── Right-side drawer ── */}
@@ -370,8 +505,7 @@ const HomePage: React.FC = () => {
                   </div>
                   <div className="form-group">
                     <label className="form-label">{t('drawer.date')}</label>
-                    <input className="input" type="date" value={wForm.date}
-                      onChange={e => setWForm(p => ({ ...p, date: e.target.value }))} />
+                    <DatePicker value={wForm.date} onChange={e => setWForm(p => ({ ...p, date: e.target.value }))} fullWidth />
                   </div>
                   <div className="form-group">
                     <label className="form-label">{t('drawer.notes')}</label>
@@ -386,8 +520,7 @@ const HomePage: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div className="form-group">
                     <label className="form-label">{t('drawer.date')}</label>
-                    <input className="input" type="date" value={workoutDate}
-                      onChange={e => setWorkoutDate(e.target.value)} />
+                    <DatePicker value={workoutDate} onChange={e => setWorkoutDate(e.target.value)} fullWidth />
                   </div>
                   {sets.length > 0 && (
                     <div style={{ background: 'var(--bg-elevated)', borderRadius: 10, padding: '10px 14px' }}>
@@ -446,8 +579,7 @@ const HomePage: React.FC = () => {
                   </div>
                   <div className="form-group">
                     <label className="form-label">DATE</label>
-                    <input className="input" type="date" value={eForm.date}
-                      onChange={e => setEForm(f => ({ ...f, date: e.target.value }))} />
+                    <DatePicker value={eForm.date} onChange={e => setEForm(f => ({ ...f, date: e.target.value }))} fullWidth />
                   </div>
                   <div className="form-group">
                     <label className="form-label">CATEGORY <span style={{ color: 'var(--expense)' }}>*</span></label>
@@ -479,10 +611,7 @@ const HomePage: React.FC = () => {
                         { label: 'Bank / UPI', value: 'BANK' },
                         { label: 'Credit Card', value: 'CREDIT_CARD' },
                       ]}
-                      onChange={v => setEForm(f => ({
-                        ...f, paymentSource: v as string, cardId: '',
-                        bankAccountId: v === 'BANK' ? defaultBankId : '',
-                      }))}
+                      onChange={v => setEForm(f => ({ ...f, paymentSource: v as string, cardId: '', bankAccountId: v === 'BANK' ? defaultBankId : '' }))}
                       fullWidth
                     />
                   </div>
@@ -516,33 +645,22 @@ const HomePage: React.FC = () => {
                       value={eForm.notes} onChange={e => setEForm(f => ({ ...f, notes: e.target.value }))} />
                   </div>
 
-                  {/* Add to list button */}
-                  <button
-                    className="btn btn-secondary"
-                    style={{ width: '100%' }}
+                  <button className="btn btn-secondary" style={{ width: '100%' }}
                     disabled={!eForm.amount || !eForm.categoryName || pendingExpenses.length >= 50}
-                    onClick={handleAddExpenseToList}
-                  >
+                    onClick={handleAddExpenseToList}>
                     {pendingExpenses.length >= 50 ? 'Max 50 reached' : '+ Add to List'}
                   </button>
 
-                  {/* Pending list */}
                   {pendingExpenses.length > 0 && (
                     <div style={{ background: 'var(--bg-elevated)', borderRadius: 10, padding: '10px 12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
-                          Queued ({pendingExpenses.length}/50)
-                        </span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>Queued ({pendingExpenses.length}/50)</span>
                         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--expense)' }}>
                           {fmtAmt(pendingExpenses.reduce((s, p) => s + parseFloat(p.amount || '0'), 0))}
                         </span>
                       </div>
                       {pendingExpenses.map((p, idx) => (
-                        <div key={p._id} style={{
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          padding: '6px 4px', fontSize: 12,
-                          borderBottom: idx < pendingExpenses.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-                        }}>
+                        <div key={p._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 4px', fontSize: 12, borderBottom: idx < pendingExpenses.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                           <span style={{ color: 'var(--text-primary)', fontWeight: 500, flex: 1, marginRight: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {p.categoryName}{p.itemName ? ` / ${p.itemName}` : ''}
                           </span>
@@ -582,6 +700,7 @@ const HomePage: React.FC = () => {
           </div>
         </>
       )}
+
     </div>
   );
 };

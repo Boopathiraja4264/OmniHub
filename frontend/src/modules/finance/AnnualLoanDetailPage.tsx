@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { debtApi } from '../../services/api';
 import { AnnualLoanDetail } from '../../types';
+import DatePicker from '../../components/DatePicker';
 
 const fmt = (n?: number) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n) : '—';
@@ -140,7 +141,7 @@ const AnnualLoanDetailPage: React.FC = () => {
   const { summary: s, prepayments } = detail;
   const progress = s.initialPrincipal > 0 ? Math.min(100, (1 - (s.currentBalance || 0) / s.initialPrincipal) * 100) : 0;
   const totalPrepaid = prepayments.reduce((sum, p) => sum + p.amount, 0);
-  const statusColor = s.status === 'OUTSTANDING' ? '#22c55e' : '#94a3b8';
+  const statusColor = s.status === 'OUTSTANDING' ? 'var(--income)' : '#94a3b8';
 
   return (
     <>
@@ -152,7 +153,7 @@ const AnnualLoanDetailPage: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{s.name}</h1>
+          <h2 className="page-title">{s.name}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
             {s.loanId} · {pct(s.annualInterestRate)} annual interest · {fmtDate(s.startDate)} → {fmtDate(s.endDate)}
           </p>
@@ -160,7 +161,7 @@ const AnnualLoanDetailPage: React.FC = () => {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, background: `${statusColor}20`, color: statusColor }}>{s.status}</span>
           <button onClick={openEdit} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
-          <button onClick={handleDelete} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#ef4444', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+          <button onClick={handleDelete} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: 'var(--expense)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
         </div>
       </div>
 
@@ -172,16 +173,16 @@ const AnnualLoanDetailPage: React.FC = () => {
         </div>
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 5 }}>Outstanding</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#ef4444' }}>{fmt(s.currentBalance)}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--expense)' }}>{fmt(s.currentBalance)}</div>
         </div>
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Total Interest Accrued</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#a855f7' }}>{fmtExact(s.totalInterestAccrued)}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--purple)' }}>{fmtExact(s.totalInterestAccrued)}</div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>accrued to date + projected to end</div>
         </div>
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>Interest Paid</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#22c55e' }}>{fmtExact(s.interestPaid)}</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--income)' }}>{fmtExact(s.interestPaid)}</div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>settled at loan closure</div>
         </div>
       </div>
@@ -192,7 +193,7 @@ const AnnualLoanDetailPage: React.FC = () => {
           <span>Repayment progress</span><span>{Math.round(progress)}% repaid</span>
         </div>
         <div style={{ height: 8, background: 'var(--bg-main)', borderRadius: 99 }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: '#f59e0b', borderRadius: 99 }} />
+          <div style={{ height: '100%', width: `${progress}%`, background: 'var(--warning)', borderRadius: 99 }} />
         </div>
       </div>
 
@@ -204,7 +205,7 @@ const AnnualLoanDetailPage: React.FC = () => {
             {prepayments.length} entries · Total {fmt(totalPrepaid)}
           </span>
         </div>
-        <button onClick={() => setShowAdd(v => !v)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+        <button onClick={() => setShowAdd(v => !v)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--warning)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
           {showAdd ? 'Cancel' : '+ Add Prepayment'}
         </button>
       </div>
@@ -213,9 +214,9 @@ const AnnualLoanDetailPage: React.FC = () => {
         <form onSubmit={handleAddPrepayment} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: 16, marginBottom: 16, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: 1, minWidth: 140 }}>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Date</label>
-            <input type="date" required value={form.paymentDate}
+            <DatePicker value={form.paymentDate}
               onChange={e => handleDateChange(e.target.value)}
-              style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12, boxSizing: 'border-box' }} />
+              required fullWidth size="sm" />
           </div>
           <div style={{ flex: 1, minWidth: 140 }}>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Amount (₹)</label>
@@ -226,14 +227,14 @@ const AnnualLoanDetailPage: React.FC = () => {
           <div style={{ flex: 1, minWidth: 160 }}>
             <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
               Interest Accrued this Period (₹)
-              {interestAutoCalc && <span style={{ marginLeft: 6, color: '#f59e0b', fontWeight: 600 }}>auto-calculated</span>}
+              {interestAutoCalc && <span style={{ marginLeft: 6, color: 'var(--warning)', fontWeight: 600 }}>auto-calculated</span>}
             </label>
             <input type="number" value={form.interestAccrued}
               onChange={e => { setForm(fm => ({ ...fm, interestAccrued: e.target.value })); setInterestAutoCalc(false); }}
               placeholder="auto"
-              style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: `1px solid ${interestAutoCalc ? '#f59e0b' : 'var(--border)'}`, background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12, boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: `1px solid ${interestAutoCalc ? 'var(--warning)' : 'var(--border)'}`, background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 12, boxSizing: 'border-box' }} />
           </div>
-          <button type="submit" disabled={saving} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
+          <button type="submit" disabled={saving} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: 'var(--warning)', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>
             {saving ? 'Saving…' : 'Save'}
           </button>
         </form>
@@ -257,13 +258,13 @@ const AnnualLoanDetailPage: React.FC = () => {
                 acc.push({ ...p, runningBalance: Math.max(0, prev - p.amount) });
                 return acc;
               }, [] as any[]).map((p: any, i: number) => (
-                <tr key={p.id} style={{ background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.02)' }}>
+                <tr key={p.id} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-row-alt)' }}>
                   <td style={{ padding: '8px 14px', textAlign: 'right', color: 'var(--text-primary)' }}>{fmtDate(p.paymentDate)}</td>
-                  <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: '#f59e0b' }}>{fmt(p.amount)}</td>
-                  <td style={{ padding: '8px 14px', textAlign: 'right', color: '#a855f7' }}>{p.interestAccrued != null ? fmtExact(p.interestAccrued) : '—'}</td>
-                  <td style={{ padding: '8px 14px', textAlign: 'right', color: '#ef4444' }}>{fmt(p.runningBalance)}</td>
+                  <td style={{ padding: '8px 14px', textAlign: 'right', fontWeight: 700, color: 'var(--warning)' }}>{fmt(p.amount)}</td>
+                  <td style={{ padding: '8px 14px', textAlign: 'right', color: 'var(--purple)' }}>{p.interestAccrued != null ? fmtExact(p.interestAccrued) : '—'}</td>
+                  <td style={{ padding: '8px 14px', textAlign: 'right', color: 'var(--expense)' }}>{fmt(p.runningBalance)}</td>
                   <td style={{ padding: '8px 14px', textAlign: 'center' }}>
-                    <button onClick={() => handleDeletePrepayment(p.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 13 }}>✕</button>
+                    <button onClick={() => handleDeletePrepayment(p.id)} style={{ background: 'none', border: 'none', color: 'var(--expense)', cursor: 'pointer', fontSize: 13 }}>✕</button>
                   </td>
                 </tr>
               ))}
@@ -315,7 +316,7 @@ const AnnualLoanDetailPage: React.FC = () => {
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setShowEdit(false)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-              <button type="submit" disabled={editSaving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{editSaving ? 'Saving…' : 'Update'}</button>
+              <button type="submit" disabled={editSaving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--warning)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{editSaving ? 'Saving…' : 'Update'}</button>
             </div>
           </form>
         </div>

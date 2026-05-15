@@ -20,6 +20,7 @@ interface AuthContextType {
   register: (fullName: string, email: string, password: string) => Promise<AuthResponse>;
   loginWithToken: (data: AuthResponse) => void;
   logout: () => void;
+  updateUser: (data: Partial<User>) => void;
   loading: boolean;
 }
 
@@ -30,10 +31,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   // On app load: rehydrate session from HttpOnly cookie via /api/auth/me
+  const updateUser = (data: Partial<User>) => {
+    setUser(prev => prev ? { ...prev, ...data } : prev);
+  };
+
   useEffect(() => {
     authApi.getMe()
       .then(r => {
-        setUser({ email: r.data.email, fullName: r.data.fullName, token: '', oauthProvider: r.data.oauthProvider || '' });
+        setUser({ email: r.data.email, fullName: r.data.fullName, token: '', oauthProvider: r.data.oauthProvider || '', profilePicture: r.data.profilePicture || undefined });
       })
       .catch(() => {
         // No valid session — clear any stale localStorage
@@ -71,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, loginWithToken, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, loginWithToken, logout, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
