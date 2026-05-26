@@ -404,6 +404,17 @@ public class DebtService {
             loan.setForeclosureAmount(req.getForeclosureAmount());
             loan.setForeclosurePrincipal(req.getForeclosurePrincipal());
             loan.setForeclosureInterest(req.getForeclosureInterest());
+            loan.setForeclosureCharges(req.getForeclosureCharges());
+            loan.setForeclosureChargesGst(req.getForeclosureChargesGst());
+            loan.setForeclosureInterestGst(req.getForeclosureInterestGst());
+        } else {
+            loan.setForeclosureDate(null);
+            loan.setForeclosureAmount(null);
+            loan.setForeclosurePrincipal(null);
+            loan.setForeclosureInterest(null);
+            loan.setForeclosureCharges(null);
+            loan.setForeclosureChargesGst(null);
+            loan.setForeclosureInterestGst(null);
         }
         // Compute base EMI
         BigDecimal P = loan.getInitialPrincipal();
@@ -711,6 +722,11 @@ public class DebtService {
         r.setPrincipalPaid(l.getPrincipalPaid()); r.setInterestPaid(l.getInterestPaid()); r.setGstPaid(l.getGstPaid());
         r.setForeclosed(l.isForeclosed()); r.setForeclosureDate(l.getForeclosureDate());
         r.setForeclosureAmount(l.getForeclosureAmount());
+        r.setForeclosurePrincipal(l.getForeclosurePrincipal());
+        r.setForeclosureInterest(l.getForeclosureInterest());
+        r.setForeclosureCharges(l.getForeclosureCharges());
+        r.setForeclosureChargesGst(l.getForeclosureChargesGst());
+        r.setForeclosureInterestGst(l.getForeclosureInterestGst());
         r.setProcessingCharge(l.getProcessingCharge() != null ? l.getProcessingCharge() : BigDecimal.ZERO);
         r.setProcessingChargePaid(l.getProcessingChargePaid() != null ? l.getProcessingChargePaid() : BigDecimal.ZERO);
         BigDecimal paid = l.getPrincipalPaid() != null ? l.getPrincipalPaid() : BigDecimal.ZERO;

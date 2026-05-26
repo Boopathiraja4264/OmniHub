@@ -38,12 +38,17 @@ const AddTransactionModal: React.FC<Props> = ({ open, onClose, onSaved, initialT
   const [defaultBankId, setDefaultBankId] = useState<number | null>(null);
   const [pending, setPending] = useState<PendingExpense[]>([]);
   const [nextId, setNextId] = useState(0);
+  const [favoriteItems, setFavoriteItems] = useState<ExpenseItem[]>([]);
 
   useEffect(() => {
     categoryItemApi.getCategories().then(r => {
       const arr = Array.isArray(r.data) ? r.data : [];
       const seen = new Set<string>();
       setExpenseCategories(arr.filter((c: ExpenseCategory) => seen.has(c.name) ? false : !!seen.add(c.name)));
+    }).catch(() => {});
+    categoryItemApi.getAll().then(r => {
+      const arr: ExpenseItem[] = Array.isArray(r.data) ? r.data : [];
+      setFavoriteItems(arr.filter(i => i.favorite));
     }).catch(() => {});
     creditCardApi.getAll().then(r => setCards(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     bankAccountApi.getAll().then(r => {
@@ -92,6 +97,18 @@ const AddTransactionModal: React.FC<Props> = ({ open, onClose, onSaved, initialT
     setForm(f => ({ ...f, category: cat?.name || '', categoryId: catId, itemName: '' }));
     setItems([]);
     if (catId) categoryItemApi.getItems(parseInt(catId)).then(r => setItems(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+  };
+
+  const handleFavoritePick = (item: ExpenseItem) => {
+    const isActive = form.categoryId === String(item.categoryId) && form.itemName === item.name;
+    if (isActive) {
+      setForm(f => ({ ...f, category: '', categoryId: '', itemName: '' }));
+      setItems([]);
+    } else {
+      setForm(f => ({ ...f, category: item.categoryName, categoryId: String(item.categoryId), itemName: item.name }));
+      setItems([]);
+      categoryItemApi.getItems(item.categoryId).then(r => setItems(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+    }
   };
 
   const isExpenseAdd = form.type === 'EXPENSE' && !editing;
@@ -183,6 +200,36 @@ const AddTransactionModal: React.FC<Props> = ({ open, onClose, onSaved, initialT
                 onChange={e => setForm({ ...form, date: e.target.value })} required fullWidth />
             </div>
 
+            {/* Favorites quick-pick strip */}
+            {form.type === 'EXPENSE' && !editing && favoriteItems.length > 0 && (
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ color: '#f59e0b', fontSize: 12 }}>★</span> Quick Pick
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+                  {favoriteItems.map(item => {
+                    const isActive = form.categoryId === String(item.categoryId) && form.itemName === item.name;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => handleFavoritePick(item)}
+                        style={{
+                          padding: '5px 12px', borderRadius: 20, cursor: 'pointer', transition: 'all 0.15s',
+                          border: `1px solid ${isActive ? 'var(--primary)' : 'var(--border)'}`,
+                          background: isActive ? 'var(--primary-dim)' : 'var(--bg-elevated)',
+                          color: isActive ? 'var(--primary)' : 'var(--text-primary)',
+                          fontSize: 12, fontWeight: isActive ? 600 : 500,
+                        }}
+                      >
+                        {item.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* EXPENSE: Category | Item */}
             {form.type === 'EXPENSE' && (<>
               <div className="form-group">
@@ -199,7 +246,7 @@ const AddTransactionModal: React.FC<Props> = ({ open, onClose, onSaved, initialT
                 <label>Item <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
                 <FilterDropdown
                   value={form.itemName}
-                  options={items.map(i => ({ label: i.name, value: i.name }))}
+                  options={items.map(i => ({ label: i.name, value: i.name, favorite: i.favorite }))}
                   onChange={v => setForm(f => ({ ...f, itemName: v as string }))}
                   placeholder="Select item..."
                   disabled={!form.categoryId || items.length === 0}

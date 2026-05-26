@@ -8,6 +8,7 @@ const fmt = (n?: number) =>
 const fmtD = (n?: number, dec = 0) =>
   n != null ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: dec, maximumFractionDigits: dec }).format(n) : '—';
 const pct = (n?: number) => n != null ? `${(n * 100).toFixed(2)}%` : '—';
+const n2 = (s: string) => Math.round(parseFloat(s) * 100) / 100 || 0;
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const fmtDate = (d?: string) => {
@@ -21,6 +22,23 @@ const inputStyle: React.CSSProperties = {
   background: 'var(--bg-main)', color: 'var(--text-primary)', fontSize: 13, boxSizing: 'border-box',
 };
 
+const roStyle: React.CSSProperties = {
+  ...inputStyle, background: 'var(--bg-row-alt)', color: 'var(--text-muted)', cursor: 'default',
+};
+
+interface FcForm {
+  foreclosureDate: string;
+  foreclosurePrincipal: string;
+  foreclosureCharges: string;
+  foreclosureChargesGst: string;
+  foreclosureInterest: string;
+  foreclosureInterestGst: string;
+}
+
+const computeTotal = (f: FcForm) =>
+  n2(f.foreclosurePrincipal) + n2(f.foreclosureCharges) + n2(f.foreclosureChargesGst) +
+  n2(f.foreclosureInterest) + n2(f.foreclosureInterestGst);
+
 const EmiLoanDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -30,7 +48,7 @@ const EmiLoanDetailPage: React.FC = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [showForeclose, setShowForeclose] = useState(false);
   const [editForm, setEditForm] = useState({ loanId: '', name: '', initialPrincipal: '', annualInterestRate: '', tenureMonths: '', gstRate: '', processingCharge: '', startDate: '', status: 'ACTIVE', notes: '' });
-  const [fcForm, setFcForm] = useState({ foreclosureDate: '', foreclosureAmount: '', foreclosurePrincipal: '', foreclosureInterest: '' });
+  const [fcForm, setFcForm] = useState<FcForm>({ foreclosureDate: '', foreclosurePrincipal: '', foreclosureCharges: '', foreclosureChargesGst: '', foreclosureInterest: '', foreclosureInterestGst: '' });
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -78,6 +96,27 @@ const EmiLoanDetailPage: React.FC = () => {
     setShowEdit(true);
   };
 
+  const openForeclose = () => {
+    if (!detail) return;
+    const s = detail.summary;
+    const outstanding = s.outstandingPrincipal ?? 0;
+    const charges = Math.round(outstanding * 0.03 * 100) / 100;
+    const chargesGst = Math.round(charges * 0.18 * 100) / 100;
+    const nextInst = detail.installments.find(i => !i.paid);
+    const upcomingInterest = nextInst ? Math.round((nextInst.interestPart ?? 0) * 100) / 100 : 0;
+    const upcomingInterestGst = nextInst ? Math.round((nextInst.gstPart ?? 0) * 100) / 100 : 0;
+    const today = new Date().toISOString().slice(0, 10);
+    setFcForm({
+      foreclosureDate: today,
+      foreclosurePrincipal: String(outstanding),
+      foreclosureCharges: String(charges),
+      foreclosureChargesGst: String(chargesGst),
+      foreclosureInterest: String(upcomingInterest),
+      foreclosureInterestGst: String(upcomingInterestGst),
+    });
+    setShowForeclose(true);
+  };
+
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
@@ -91,7 +130,7 @@ const EmiLoanDetailPage: React.FC = () => {
         gstRate: editForm.gstRate ? parseFloat(editForm.gstRate) : 0,
         processingCharge: editForm.processingCharge ? parseFloat(editForm.processingCharge) : 0,
         startDate: editForm.startDate, status: editForm.status, notes: editForm.notes || null,
-        foreclosed: detail?.summary.foreclosed || false,
+        foreclosed: editForm.status === 'FORECLOSED',
       });
       setShowEdit(false);
       load();
@@ -103,6 +142,7 @@ const EmiLoanDetailPage: React.FC = () => {
     if (!id || !detail) return;
     setSaving(true);
     const s = detail.summary;
+    const total = computeTotal(fcForm);
     try {
       await debtApi.updateEmi(parseInt(id), {
         loanId: s.loanId, name: s.name,
@@ -114,9 +154,12 @@ const EmiLoanDetailPage: React.FC = () => {
         startDate: s.startDate, status: 'FORECLOSED', notes: s.notes || null,
         foreclosed: true,
         foreclosureDate: fcForm.foreclosureDate,
-        foreclosureAmount: parseFloat(fcForm.foreclosureAmount),
-        foreclosurePrincipal: parseFloat(fcForm.foreclosurePrincipal),
-        foreclosureInterest: parseFloat(fcForm.foreclosureInterest),
+        foreclosureAmount: total,
+        foreclosurePrincipal: n2(fcForm.foreclosurePrincipal),
+        foreclosureInterest: n2(fcForm.foreclosureInterest),
+        foreclosureCharges: n2(fcForm.foreclosureCharges),
+        foreclosureChargesGst: n2(fcForm.foreclosureChargesGst),
+        foreclosureInterestGst: n2(fcForm.foreclosureInterestGst),
       });
       setShowForeclose(false);
       load();
@@ -125,7 +168,8 @@ const EmiLoanDetailPage: React.FC = () => {
 
   const setE = (k: string) => (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setEditForm(f => ({ ...f, [k]: ev.target.value }));
-  const setF = (k: string) => (ev: React.ChangeEvent<HTMLInputElement>) =>
+
+  const setF = (k: keyof FcForm) => (ev: React.ChangeEvent<HTMLInputElement>) =>
     setFcForm(f => ({ ...f, [k]: ev.target.value }));
 
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
@@ -135,6 +179,12 @@ const EmiLoanDetailPage: React.FC = () => {
   const paidCount = installments.filter(i => i.paid).length;
   const progress = s.initialPrincipal > 0 ? Math.min(100, ((s.principalPaid || 0) / s.initialPrincipal) * 100) : 0;
   const statusColor = s.status === 'ACTIVE' ? 'var(--income)' : s.status === 'FORECLOSED' ? '#f97316' : '#94a3b8';
+
+  // Foreclosure report totals
+  const fcTotalPrincipal = (s.principalPaid || 0) + (s.foreclosurePrincipal || 0);
+  const fcTotalInterest = (s.interestPaid || 0) + (s.foreclosureInterest || 0);
+  const fcTotalGst = (s.gstPaid || 0) + (s.foreclosureInterestGst || 0);
+  const fcGrandTotal = fcTotalPrincipal + fcTotalInterest + fcTotalGst + (s.foreclosureCharges || 0) + (s.foreclosureChargesGst || 0);
 
   return (
     <>
@@ -156,7 +206,7 @@ const EmiLoanDetailPage: React.FC = () => {
           <span style={{ fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 20, background: `${statusColor}20`, color: statusColor }}>{s.status}</span>
           <button onClick={openEdit} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Edit</button>
           {s.status === 'ACTIVE' && (
-            <button onClick={() => setShowForeclose(true)} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(249,115,22,0.4)', background: 'rgba(249,115,22,0.08)', color: '#f97316', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Foreclose</button>
+            <button onClick={openForeclose} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(249,115,22,0.4)', background: 'rgba(249,115,22,0.08)', color: '#f97316', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Foreclose</button>
           )}
           <button onClick={handleDelete} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: 'var(--expense)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
         </div>
@@ -203,13 +253,53 @@ const EmiLoanDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Foreclosure info */}
+      {/* Foreclosure Report */}
       {s.foreclosed && (
-        <div style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: 10, padding: '12px 16px', marginBottom: 24, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-          <div><div style={{ fontSize: 11, color: '#f97316', marginBottom: 3 }}>Foreclosed On</div><div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{fmtDate(s.foreclosureDate)}</div></div>
-          <div><div style={{ fontSize: 11, color: '#f97316', marginBottom: 3 }}>Total Paid</div><div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{fmt(s.foreclosureAmount)}</div></div>
-          <div><div style={{ fontSize: 11, color: '#f97316', marginBottom: 3 }}>Principal</div><div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{fmt(s.foreclosurePrincipal)}</div></div>
-          <div><div style={{ fontSize: 11, color: '#f97316', marginBottom: 3 }}>Interest at Closure</div><div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{fmt(s.foreclosureInterest)}</div></div>
+        <div style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: 12, padding: '18px 20px', marginBottom: 28 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#f97316', marginBottom: 14 }}>
+            Closure Report — Foreclosed on {fmtDate(s.foreclosureDate)}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
+            {/* Principal column */}
+            <div style={{ background: 'var(--bg-card)', borderRadius: 9, padding: '12px 14px' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Principal</div>
+              <Row label="Paid via EMIs" value={fmt(s.principalPaid)} color="var(--income)" />
+              <Row label="Paid at closure" value={fmt(s.foreclosurePrincipal)} color="var(--income)" />
+              <Divider />
+              <Row label="Total principal" value={fmt(fcTotalPrincipal)} color="var(--income)" bold />
+            </div>
+            {/* Interest + GST column */}
+            <div style={{ background: 'var(--bg-card)', borderRadius: 9, padding: '12px 14px' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Interest & GST</div>
+              <Row label="Interest paid (EMIs)" value={fmt(s.interestPaid)} color="var(--warning)" />
+              <Row label="Interest at closure" value={fmt(s.foreclosureInterest)} color="var(--warning)" />
+              <Row label="GST paid (EMIs)" value={fmt(s.gstPaid)} color="var(--purple)" />
+              <Row label="GST on closure interest" value={fmt(s.foreclosureInterestGst)} color="var(--purple)" />
+              <Divider />
+              <Row label="Total interest" value={fmt(fcTotalInterest)} color="var(--warning)" bold />
+              <Row label="Total GST" value={fmt(fcTotalGst)} color="var(--purple)" bold />
+            </div>
+            {/* Foreclosure charges column */}
+            <div style={{ background: 'var(--bg-card)', borderRadius: 9, padding: '12px 14px' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5 }}>Foreclosure Charges</div>
+              <Row label="Charge (3% of principal)" value={fmt(s.foreclosureCharges)} color="#f97316" />
+              <Row label="GST on charge (18%)" value={fmt(s.foreclosureChargesGst)} color="#f97316" />
+              <Divider />
+              <Row label="Total charges" value={fmt((s.foreclosureCharges || 0) + (s.foreclosureChargesGst || 0))} color="#f97316" bold />
+            </div>
+          </div>
+          {/* Grand total bar */}
+          <div style={{ background: 'rgba(249,115,22,0.12)', borderRadius: 8, padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 11, color: '#f97316', marginBottom: 2 }}>Amount Financed</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{fmt(s.initialPrincipal)}</div>
+            </div>
+            <div style={{ fontSize: 18, color: 'var(--text-muted)' }}>→</div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 11, color: '#f97316', marginBottom: 2 }}>Total Outgo (Principal + Interest + GST + Charges)</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#f97316' }}>{fmt(fcGrandTotal)}</div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -346,25 +436,41 @@ const EmiLoanDetailPage: React.FC = () => {
       {/* Foreclose Modal */}
       {showForeclose && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, width: '100%', maxWidth: 420, padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: '#f97316', margin: 0 }}>Foreclose Loan</h2>
               <button onClick={() => setShowForeclose(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 20, cursor: 'pointer' }}>×</button>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>Enter the details from your bank's pre-closure statement.</p>
-            <form onSubmit={handleForeclose} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {[
-                { label: 'Pre-closure Date *', key: 'foreclosureDate', type: 'date' },
-                { label: 'Total Amount Paid (₹) *', key: 'foreclosureAmount', type: 'number' },
-                { label: 'Principal Component (₹) *', key: 'foreclosurePrincipal', type: 'number' },
-                { label: 'Interest Component (₹) *', key: 'foreclosureInterest', type: 'number' },
-              ].map(f => (
-                <div key={f.key}>
-                  <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>{f.label}</label>
-                  <input type={f.type} required style={inputStyle} value={(fcForm as any)[f.key]} onChange={setF(f.key)} />
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
+              Auto-calculated from current balance. Edit if your bank statement differs.
+            </p>
+            <form onSubmit={handleForeclose} style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Pre-closure Date *</label>
+                <input type="date" required style={inputStyle} value={fcForm.foreclosureDate} onChange={setF('foreclosureDate')} />
+              </div>
+
+              {/* Principal */}
+              <SectionLabel>Outstanding Principal</SectionLabel>
+              <FcRow label="Principal (₹)" field="foreclosurePrincipal" form={fcForm} setF={setF} inputStyle={inputStyle} color="var(--income)" />
+
+              {/* Foreclosure charges */}
+              <SectionLabel>Foreclosure Charges</SectionLabel>
+              <FcRow label="Charge (3% of principal) (₹)" field="foreclosureCharges" form={fcForm} setF={setF} inputStyle={inputStyle} color="#f97316" />
+              <FcRow label="GST on charge (18%) (₹)" field="foreclosureChargesGst" form={fcForm} setF={setF} inputStyle={inputStyle} color="#f97316" />
+
+              {/* Upcoming month interest */}
+              <SectionLabel>Upcoming Month Interest</SectionLabel>
+              <FcRow label="Interest (₹)" field="foreclosureInterest" form={fcForm} setF={setF} inputStyle={inputStyle} color="var(--warning)" />
+              <FcRow label="GST on interest (18%) (₹)" field="foreclosureInterestGst" form={fcForm} setF={setF} inputStyle={inputStyle} color="var(--purple)" />
+
+              {/* Total */}
+              <div style={{ background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)', borderRadius: 8, padding: '12px 14px', marginTop: 8, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 12, color: '#f97316', fontWeight: 600 }}>Total Payable</span>
+                <span style={{ fontSize: 18, fontWeight: 800, color: '#f97316' }}>{fmtD(computeTotal(fcForm), 2)}</span>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowForeclose(false)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
                 <button type="submit" disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#f97316', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>{saving ? 'Processing…' : 'Confirm Foreclose'}</button>
               </div>
@@ -375,5 +481,36 @@ const EmiLoanDetailPage: React.FC = () => {
     </>
   );
 };
+
+// ── Small helpers ─────────────────────────────────────────────────────────────
+
+const SectionLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6, marginTop: 12 }}>{children}</div>
+);
+
+const Divider: React.FC = () => (
+  <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
+);
+
+const Row: React.FC<{ label: string; value: string; color: string; bold?: boolean }> = ({ label, value, color, bold }) => (
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</span>
+    <span style={{ fontSize: bold ? 13 : 12, fontWeight: bold ? 700 : 500, color }}>{value}</span>
+  </div>
+);
+
+const FcRow: React.FC<{
+  label: string;
+  field: keyof FcForm;
+  form: FcForm;
+  setF: (k: keyof FcForm) => (ev: React.ChangeEvent<HTMLInputElement>) => void;
+  inputStyle: React.CSSProperties;
+  color: string;
+}> = ({ label, field, form, setF, inputStyle, color }) => (
+  <div style={{ marginBottom: 8 }}>
+    <label style={{ fontSize: 11, color, display: 'block', marginBottom: 3 }}>{label}</label>
+    <input type="number" step="0.01" style={inputStyle} value={form[field]} onChange={setF(field)} />
+  </div>
+);
 
 export default EmiLoanDetailPage;

@@ -473,15 +473,18 @@ public class DTOs {
         private String name;
         private Long categoryId;
         private String categoryName;
+        private boolean favorite;
 
-        public ItemResponse(Long id, String name, Long categoryId, String categoryName) {
+        public ItemResponse(Long id, String name, Long categoryId, String categoryName, boolean favorite) {
             this.id = id; this.name = name; this.categoryId = categoryId; this.categoryName = categoryName;
+            this.favorite = favorite;
         }
 
         public Long getId() { return id; }
         public String getName() { return name; }
         public Long getCategoryId() { return categoryId; }
         public String getCategoryName() { return categoryName; }
+        public boolean isFavorite() { return favorite; }
     }
 
     public static class ItemRequest {
@@ -1012,6 +1015,7 @@ public class DTOs {
         private String loanId, name, status, notes;
         private BigDecimal initialPrincipal, annualInterestRate, gstRate;
         private BigDecimal foreclosureAmount, foreclosurePrincipal, foreclosureInterest;
+        private BigDecimal foreclosureCharges, foreclosureChargesGst, foreclosureInterestGst;
         private BigDecimal processingCharge;
         private Integer tenureMonths;
         private LocalDate startDate, foreclosureDate;
@@ -1027,6 +1031,9 @@ public class DTOs {
         public BigDecimal getForeclosureAmount() { return foreclosureAmount; } public void setForeclosureAmount(BigDecimal v) { foreclosureAmount = v; }
         public BigDecimal getForeclosurePrincipal() { return foreclosurePrincipal; } public void setForeclosurePrincipal(BigDecimal v) { foreclosurePrincipal = v; }
         public BigDecimal getForeclosureInterest() { return foreclosureInterest; } public void setForeclosureInterest(BigDecimal v) { foreclosureInterest = v; }
+        public BigDecimal getForeclosureCharges() { return foreclosureCharges; } public void setForeclosureCharges(BigDecimal v) { foreclosureCharges = v; }
+        public BigDecimal getForeclosureChargesGst() { return foreclosureChargesGst; } public void setForeclosureChargesGst(BigDecimal v) { foreclosureChargesGst = v; }
+        public BigDecimal getForeclosureInterestGst() { return foreclosureInterestGst; } public void setForeclosureInterestGst(BigDecimal v) { foreclosureInterestGst = v; }
         public BigDecimal getProcessingCharge() { return processingCharge; } public void setProcessingCharge(BigDecimal v) { processingCharge = v; }
         public Integer getTenureMonths() { return tenureMonths; } public void setTenureMonths(Integer v) { tenureMonths = v; }
         public LocalDate getStartDate() { return startDate; } public void setStartDate(LocalDate v) { startDate = v; }
@@ -1093,6 +1100,7 @@ public class DTOs {
         private BigDecimal initialPrincipal, annualInterestRate, gstRate, baseEmi;
         private BigDecimal principalPaid, interestPaid, gstPaid, outstandingPrincipal, futureInterest;
         private BigDecimal foreclosureAmount, foreclosurePrincipal, foreclosureInterest;
+        private BigDecimal foreclosureCharges, foreclosureChargesGst, foreclosureInterestGst;
         private BigDecimal processingCharge, processingChargePaid;
         private Integer tenureMonths;
         private LocalDate startDate, endDate, foreclosureDate;
@@ -1115,6 +1123,9 @@ public class DTOs {
         public BigDecimal getForeclosureAmount() { return foreclosureAmount; } public void setForeclosureAmount(BigDecimal v) { foreclosureAmount = v; }
         public BigDecimal getForeclosurePrincipal() { return foreclosurePrincipal; } public void setForeclosurePrincipal(BigDecimal v) { foreclosurePrincipal = v; }
         public BigDecimal getForeclosureInterest() { return foreclosureInterest; } public void setForeclosureInterest(BigDecimal v) { foreclosureInterest = v; }
+        public BigDecimal getForeclosureCharges() { return foreclosureCharges; } public void setForeclosureCharges(BigDecimal v) { foreclosureCharges = v; }
+        public BigDecimal getForeclosureChargesGst() { return foreclosureChargesGst; } public void setForeclosureChargesGst(BigDecimal v) { foreclosureChargesGst = v; }
+        public BigDecimal getForeclosureInterestGst() { return foreclosureInterestGst; } public void setForeclosureInterestGst(BigDecimal v) { foreclosureInterestGst = v; }
         public BigDecimal getProcessingCharge() { return processingCharge; } public void setProcessingCharge(BigDecimal v) { processingCharge = v; }
         public BigDecimal getProcessingChargePaid() { return processingChargePaid; } public void setProcessingChargePaid(BigDecimal v) { processingChargePaid = v; }
         public Integer getTenureMonths() { return tenureMonths; } public void setTenureMonths(Integer v) { tenureMonths = v; }

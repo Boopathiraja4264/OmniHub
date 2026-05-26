@@ -10,7 +10,7 @@ import java.util.List;
 
 public interface ExpenseItemRepository extends JpaRepository<ExpenseItem, Long> {
 
-    @Query("SELECT i FROM ExpenseItem i JOIN FETCH i.category WHERE i.category.id = :categoryId AND i.user.id = :userId ORDER BY i.name ASC")
+    @Query("SELECT i FROM ExpenseItem i JOIN FETCH i.category WHERE i.category.id = :categoryId AND i.user.id = :userId ORDER BY i.favorite DESC, i.name ASC")
     List<ExpenseItem> findByCategoryIdAndUserIdOrderByNameAsc(@Param("categoryId") Long categoryId, @Param("userId") Long userId);
 
     @Query("SELECT i FROM ExpenseItem i JOIN FETCH i.category WHERE i.user.id = :userId ORDER BY i.category.name ASC, i.name ASC")

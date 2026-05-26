@@ -48,6 +48,12 @@ public class CategoryItemController {
         return ResponseEntity.ok(service.addItem(user.getUsername(), req));
     }
 
+    @PatchMapping("/items/{id}/favorite")
+    public ResponseEntity<ItemResponse> toggleFavorite(@AuthenticationPrincipal UserDetails user,
+                                                        @PathVariable Long id) {
+        return ResponseEntity.ok(service.toggleFavorite(user.getUsername(), id));
+    }
+
     @DeleteMapping("/items/{id}")
     public ResponseEntity<Void> deleteItem(@AuthenticationPrincipal UserDetails user,
                                             @PathVariable Long id) {

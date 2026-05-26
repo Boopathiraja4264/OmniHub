@@ -78,6 +78,15 @@ public class EmiLoan {
     private BigDecimal foreclosureInterest;
 
     @Column(precision = 14, scale = 2)
+    private BigDecimal foreclosureCharges;  // 3% of outstanding principal
+
+    @Column(precision = 14, scale = 2)
+    private BigDecimal foreclosureChargesGst;  // 18% of foreclosure charges
+
+    @Column(precision = 14, scale = 2)
+    private BigDecimal foreclosureInterestGst;  // 18% of upcoming month interest
+
+    @Column(precision = 14, scale = 2)
     private BigDecimal processingCharge;
 
     @Column(precision = 14, scale = 2)
@@ -135,6 +144,12 @@ public class EmiLoan {
     public void setForeclosurePrincipal(BigDecimal v) { foreclosurePrincipal = v; }
     public BigDecimal getForeclosureInterest() { return foreclosureInterest; }
     public void setForeclosureInterest(BigDecimal v) { foreclosureInterest = v; }
+    public BigDecimal getForeclosureCharges() { return foreclosureCharges; }
+    public void setForeclosureCharges(BigDecimal v) { foreclosureCharges = v; }
+    public BigDecimal getForeclosureChargesGst() { return foreclosureChargesGst; }
+    public void setForeclosureChargesGst(BigDecimal v) { foreclosureChargesGst = v; }
+    public BigDecimal getForeclosureInterestGst() { return foreclosureInterestGst; }
+    public void setForeclosureInterestGst(BigDecimal v) { foreclosureInterestGst = v; }
     public BigDecimal getProcessingCharge() { return processingCharge; }
     public void setProcessingCharge(BigDecimal v) { processingCharge = v; }
     public BigDecimal getProcessingChargePaid() { return processingChargePaid; }

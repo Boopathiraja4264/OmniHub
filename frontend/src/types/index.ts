@@ -101,6 +101,7 @@ export interface ExpenseItem {
   name: string;
   categoryId: number;
   categoryName: string;
+  favorite?: boolean;
 }
 
 export interface MonthData {
@@ -421,6 +422,9 @@ export interface EmiLoanSummary {
   foreclosureAmount?: number;
   foreclosurePrincipal?: number;
   foreclosureInterest?: number;
+  foreclosureCharges?: number;
+  foreclosureChargesGst?: number;
+  foreclosureInterestGst?: number;
   processingCharge?: number;
   processingChargePaid?: number;
   notes?: string;

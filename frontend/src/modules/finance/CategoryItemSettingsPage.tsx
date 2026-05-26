@@ -96,6 +96,11 @@ const CategoryItemSettingsPage: React.FC = () => {
     loadAll();
   };
 
+  const handleToggleFavorite = async (id: number) => {
+    await categoryItemApi.toggleFavorite(id);
+    loadAll();
+  };
+
   const handleDeduplicate = async () => {
     if (!window.confirm('Remove all duplicate categories and their items?')) return;
     setDeduping(true);
@@ -185,9 +190,14 @@ const CategoryItemSettingsPage: React.FC = () => {
             const color = accent(idx);
             const catItems = itemsByCat[cat.id] || [];
             const isAdding = addingItemForCat === cat.id;
+            const sortedItems = [...catItems].sort((a, b) => {
+              if (a.favorite && !b.favorite) return -1;
+              if (!a.favorite && b.favorite) return 1;
+              return a.name.localeCompare(b.name);
+            });
             const filteredItems = search.trim()
-              ? catItems.filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
-              : catItems;
+              ? sortedItems.filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
+              : sortedItems;
 
             return (
               <div key={cat.id} style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column' }}>
@@ -232,8 +242,20 @@ const CategoryItemSettingsPage: React.FC = () => {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {filteredItems.map(item => (
                         <span key={item.id}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '4px 8px 4px 10px', borderRadius: 20,
+                            background: item.favorite ? `${color}18` : 'var(--bg-elevated)',
+                            border: `1px solid ${item.favorite ? accentBorder(color) : 'var(--border-subtle)'}`,
+                            fontSize: 12, color: item.favorite ? color : 'var(--text-secondary)', fontWeight: item.favorite ? 600 : 500,
+                          }}>
                           {item.name}
+                          <button
+                            onClick={() => handleToggleFavorite(item.id)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: item.favorite ? '#f59e0b' : 'var(--text-muted)', fontSize: 12, lineHeight: 1, padding: 0, display: 'flex', alignItems: 'center', opacity: item.favorite ? 1 : 0.5 }}
+                            title={item.favorite ? 'Remove from favourites' : 'Mark as favourite'}>
+                            ★
+                          </button>
                           <button
                             onClick={() => handleDeleteItem(item.id)}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, lineHeight: 1, padding: 0, display: 'flex', alignItems: 'center' }}
