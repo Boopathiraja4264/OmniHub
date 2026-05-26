@@ -25,6 +25,9 @@ public class ExpenseItem {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column
+    private Boolean favorite;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -36,6 +39,8 @@ public class ExpenseItem {
     public Long getId() { return id; }
     public String getName() { return name; }
     public void setName(String v) { name = v; }
+    public boolean isFavorite() { return Boolean.TRUE.equals(favorite); }
+    public void setFavorite(boolean v) { favorite = v; }
     public ExpenseCategory getCategory() { return category; }
     public void setCategory(ExpenseCategory v) { category = v; }
     public User getUser() { return user; }

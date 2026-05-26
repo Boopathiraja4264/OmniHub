@@ -136,7 +136,7 @@ public class CategoryItemService {
         User user = getUser(email);
         return itemRepo.findByCategoryIdAndUserIdOrderByNameAsc(categoryId, user.getId())
                 .stream().map(i -> new ItemResponse(i.getId(), i.getName(),
-                        i.getCategory().getId(), i.getCategory().getName()))
+                        i.getCategory().getId(), i.getCategory().getName(), i.isFavorite()))
                 .collect(Collectors.toList());
     }
 
@@ -145,7 +145,7 @@ public class CategoryItemService {
         User user = getUser(email);
         return itemRepo.findAllByUserIdWithCategory(user.getId())
                 .stream().map(i -> new ItemResponse(i.getId(), i.getName(),
-                        i.getCategory().getId(), i.getCategory().getName()))
+                        i.getCategory().getId(), i.getCategory().getName(), i.isFavorite()))
                 .collect(Collectors.toList());
     }
 
@@ -207,7 +207,20 @@ public class CategoryItemService {
         item.setCategory(cat);
         item.setUser(user);
         item = itemRepo.save(item);
-        return new ItemResponse(item.getId(), item.getName(), cat.getId(), cat.getName());
+        return new ItemResponse(item.getId(), item.getName(), cat.getId(), cat.getName(), item.isFavorite());
+    }
+
+    @Transactional
+    public ItemResponse toggleFavorite(String email, Long id) {
+        User user = getUser(email);
+        ExpenseItem item = itemRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Item not found"));
+        if (!item.getUser().getId().equals(user.getId()))
+            throw new RuntimeException("Unauthorized");
+        item.setFavorite(!item.isFavorite());
+        item = itemRepo.save(item);
+        return new ItemResponse(item.getId(), item.getName(),
+                item.getCategory().getId(), item.getCategory().getName(), item.isFavorite());
     }
 
     @Transactional

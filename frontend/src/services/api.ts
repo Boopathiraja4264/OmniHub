@@ -142,6 +142,7 @@ export const categoryItemApi = {
   addItem: (name: string, categoryId: number) =>
     api.post("/finance/items", { name, categoryId }),
   deleteItem: (id: number) => api.delete(`/finance/items/${id}`),
+  toggleFavorite: (id: number) => api.patch(`/finance/items/${id}/favorite`),
   reset: () => api.post("/finance/categories/reset"),
   deduplicate: () => api.post("/finance/categories/deduplicate"),
 };
