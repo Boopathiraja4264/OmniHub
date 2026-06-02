@@ -10,7 +10,7 @@ import {
   RefreshCw, Shield, Car, FileDown, Dumbbell,
   CalendarDays, Scale, Footprints, Calendar, Sun,
   FileText, Lightbulb, Settings2, LogOut, ChevronDown,
-  Eye, EyeOff, KeyRound, Mail, Camera, Check, Pencil, PieChart,
+  Eye, EyeOff, KeyRound, Mail, Camera, Check, Pencil, ChartPie,
 } from 'lucide-react';
 
 const TopNav: React.FC = () => {
@@ -200,7 +200,7 @@ const TopNav: React.FC = () => {
                   <NavLink to="/finance/wealth" onClick={closeMenu}
                     className={({ isActive }) => `top-nav-dropdown-item ${isActive ? 'active' : ''}`}
                     style={{ fontWeight: 600 }}>
-                    <PieChart size={14} strokeWidth={1.75} /> Wealth
+                    <ChartPie size={14} strokeWidth={1.75} /> Wealth
                   </NavLink>
 
                   <NavLink to="/finance/wealth" onClick={closeMenu}
@@ -597,7 +597,7 @@ const TopNav: React.FC = () => {
         </NavLink>
         <NavLink to="/finance/wealth" onClick={closeMenu}
           className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}>
-          <PieChart size={16} strokeWidth={1.75} /> Wealth
+          <ChartPie size={16} strokeWidth={1.75} /> Wealth
         </NavLink>
         <NavLink to="/finance/income-expense" onClick={closeMenu}
           className={({ isActive }) => `top-nav-mobile-link${isActive ? ' active' : ''}`}
