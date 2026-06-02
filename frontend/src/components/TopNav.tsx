@@ -6,7 +6,7 @@ import { authApi } from '../services/api';
 import {
   Wallet, Activity, CheckSquare, LayoutDashboard,
   ArrowLeftRight, Target, BarChart2, Tag, Building2,
-  CalendarClock, Percent, Users, TrendingUp, Landmark, PieChart,
+  CalendarClock, Percent, Users, TrendingUp, Landmark,
   RefreshCw, Shield, Car, FileDown, Dumbbell,
   CalendarDays, Scale, Footprints, Calendar, Sun,
   FileText, Lightbulb, Settings2, LogOut, ChevronDown,
@@ -201,12 +201,6 @@ const TopNav: React.FC = () => {
                     className={({ isActive }) => `top-nav-dropdown-item ${isActive ? 'active' : ''}`}
                     style={{ fontWeight: 600 }}>
                     <ChartPie size={14} strokeWidth={1.75} /> Wealth
-                  </NavLink>
-
-                  <NavLink to="/finance/wealth" onClick={closeMenu}
-                    className={({ isActive }) => `top-nav-dropdown-item ${isActive ? 'active' : ''}`}
-                    style={{ fontWeight: 600 }}>
-                    <PieChart size={14} strokeWidth={1.75} /> Wealth
                   </NavLink>
 
                   <div className="top-nav-dropdown-divider" />

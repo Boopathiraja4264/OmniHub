@@ -22,31 +22,55 @@ interface AuthContextType {
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
   loading: boolean;
+  wakingUp: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>(null!);
 
+const WAKEUP_TIMEOUT_MS = 30_000; // 30s per attempt before retry
+const MAX_RETRIES = 12;            // 12 × ~33s ≈ 6 min (Render cold start ≤ 4 min)
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [wakingUp, setWakingUp] = useState(false);
 
-  // On app load: rehydrate session from HttpOnly cookie via /api/auth/me
   const updateUser = (data: Partial<User>) => {
     setUser(prev => prev ? { ...prev, ...data } : prev);
   };
 
   useEffect(() => {
-    authApi.getMe()
-      .then(r => {
+    let cancelled = false;
+
+    const tryGetMe = async (attempt: number): Promise<void> => {
+      if (cancelled) return;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), WAKEUP_TIMEOUT_MS);
+      try {
+        const r = await authApi.getMe({ signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (cancelled) return;
         setUser({ email: r.data.email, fullName: r.data.fullName, token: '', oauthProvider: r.data.oauthProvider || '', profilePicture: r.data.profilePicture || undefined });
-      })
-      .catch(() => {
-        // No valid session — clear any stale localStorage
+        setLoading(false);
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (cancelled) return;
+        const isNetworkOrTimeout = !err?.response; // no HTTP response = timeout / network down
+        if (isNetworkOrTimeout && attempt < MAX_RETRIES) {
+          setWakingUp(true);
+          await new Promise(res => setTimeout(res, 3000));
+          return tryGetMe(attempt + 1);
+        }
+        // 401, 403, or max retries — treat as no session
         localStorage.removeItem('token');
         localStorage.removeItem('email');
         localStorage.removeItem('fullName');
-      })
-      .finally(() => setLoading(false));
+        setLoading(false);
+      }
+    };
+
+    tryGetMe(0);
+    return () => { cancelled = true; };
   }, []);
 
   const login = async (email: string, password: string): Promise<AuthResponse> => {
@@ -76,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, loginWithToken, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, login, register, loginWithToken, logout, updateUser, loading, wakingUp }}>
       {children}
     </AuthContext.Provider>
   );

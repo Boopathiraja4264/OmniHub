@@ -35,7 +35,7 @@ export const authApi = {
     api.post("/auth/reset-password", { token, newPassword }),
   verify2FA: (tempToken: string, code: string, method: string, challengeToken?: string) =>
     api.post("/auth/2fa/verify", { tempToken, code, method, challengeToken }),
-  getMe: () => api.get("/auth/me"),
+  getMe: (config?: object) => api.get("/auth/me", config),
   logout: () => api.post("/auth/logout"),
   exchangeOauthCode: (code: string) => api.post("/auth/oauth/exchange", { code }),
   changePassword: (currentPassword: string, newPassword: string) =>

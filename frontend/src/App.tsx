@@ -60,9 +60,29 @@ const PageFallback = () => (
   </div>
 );
 
-const ProtectedLayout: React.FC = () => {
-  const { user, loading } = useAuth();
+const WakingUpScreen: React.FC = () => {
+  const [elapsed, setElapsed] = React.useState(0);
+  React.useEffect(() => {
+    const id = setInterval(() => setElapsed(s => s + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 16 }}>
+      <div style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTopColor: 'var(--accent, #6366f1)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text)' }}>Server is waking up…</div>
+      <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textAlign: 'center', maxWidth: 300, lineHeight: 1.6 }}>
+        Render's free tier pauses after 15 min of inactivity.<br />
+        This usually takes 30–60 seconds.
+      </div>
+      <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', opacity: 0.6 }}>{elapsed}s elapsed</div>
+    </div>
+  );
+};
 
+const ProtectedLayout: React.FC = () => {
+  const { user, loading, wakingUp } = useAuth();
+
+  if (loading && wakingUp) return <WakingUpScreen />;
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text-muted)' }}>
       Loading...
@@ -94,6 +114,7 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/finance/chit" element={<ChitTrackerPage />} />
             <Route path="/finance/emergency-fund" element={<EmergencyFundPage />} />
             <Route path="/finance/chit/:id" element={<ChitGroupDetailPage />} />
+            <Route path="/finance/wealth" element={<WealthPage />} />
             <Route path="/finance/debt" element={<DebtTrackerPage />} />
             <Route path="/finance/debt/emi" element={<EmiLoansPage />} />
             <Route path="/finance/debt/emi/:id" element={<EmiLoanDetailPage />} />

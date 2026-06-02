@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { bankAccountApi, debtApi } from '../../services/api';
+import { BankAccount } from '../../types';
 
 // ─── Data model ───────────────────────────────────────────────────────────────
 export interface LocalWealthItem {
@@ -159,7 +161,9 @@ type Step =
   | { kind: 'asset_categories' }
   | { kind: 'asset_subcats'; cat: Category }
   | { kind: 'asset_types'; catLabel: string; types: AssetEntry[] }
+  | { kind: 'bank_account_pick'; typeLabel: string }
   | { kind: 'liability_types' }
+  | { kind: 'loan_pick'; liabilityLabel: string }
   | { kind: 'form'; mode: 'ASSET' | 'LIABILITY'; category: string; typeLabel: string };
 
 // ─── Grid button ─────────────────────────────────────────────────────────────
@@ -186,6 +190,35 @@ const GridBtn: React.FC<{ icon?: string; label: string; sub?: string; onClick: (
   </button>
 );
 
+// ─── Pick-row button (accounts / loans) ──────────────────────────────────────
+const PickRow: React.FC<{
+  primary: string; secondary?: string; value: number; valueColor?: string; onClick: () => void;
+}> = ({ primary, secondary, value, valueColor = 'var(--income)', onClick }) => (
+  <button type="button" onClick={onClick} style={{
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%',
+    padding: '11px 14px', borderRadius: 10, marginBottom: 6,
+    border: '1px solid var(--border)', background: 'var(--bg-elevated)',
+    cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s',
+  }}
+    onMouseEnter={e => {
+      (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--primary)';
+      (e.currentTarget as HTMLButtonElement).style.background = 'var(--primary-dim)';
+    }}
+    onMouseLeave={e => {
+      (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)';
+      (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)';
+    }}
+  >
+    <div style={{ minWidth: 0, flex: 1 }}>
+      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{primary}</div>
+      {secondary && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{secondary}</div>}
+    </div>
+    <div style={{ fontSize: 13, fontWeight: 700, color: valueColor, flexShrink: 0, marginLeft: 12 }}>
+      ₹{value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+    </div>
+  </button>
+);
+
 // ─── Main modal ───────────────────────────────────────────────────────────────
 interface Props {
   defaultMode?: 'ASSET' | 'LIABILITY';
@@ -204,10 +237,28 @@ const AddWealthItemModal: React.FC<Props> = ({ defaultMode = 'ASSET', onClose, o
   const push = (s: Step) => setStack(p => [...p, s]);
   const pop  = () => setStack(p => p.slice(0, -1));
 
-  const [name, setName]               = useState('');
+  const [name, setName]                 = useState('');
   const [currentValue, setCurrentValue] = useState('');
-  const [amountInvested, setAmtInv]   = useState('');
-  const [notes, setNotes]             = useState('');
+  const [amountInvested, setAmtInv]     = useState('');
+  const [notes, setNotes]               = useState('');
+
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [loanData, setLoanData]         = useState<{ emiLoans: any[]; annualLoans: any[]; borrowedLoans: any[] }>({
+    emiLoans: [], annualLoans: [], borrowedLoans: [],
+  });
+
+  useEffect(() => {
+    bankAccountApi.getAll()
+      .then(r => setBankAccounts(Array.isArray(r.data) ? r.data : []))
+      .catch(() => {});
+    debtApi.getDashboard()
+      .then(r => setLoanData({
+        emiLoans:      r.data.emiLoans      || [],
+        annualLoans:   r.data.annualLoans   || [],
+        borrowedLoans: r.data.borrowedLoans || [],
+      }))
+      .catch(() => {});
+  }, []);
 
   const handleSave = (mode: 'ASSET' | 'LIABILITY', category: string, typeLabel: string) => {
     if (!name.trim() || !currentValue) return;
@@ -278,10 +329,63 @@ const AddWealthItemModal: React.FC<Props> = ({ defaultMode = 'ASSET', onClose, o
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {current.types.map(t => (
               <GridBtn key={t.id} label={t.label}
-                onClick={() => push({ kind: 'form', mode: 'ASSET', category: current.catLabel.split(' › ')[0], typeLabel: t.label })}
+                onClick={() => {
+                  const isBankType = t.id === 'savings_account' || t.id === 'current_account';
+                  if (isBankType) {
+                    push({ kind: 'bank_account_pick', typeLabel: t.label });
+                  } else {
+                    push({ kind: 'form', mode: 'ASSET', category: current.catLabel.split(' › ')[0], typeLabel: t.label });
+                  }
+                }}
               />
             ))}
           </div>
+        </>
+      );
+    }
+
+    if (current.kind === 'bank_account_pick') {
+      const accType = current.typeLabel === 'Savings Account' ? 'SAVINGS'
+                    : current.typeLabel === 'Current Account'  ? 'CURRENT' : '';
+      const filtered = accType
+        ? bankAccounts.filter(a => a.accountType === accType)
+        : bankAccounts;
+
+      const selectAccount = (acc: BankAccount) => {
+        setName(acc.bankName ? `${acc.name} · ${acc.bankName}` : acc.name);
+        setCurrentValue(String(Math.max(0, acc.currentBalance)));
+        push({ kind: 'form', mode: 'ASSET', category: 'Cash & Savings', typeLabel: current.typeLabel });
+      };
+
+      return (
+        <>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+            {current.typeLabel}
+          </div>
+          {filtered.length > 0 && (
+            <>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+                Pick an existing account to pre-fill, or add manually.
+              </div>
+              {filtered.map(acc => (
+                <PickRow key={acc.id}
+                  primary={acc.name}
+                  secondary={acc.bankName}
+                  value={acc.currentBalance}
+                  onClick={() => selectAccount(acc)}
+                />
+              ))}
+            </>
+          )}
+          {filtered.length === 0 && (
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0 8px' }}>
+              No {current.typeLabel.toLowerCase()}s found in your accounts.
+            </div>
+          )}
+          <button className="btn btn-secondary" style={{ width: '100%', marginTop: 6 }} type="button"
+            onClick={() => push({ kind: 'form', mode: 'ASSET', category: 'Cash & Savings', typeLabel: current.typeLabel })}>
+            + Add Manually
+          </button>
         </>
       );
     }
@@ -295,10 +399,96 @@ const AddWealthItemModal: React.FC<Props> = ({ defaultMode = 'ASSET', onClose, o
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {LIABILITY_TYPES.map(t => (
               <GridBtn key={t.id} icon={t.icon} label={t.label}
-                onClick={() => push({ kind: 'form', mode: 'LIABILITY', category: t.label, typeLabel: t.label })}
+                onClick={() => push({ kind: 'loan_pick', liabilityLabel: t.label })}
               />
             ))}
           </div>
+        </>
+      );
+    }
+
+    if (current.kind === 'loan_pick') {
+      const activeEmi      = loanData.emiLoans.filter(l => l.status === 'ACTIVE');
+      const activeAnnual   = loanData.annualLoans.filter(l => l.status === 'OUTSTANDING');
+      const activeBorrowed = loanData.borrowedLoans.filter(l => l.status === 'OUTSTANDING');
+      const hasAny         = activeEmi.length > 0 || activeAnnual.length > 0 || activeBorrowed.length > 0;
+
+      const selectLoan = (loanName: string, outstanding: number) => {
+        setName(loanName);
+        setCurrentValue(String(outstanding));
+        push({ kind: 'form', mode: 'LIABILITY', category: current.liabilityLabel, typeLabel: current.liabilityLabel });
+      };
+
+      return (
+        <>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+            {current.liabilityLabel}
+          </div>
+          {hasAny && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+              Pick a tracked loan to pre-fill, or add manually.
+            </div>
+          )}
+
+          {activeEmi.length > 0 && (
+            <div style={{ marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-muted)', marginBottom: 6, marginTop: 2 }}>
+                EMI Loans
+              </div>
+              {activeEmi.map((l: any) => (
+                <PickRow key={l.id}
+                  primary={l.name}
+                  secondary={`${l.annualInterestRate ?? '?'}% p.a.`}
+                  value={l.outstandingPrincipal || 0}
+                  valueColor="var(--expense)"
+                  onClick={() => selectLoan(l.name, l.outstandingPrincipal || 0)}
+                />
+              ))}
+            </div>
+          )}
+
+          {activeAnnual.length > 0 && (
+            <div style={{ marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-muted)', marginBottom: 6, marginTop: 2 }}>
+                Annual Loans
+              </div>
+              {activeAnnual.map((l: any) => (
+                <PickRow key={l.id}
+                  primary={l.name}
+                  value={l.currentBalance || 0}
+                  valueColor="var(--expense)"
+                  onClick={() => selectLoan(l.name, l.currentBalance || 0)}
+                />
+              ))}
+            </div>
+          )}
+
+          {activeBorrowed.length > 0 && (
+            <div style={{ marginBottom: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-muted)', marginBottom: 6, marginTop: 2 }}>
+                Borrowed Loans
+              </div>
+              {activeBorrowed.map((l: any) => (
+                <PickRow key={l.id}
+                  primary={l.lenderName}
+                  value={l.outstandingBalance || 0}
+                  valueColor="var(--expense)"
+                  onClick={() => selectLoan(l.lenderName, l.outstandingBalance || 0)}
+                />
+              ))}
+            </div>
+          )}
+
+          {!hasAny && (
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0 8px' }}>
+              No active loans found in your tracker.
+            </div>
+          )}
+
+          <button className="btn btn-secondary" style={{ width: '100%', marginTop: 6 }} type="button"
+            onClick={() => push({ kind: 'form', mode: 'LIABILITY', category: current.liabilityLabel, typeLabel: current.liabilityLabel })}>
+            + Add Manually
+          </button>
         </>
       );
     }
@@ -366,7 +556,7 @@ const AddWealthItemModal: React.FC<Props> = ({ defaultMode = 'ASSET', onClose, o
   };
 
   const isRootStep = current.kind === 'asset_categories' || current.kind === 'liability_types';
-  const currentMode: 'ASSET' | 'LIABILITY' = current.kind === 'liability_types' ? 'LIABILITY' : 'ASSET';
+  const currentMode: 'ASSET' | 'LIABILITY' = current.kind === 'liability_types' || current.kind === 'loan_pick' ? 'LIABILITY' : 'ASSET';
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -380,8 +570,10 @@ const AddWealthItemModal: React.FC<Props> = ({ defaultMode = 'ASSET', onClose, o
             </h3>
             {!isRootStep && current.kind !== 'form' && (
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                {current.kind === 'asset_subcats' ? current.cat.label :
-                 current.kind === 'asset_types' ? current.catLabel : ''}
+                {current.kind === 'asset_subcats'     ? current.cat.label :
+                 current.kind === 'asset_types'       ? current.catLabel :
+                 current.kind === 'bank_account_pick' ? 'Cash & Savings' :
+                 current.kind === 'loan_pick'         ? 'Liabilities' : ''}
               </div>
             )}
           </div>
@@ -422,7 +614,7 @@ const AddWealthItemModal: React.FC<Props> = ({ defaultMode = 'ASSET', onClose, o
             background: 'none', border: 'none', cursor: 'pointer',
             fontSize: 12, color: 'var(--primary)', fontWeight: 600, padding: 0,
           }}>
-            ← All categories
+            ← Back
           </button>
         )}
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { bankAccountApi, creditCardApi, categoryItemApi, transactionApi } from '../../services/api';
-import { BankAccount, CreditCard } from '../../types';
+import { BankAccount, CreditCard, ExpenseCategory, ExpenseItem } from '../../types';
 import { ParsedRow, parseKotakCSV, parseKotakExcel, parseKotakPDF } from './parsers/KotakParser';
 
 type FileType = 'PDF' | 'CSV' | 'Excel';
@@ -8,6 +8,7 @@ type BankFormat = 'Kotak Mahindra Bank';
 
 interface ReviewRow extends ParsedRow {
   id: string;
+  categoryId: string;
   category: string;
   itemName: string;
   notes: string;
@@ -43,20 +44,26 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
 
   // Review state
   const [rows, setRows] = useState<ReviewRow[]>([]);
-  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [favoriteItems, setFavoriteItems] = useState<ExpenseItem[]>([]);
+  const [rowItems, setRowItems] = useState<Record<string, ExpenseItem[]>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     bankAccountApi.getAll().then(r => setBankAccounts(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     creditCardApi.getAll().then(r => setCards(Array.isArray(r.data) ? r.data : [])).catch(() => {});
-    categoryItemApi.getCategories().then(r => setCategories(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+    categoryItemApi.getCategories().then(r => {
+      const arr: ExpenseCategory[] = Array.isArray(r.data) ? r.data : [];
+      const seen = new Set<string>();
+      setCategories(arr.filter(c => seen.has(c.name) ? false : !!seen.add(c.name)));
+    }).catch(() => {});
+    categoryItemApi.getAll().then(r => {
+      const arr: ExpenseItem[] = Array.isArray(r.data) ? r.data : [];
+      setFavoriteItems(arr.filter(i => i.favorite));
+    }).catch(() => {});
   }, []);
 
-  const acceptMap: Record<FileType, string> = {
-    PDF: '.pdf',
-    CSV: '.csv',
-    Excel: '.xlsx,.xls',
-  };
+  const acceptMap: Record<FileType, string> = { PDF: '.pdf', CSV: '.csv', Excel: '.xlsx,.xls' };
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -66,39 +73,43 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
 
   const handleParse = async () => {
     if (!file) return;
-    setParsing(true);
-    setParseError('');
+    setParsing(true); setParseError('');
     try {
       let parsed: ParsedRow[] = [];
       if (fileType === 'PDF')   parsed = await parseKotakPDF(file);
       if (fileType === 'CSV')   parsed = await parseKotakCSV(file);
       if (fileType === 'Excel') parsed = await parseKotakExcel(file);
-
-      if (!parsed.length) {
-        setParseError('No transactions found. Make sure the file matches the selected bank format.');
-        return;
-      }
-      setRows(parsed.map((r, i) => ({
-        ...r,
-        id: String(i),
-        category: '',
-        itemName: '',
-        notes: '',
-        included: true,
-      })));
+      if (!parsed.length) { setParseError('No transactions found. Make sure the file matches the selected bank format.'); return; }
+      setRows(parsed.map((r, i) => ({ ...r, id: String(i), categoryId: '', category: '', itemName: '', notes: '', included: true })));
+      setRowItems({});
       setStep('review');
-    } catch (err) {
-      setParseError('Failed to parse file. Please check the file and bank format.');
-    } finally {
-      setParsing(false);
+    } catch { setParseError('Failed to parse file. Please check the file and bank format.'); }
+    finally { setParsing(false); }
+  };
+
+  const handleCategoryChange = (rowId: string, catId: string) => {
+    const cat = categories.find(c => String(c.id) === catId);
+    setRows(r => r.map(x => x.id === rowId ? { ...x, categoryId: catId, category: cat?.name || '', itemName: '' } : x));
+    setRowItems(prev => ({ ...prev, [rowId]: [] }));
+    if (catId) {
+      categoryItemApi.getItems(parseInt(catId))
+        .then(r => setRowItems(prev => ({ ...prev, [rowId]: Array.isArray(r.data) ? r.data : [] })))
+        .catch(() => {});
     }
+  };
+
+  const handleFavPick = (rowId: string, item: ExpenseItem) => {
+    const cat = categories.find(c => c.id === item.categoryId);
+    setRows(r => r.map(x => x.id === rowId ? { ...x, categoryId: String(item.categoryId), category: cat?.name || item.categoryName, itemName: item.name } : x));
+    categoryItemApi.getItems(item.categoryId)
+      .then(r => setRowItems(prev => ({ ...prev, [rowId]: Array.isArray(r.data) ? r.data : [] })))
+      .catch(() => {});
   };
 
   const toggleAll = (val: boolean) => setRows(r => r.map(x => ({ ...x, included: val })));
   const toggleRow = (id: string) => setRows(r => r.map(x => x.id === id ? { ...x, included: !x.included } : x));
   const deleteRow = (id: string) => setRows(r => r.filter(x => x.id !== id));
-  const updateRow = (id: string, patch: Partial<ReviewRow>) =>
-    setRows(r => r.map(x => x.id === id ? { ...x, ...patch } : x));
+  const updateRow = (id: string, patch: Partial<ReviewRow>) => setRows(r => r.map(x => x.id === id ? { ...x, ...patch } : x));
 
   const includedRows = rows.filter(r => r.included);
 
@@ -106,12 +117,14 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     if (!includedRows.length) return;
     setSaving(true);
     try {
-      const accountId = parseInt(selectedAccountId);
+      const accountId = parseInt(selectedAccountId.split(':')[1]);
       await Promise.all(includedRows.map(row => {
+        const description = row.notes.trim()
+          || (row.category && row.itemName ? `${row.category} – ${row.itemName}` : row.category)
+          || (row.type === 'EXPENSE' ? 'Expense' : 'Income');
         const payload: any = {
-          description: row.notes.trim() || (row.type === 'EXPENSE' ? 'Expense' : 'Income'),
-          amount: row.amount,
-          type: row.type,
+          description,
+          amount: row.amount, type: row.type,
           category: row.category || 'Uncategorised',
           itemName: row.itemName || undefined,
           date: row.date,
@@ -122,122 +135,77 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
         else payload.cardId = accountId;
         return transactionApi.create(payload);
       }));
-      onSuccess();
-      onClose();
-    } catch {
-      alert('Some transactions failed to save. Please try again.');
-    } finally {
-      setSaving(false);
-    }
+      onSuccess(); onClose();
+    } catch { alert('Some transactions failed to save. Please try again.'); }
+    finally { setSaving(false); }
   };
 
-  // ── Step 1: Setup ────────────────────────────────────────────────────────────
+  // ── Step 1: Setup ─────────────────────────────────────────────────────────
   const renderSetup = () => (
     <>
       <div className="modal-header">
         <h3 className="modal-title">Import Bank Statement</h3>
         <button className="close-btn" onClick={onClose}>✕</button>
       </div>
-
       <div className="form-grid" style={{ gap: 16 }}>
-        {/* File type */}
         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
           <label>File Type</label>
           <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
             {(['PDF', 'CSV', 'Excel'] as FileType[]).map(t => (
-              <button key={t} type="button"
-                onClick={() => { setFileType(t); setFile(null); }}
-                style={{
-                  flex: 1, padding: '9px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none',
+              <button key={t} type="button" onClick={() => { setFileType(t); setFile(null); }}
+                style={{ flex: 1, padding: '9px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none',
                   borderRight: t !== 'Excel' ? '1px solid var(--border)' : 'none',
                   background: fileType === t ? 'var(--primary)' : 'var(--bg-elevated)',
-                  color: fileType === t ? '#fff' : 'var(--text-secondary)',
-                  transition: 'all 0.15s',
-                }}>{t}</button>
+                  color: fileType === t ? '#fff' : 'var(--text-secondary)', transition: 'all 0.15s' }}>{t}</button>
             ))}
           </div>
         </div>
-
-        {/* Bank format */}
         <div className="form-group">
           <label>Bank Format</label>
-          <select value={bankFormat} onChange={e => setBankFormat(e.target.value as BankFormat)}
-            style={{ width: '100%' }}>
+          <select value={bankFormat} onChange={e => setBankFormat(e.target.value as BankFormat)} style={{ width: '100%' }}>
             {BANK_FORMATS.map(b => <option key={b} value={b}>{b}</option>)}
           </select>
         </div>
-
-        {/* Source account */}
         <div className="form-group">
           <label>Source Account</label>
           <select value={selectedAccountId}
             onChange={e => {
               const val = e.target.value;
               setSelectedAccountId(val);
-              // Determine if bank or card
-              const isCard = cards.some(c => String(c.id) === val);
-              setSelectedAccountType(isCard ? 'CARD' : 'BANK');
-            }}
-            style={{ width: '100%' }}>
+              setSelectedAccountType(val.startsWith('card:') ? 'CARD' : 'BANK');
+            }} style={{ width: '100%' }}>
             <option value="">— Select account —</option>
-            {bankAccounts.length > 0 && (
-              <optgroup label="Bank Accounts">
-                {bankAccounts.map(a => (
-                  <option key={`bank-${a.id}`} value={String(a.id)}>{a.name}{a.bankName ? ` · ${a.bankName}` : ''}</option>
-                ))}
-              </optgroup>
-            )}
-            {cards.length > 0 && (
-              <optgroup label="Credit Cards">
-                {cards.map(c => (
-                  <option key={`card-${c.id}`} value={String(c.id)}>{c.name}{c.bank ? ` · ${c.bank}` : ''}</option>
-                ))}
-              </optgroup>
-            )}
+            {bankAccounts.length > 0 && <optgroup label="Bank Accounts">
+              {bankAccounts.map(a => <option key={`bank-${a.id}`} value={`bank:${a.id}`}>{a.name}{a.bankName ? ` · ${a.bankName}` : ''}</option>)}
+            </optgroup>}
+            {cards.length > 0 && <optgroup label="Credit Cards">
+              {cards.map(c => <option key={`card-${c.id}`} value={`card:${c.id}`}>{c.name}{c.bank ? ` · ${c.bank}` : ''}</option>)}
+            </optgroup>}
           </select>
         </div>
-
-        {/* File upload */}
         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
           <label>Statement File</label>
-          <div
-            onDrop={handleFileDrop}
-            onDragOver={e => e.preventDefault()}
-            onClick={() => fileRef.current?.click()}
-            style={{
-              border: `2px dashed ${file ? 'var(--primary)' : 'var(--border)'}`,
-              borderRadius: 12, padding: '24px 20px', textAlign: 'center',
-              cursor: 'pointer', transition: 'border 0.15s',
-              background: file ? 'var(--primary-dim)' : 'var(--bg-elevated)',
-            }}>
+          <div onDrop={handleFileDrop} onDragOver={e => e.preventDefault()} onClick={() => fileRef.current?.click()}
+            style={{ border: `2px dashed ${file ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 12,
+              padding: '24px 20px', textAlign: 'center', cursor: 'pointer',
+              background: file ? 'var(--primary-dim)' : 'var(--bg-elevated)' }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>{file ? '✅' : '📂'}</div>
             {file
               ? <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--primary)' }}>{file.name}</div>
-              : <>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    Drag & drop or click to browse
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-                    Accepts {acceptMap[fileType]} files
-                  </div>
-                </>
-            }
+              : <><div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Drag & drop or click to browse</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Accepts {acceptMap[fileType]} files</div></>}
             <input ref={fileRef} type="file" accept={acceptMap[fileType]} style={{ display: 'none' }}
               onChange={e => setFile(e.target.files?.[0] || null)} />
           </div>
         </div>
-
         {parseError && (
           <div style={{ gridColumn: '1 / -1', background: 'var(--expense-dim)', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: 'var(--expense)' }}>
             {parseError}
           </div>
         )}
-
         <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 10 }}>
           <button className="btn btn-secondary" style={{ flex: 1 }} onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" style={{ flex: 2 }}
-            disabled={!file || !selectedAccountId || parsing}
-            onClick={handleParse}>
+          <button className="btn btn-primary" style={{ flex: 2 }} disabled={!file || !selectedAccountId || parsing} onClick={handleParse}>
             {parsing ? 'Parsing…' : 'Parse & Preview →'}
           </button>
         </div>
@@ -245,7 +213,7 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     </>
   );
 
-  // ── Step 2: Review ───────────────────────────────────────────────────────────
+  // ── Step 2: Review ────────────────────────────────────────────────────────
   const renderReview = () => (
     <>
       <div className="modal-header">
@@ -258,17 +226,13 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
         <button className="close-btn" onClick={onClose}>✕</button>
       </div>
 
-      {/* Select all / deselect all */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center' }}>
         <button className="btn btn-sm btn-secondary" onClick={() => toggleAll(true)}>Select All</button>
         <button className="btn btn-sm btn-secondary" onClick={() => toggleAll(false)}>Deselect All</button>
-        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
-          {file?.name}
-        </span>
+        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{file?.name}</span>
       </div>
 
-      {/* Table */}
-      <div style={{ maxHeight: '52vh', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 16 }}>
+      <div style={{ maxHeight: '48vh', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 16 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
           <thead>
             <tr style={{ background: 'var(--bg-elevated)', position: 'sticky', top: 0, zIndex: 1 }}>
@@ -276,75 +240,78 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
               <th style={th}>Date</th>
               <th style={th}>Amount</th>
               <th style={th}>Type</th>
-              <th style={{ ...th, minWidth: 130 }}>Category</th>
-              <th style={{ ...th, minWidth: 120 }}>Item</th>
+              <th style={{ ...th, minWidth: 140 }}>Category</th>
+              <th style={{ ...th, minWidth: 140 }}>Item</th>
               <th style={{ ...th, minWidth: 140 }}>Description</th>
               <th style={th}></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, idx) => (
-              <tr key={row.id} style={{
-                background: idx % 2 === 0 ? 'transparent' : 'var(--bg-elevated)',
-                opacity: row.included ? 1 : 0.4,
-              }}>
-                <td style={td}>
-                  <input type="checkbox" checked={row.included} onChange={() => toggleRow(row.id)}
-                    style={{ cursor: 'pointer' }} />
-                </td>
-                <td style={td}>
-                  <span style={{ whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>{row.date}</span>
-                </td>
-                <td style={td}>
-                  <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: row.type === 'INCOME' ? 'var(--income)' : 'var(--expense)' }}>
-                    {fmt(row.amount)}
-                  </span>
-                </td>
-                <td style={td}>
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-                    background: row.type === 'INCOME' ? 'var(--income-dim)' : 'var(--expense-dim)',
-                    color: row.type === 'INCOME' ? 'var(--income)' : 'var(--expense)',
-                  }}>{row.type}</span>
-                </td>
-                <td style={td}>
-                  <select value={row.category}
-                    onChange={e => updateRow(row.id, { category: e.target.value })}
-                    style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', width: '100%' }}>
-                    <option value="">— category —</option>
-                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                  </select>
-                </td>
-                <td style={td}>
-                  <input value={row.itemName}
-                    onChange={e => updateRow(row.id, { itemName: e.target.value })}
-                    placeholder="item"
-                    style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', width: '100%' }} />
-                </td>
-                <td style={td}>
-                  <input value={row.notes}
-                    onChange={e => updateRow(row.id, { notes: e.target.value })}
-                    placeholder="optional"
-                    style={{ fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', width: '100%' }} />
-                </td>
-                <td style={td}>
-                  <button type="button" onClick={() => deleteRow(row.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, padding: '2px 4px', borderRadius: 4 }}
-                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--expense)'}
-                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'}
-                    title="Remove">🗑️</button>
-                </td>
-              </tr>
-            ))}
+            {rows.map((row, idx) => {
+              const items = rowItems[row.id] || [];
+              const favs = favoriteItems.filter(f => !row.categoryId || String(f.categoryId) === row.categoryId);
+              return (
+                <tr key={row.id} style={{ background: idx % 2 === 0 ? 'transparent' : 'var(--bg-elevated)', opacity: row.included ? 1 : 0.4 }}>
+                  <td style={td}><input type="checkbox" checked={row.included} onChange={() => toggleRow(row.id)} style={{ cursor: 'pointer' }} /></td>
+                  <td style={td}><span style={{ whiteSpace: 'nowrap', color: 'var(--text-secondary)' }}>{row.date}</span></td>
+                  <td style={td}>
+                    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: row.type === 'INCOME' ? 'var(--income)' : 'var(--expense)' }}>
+                      {fmt(row.amount)}
+                    </span>
+                  </td>
+                  <td style={td}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                      background: row.type === 'INCOME' ? 'var(--income-dim)' : 'var(--expense-dim)',
+                      color: row.type === 'INCOME' ? 'var(--income)' : 'var(--expense)' }}>{row.type}</span>
+                  </td>
+                  <td style={td}>
+                    <select value={row.categoryId}
+                      onChange={e => handleCategoryChange(row.id, e.target.value)}
+                      style={selectStyle}>
+                      <option value="">— category —</option>
+                      {categories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+                    </select>
+                  </td>
+                  <td style={td}>
+                    <select value={row.itemName}
+                      onChange={e => {
+                        const val = e.target.value;
+                        // If no category set and the chosen name matches a favourite, also set the category
+                        if (!row.categoryId && val) {
+                          const fav = favoriteItems.find(f => f.name === val);
+                          if (fav) { handleFavPick(row.id, fav); return; }
+                        }
+                        updateRow(row.id, { itemName: val });
+                      }}
+                      style={selectStyle}>
+                      <option value="">— item —</option>
+                      {favs.filter(f => !items.some(i => i.id === f.id)).map(f => (
+                        <option key={`fav-${f.id}`} value={f.name}>★ {f.name}</option>
+                      ))}
+                      {items.map(i => <option key={i.id} value={i.name}>{i.favorite ? '★ ' : ''}{i.name}</option>)}
+                    </select>
+                  </td>
+                  <td style={td}>
+                    <input value={row.notes} onChange={e => updateRow(row.id, { notes: e.target.value })}
+                      placeholder="optional" style={inputStyle} />
+                  </td>
+                  <td style={td}>
+                    <button type="button" onClick={() => deleteRow(row.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 13, padding: '2px 4px', borderRadius: 4 }}
+                      onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--expense)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'}
+                      title="Remove">🗑️</button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       <div style={{ display: 'flex', gap: 10 }}>
         <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setStep('setup')}>← Back</button>
-        <button className="btn btn-primary" style={{ flex: 2 }}
-          disabled={!includedRows.length || saving}
-          onClick={handleImport}>
+        <button className="btn btn-primary" style={{ flex: 2 }} disabled={!includedRows.length || saving} onClick={handleImport}>
           {saving ? 'Importing…' : `Import ${includedRows.length} Transaction${includedRows.length !== 1 ? 's' : ''}`}
         </button>
       </div>
@@ -356,14 +323,13 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase',
     letterSpacing: 0.6, borderBottom: '1px solid var(--border)',
   };
-  const td: React.CSSProperties = {
-    padding: '6px 10px', borderBottom: '1px solid var(--border-subtle)',
-    verticalAlign: 'middle',
-  };
+  const td: React.CSSProperties = { padding: '6px 10px', borderBottom: '1px solid var(--border-subtle)', verticalAlign: 'middle' };
+  const selectStyle: React.CSSProperties = { fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', width: '100%' };
+  const inputStyle: React.CSSProperties = { fontSize: 11, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', width: '100%' };
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: step === 'review' ? 900 : 540, width: '96vw' }}>
+      <div className="modal" style={{ maxWidth: step === 'review' ? 920 : 540, width: '96vw' }}>
         {step === 'setup' ? renderSetup() : renderReview()}
       </div>
     </div>
