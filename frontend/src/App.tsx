@@ -38,6 +38,7 @@ const AnnualLoansPage           = lazy(() => import('./modules/finance/AnnualLoa
 const AnnualLoanDetailPage      = lazy(() => import('./modules/finance/AnnualLoanDetailPage'));
 const BorrowedLoansPage         = lazy(() => import('./modules/finance/BorrowedLoansPage'));
 const BorrowedLoanDetailPage    = lazy(() => import('./modules/finance/BorrowedLoanDetailPage'));
+const WealthPage                = lazy(() => import('./modules/finance/WealthPage'));
 const Dashboard        = lazy(() => import('./components/Dashboard'));
 const FitnessDashboard = lazy(() => import('./modules/fitness/FitnessDashboard'));
 const WorkoutPage      = lazy(() => import('./modules/fitness/WorkoutPage'));
@@ -100,6 +101,7 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/finance/debt/annual/:id" element={<AnnualLoanDetailPage />} />
             <Route path="/finance/debt/borrowed" element={<BorrowedLoansPage />} />
             <Route path="/finance/debt/borrowed/:id" element={<BorrowedLoanDetailPage />} />
+            <Route path="/finance/wealth" element={<WealthPage />} />
             <Route path="/fitness" element={<FitnessDashboard />} />
             <Route path="/fitness/workout" element={<WorkoutPage />} />
             <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />
