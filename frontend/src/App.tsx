@@ -122,6 +122,7 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/finance/debt/annual/:id" element={<AnnualLoanDetailPage />} />
             <Route path="/finance/debt/borrowed" element={<BorrowedLoansPage />} />
             <Route path="/finance/debt/borrowed/:id" element={<BorrowedLoanDetailPage />} />
+            <Route path="/finance/wealth" element={<WealthPage />} />
             <Route path="/fitness" element={<FitnessDashboard />} />
             <Route path="/fitness/workout" element={<WorkoutPage />} />
             <Route path="/fitness/weekly-plan" element={<WeeklyPlanPage />} />
