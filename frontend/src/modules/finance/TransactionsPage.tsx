@@ -3,6 +3,7 @@ import { transactionApi, categoryItemApi, creditCardApi, bankAccountApi } from '
 import FilterDropdown from '../../components/FilterDropdown';
 import AddTransactionModal from '../../components/AddTransactionModal';
 import DatePicker from '../../components/DatePicker';
+import ImportStatementModal from './ImportStatementModal';
 import { Transaction, BankAccount } from '../../types';
 
 const formatCurrency = (n: number) =>
@@ -62,6 +63,7 @@ const TransactionsPage: React.FC = () => {
   const [modalType, setModalType] = useState<'INCOME' | 'EXPENSE'>('EXPENSE');
   const [editing, setEditing] = useState<Transaction | null>(null);
 
+  const [showImportModal, setShowImportModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [transferForm, setTransferForm] = useState({ ...emptyTransfer });
   const [transferLoading, setTransferLoading] = useState(false);
@@ -244,6 +246,10 @@ const TransactionsPage: React.FC = () => {
           <button onClick={() => handleOpen('INCOME')} className="txn-action-btn txn-action-income">
             <span className="txn-action-icon">+</span>
             <span>Income</span>
+          </button>
+          <button onClick={() => setShowImportModal(true)} className="txn-action-btn txn-action-transfer">
+            <span className="txn-action-icon">↑</span>
+            <span>Import</span>
           </button>
           <button onClick={() => {
             setTransferForm({ ...emptyTransfer, date: today(), fromAccountId: defaultBankId ? String(defaultBankId) : '' });
@@ -520,6 +526,14 @@ const TransactionsPage: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Import Statement Modal */}
+      {showImportModal && (
+        <ImportStatementModal
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => { load(); setShowImportModal(false); }}
+        />
       )}
     </div>
   );
