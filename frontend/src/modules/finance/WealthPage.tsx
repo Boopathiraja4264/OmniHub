@@ -1,11 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  bankAccountApi, creditCardApi, investmentApi, chitApi, debtApi,
-} from '../../services/api';
-import {
-  BankAccount, CreditCard, InvestmentDashboard, ChitGroup, DebtDashboard,
-} from '../../types';
+import React, { useState } from 'react';
+import AddWealthItemModal, {
+  LocalWealthItem, loadWealthItems, removeWealthItem,
+} from './AddWealthItemModal';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
@@ -17,18 +13,18 @@ const fmtShort = (n: number) => {
   return `₹${Math.round(n)}`;
 };
 
-// ─── Section card (asset or liability group) ─────────────────────────────────
+// ─── Section card ─────────────────────────────────────────────────────────────
 interface SectionProps {
   icon: string;
   label: string;
   amount: number;
-  total: number;           // total assets or total liabilities (for bar)
+  total: number;
   color: string;
-  items: { label: string; sub?: string; amount: number; to?: string }[];
-  onNavigate?: (to: string) => void;
+  items: { label: string; sub?: string; amount: number; id?: string }[];
+  onRemove?: (id: string) => void;
 }
 
-const SectionCard: React.FC<SectionProps> = ({ icon, label, amount, total, color, items, onNavigate }) => {
+const SectionCard: React.FC<SectionProps> = ({ icon, label, amount, total, color, items, onRemove }) => {
   const [expanded, setExpanded] = useState(true);
   const pct = total > 0 ? Math.min((amount / total) * 100, 100) : 0;
 
@@ -39,15 +35,13 @@ const SectionCard: React.FC<SectionProps> = ({ icon, label, amount, total, color
       background: 'var(--bg-card)', border: '1px solid var(--border)',
       borderRadius: 14, overflow: 'hidden', marginBottom: 12,
     }}>
-      {/* Header */}
       <button type="button" onClick={() => setExpanded(e => !e)} style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: 10,
         padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
       }}>
         <span style={{
           width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-          background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 17,
+          background: `${color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17,
         }}>{icon}</span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
@@ -64,26 +58,29 @@ const SectionCard: React.FC<SectionProps> = ({ icon, label, amount, total, color
         </svg>
       </button>
 
-      {/* Items */}
       {expanded && items.length > 0 && (
         <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '6px 8px 8px' }}>
           {items.map((item, i) => (
-            <div key={i}
-              onClick={() => item.to && onNavigate?.(item.to)}
-              style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '7px 10px', borderRadius: 8,
-                cursor: item.to ? 'pointer' : 'default',
-                transition: 'background 0.1s',
-              }}
-              onMouseEnter={e => { if (item.to) (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-elevated)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
-            >
-              <div>
+            <div key={i} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '7px 10px', borderRadius: 8,
+            }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>{item.label}</div>
                 {item.sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{item.sub}</div>}
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color, flexShrink: 0, marginLeft: 16 }}>{fmt(item.amount)}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color }}>{fmt(item.amount)}</div>
+                {item.id && onRemove && (
+                  <button type="button" onClick={() => onRemove(item.id!)} style={{
+                    background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px',
+                    color: 'var(--text-muted)', fontSize: 12, borderRadius: 4, lineHeight: 1,
+                  }}
+                    onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--expense)'}
+                    onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)'}
+                    title="Remove">✕</button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -92,77 +89,57 @@ const SectionCard: React.FC<SectionProps> = ({ icon, label, amount, total, color
   );
 };
 
+// ─── Category icon map ────────────────────────────────────────────────────────
+const CATEGORY_ICONS: Record<string, string> = {
+  'Equity': '📈', 'Debt': '🏛️', 'Real Estate': '🏠', 'Commodities': '🥇',
+  'Cash & Savings': '🏦', 'Crypto': '₿', 'Alternatives': '🔄', 'Other': '➕',
+  'Home Loan': '🏠', 'Vehicle Loan': '🚗', 'Personal Loan': '👤',
+  'Education Loan': '🎓', 'Credit Card': '💳', 'Gold Loan': '🥇',
+  'Business Loan': '💼', 'Friends / Family': '🤝',
+};
+
+const ASSET_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#3b82f6', '#14b8a6', '#a855f7', '#f97316', '#6b7280'];
+const LIABILITY_COLORS = ['#ef4444', '#e05c6a', '#f97316', '#ec4899', '#a855f7', '#f59e0b', '#6366f1', '#6b7280'];
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 const WealthPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [addModal, setAddModal] = useState<'ASSET' | 'LIABILITY' | null>(null);
+  const [items, setItems] = useState<LocalWealthItem[]>(() => loadWealthItems());
 
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [cards, setCards] = useState<CreditCard[]>([]);
-  const [investments, setInvestments] = useState<InvestmentDashboard | null>(null);
-  const [chits, setChits] = useState<ChitGroup[]>([]);
-  const [debt, setDebt] = useState<DebtDashboard | null>(null);
+  const reload = () => setItems(loadWealthItems());
+  const handleRemove = (id: string) => { removeWealthItem(id); reload(); };
 
-  useEffect(() => {
-    Promise.all([
-      bankAccountApi.getAll(),
-      creditCardApi.getAll(),
-      investmentApi.getDashboard(),
-      chitApi.getAll(),
-      debtApi.getDashboard(),
-    ]).then(([banksRes, cardsRes, invRes, chitsRes, debtRes]) => {
-      setBankAccounts(Array.isArray(banksRes.data) ? banksRes.data : []);
-      setCards(Array.isArray(cardsRes.data) ? cardsRes.data : []);
-      setInvestments(invRes.data);
-      setChits(Array.isArray(chitsRes.data) ? chitsRes.data : []);
-      setDebt(debtRes.data);
-    }).finally(() => setLoading(false));
-  }, []);
-
-  // ── Assets ──────────────────────────────────────────────────────────────────
-  const BANK_TYPES = ['SAVINGS', 'CURRENT', 'SALARY', 'CASH', 'WALLET', 'OTHER'];
-  const bankAccArr = bankAccounts.filter(a => BANK_TYPES.includes(a.accountType));
-  const bankBalance = bankAccArr.reduce((s, a) => s + Math.max(0, a.currentBalance), 0);
-  const investmentValue = investments?.totalInvested ?? 0;
-
-  // Chit: money paid in that hasn't been received back yet (receivable)
-  const chitAsset = chits.reduce((s, c) => s + Math.max(0, c.totalPaid - c.totalReceived), 0);
-
-  const totalAssets = bankBalance + investmentValue + chitAsset;
-
-  // ── Liabilities ─────────────────────────────────────────────────────────────
-  const creditCardDebt = cards.reduce((s, c) => s + (c.outstanding || 0), 0);
-  const emiLoans = (debt?.emiLoans ?? []).filter(l => l.status === 'ACTIVE');
-  const emiDebt = emiLoans.reduce((s, l) => s + (l.outstandingPrincipal || 0), 0);
-  const annualLoans = (debt?.annualLoans ?? []).filter(l => l.status === 'OUTSTANDING');
-  const annualDebt = annualLoans.reduce((s, l) => s + (l.currentBalance || 0), 0);
-  const borrowedLoans = (debt?.borrowedLoans ?? []).filter(l => l.status === 'OUTSTANDING');
-  const borrowedDebt = borrowedLoans.reduce((s, l) => s + (l.outstandingBalance || 0), 0);
-  // Chit: received more than paid (still owe future contributions)
-  const chitLiability = chits.reduce((s, c) => s + Math.max(0, c.totalReceived - c.totalPaid), 0);
-
-  const totalLiabilities = creditCardDebt + emiDebt + annualDebt + borrowedDebt + chitLiability;
-
-  const netWorth = totalAssets - totalLiabilities;
+  const assets      = items.filter(i => i.mode === 'ASSET');
+  const liabilities = items.filter(i => i.mode === 'LIABILITY');
+  const totalAssets      = assets.reduce((s, i) => s + i.currentValue, 0);
+  const totalLiabilities = liabilities.reduce((s, i) => s + i.currentValue, 0);
+  const netWorth    = totalAssets - totalLiabilities;
   const netPositive = netWorth >= 0;
-  const grandTotal = totalAssets + totalLiabilities;
+  const grandTotal  = totalAssets + totalLiabilities;
   const assetBarPct = grandTotal > 0 ? (totalAssets / grandTotal) * 100 : 50;
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300, color: 'var(--text-muted)' }}>
-        Loading your wealth snapshot…
-      </div>
-    );
-  }
+  // Group by category
+  const assetGroups = assets.reduce<Record<string, LocalWealthItem[]>>((acc, item) => {
+    (acc[item.category] = acc[item.category] || []).push(item);
+    return acc;
+  }, {});
+  const liabilityGroups = liabilities.reduce<Record<string, LocalWealthItem[]>>((acc, item) => {
+    (acc[item.category] = acc[item.category] || []).push(item);
+    return acc;
+  }, {});
 
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 className="page-title">Wealth</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" style={{ color: 'var(--expense)', borderColor: 'var(--expense)' }}
+            onClick={() => setAddModal('LIABILITY')}>+ Add Liability</button>
+          <button className="btn btn-primary" onClick={() => setAddModal('ASSET')}>+ Add Asset</button>
+        </div>
       </div>
 
-      {/* ── Net Worth Hero ─────────────────────────────────────────────────── */}
+      {/* ── Net Worth Hero ──────────────────────────────────────────────────── */}
       <div className="card" style={{ marginBottom: 24, padding: '24px 28px' }}>
         <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--text-muted)', marginBottom: 8 }}>
           Net Worth
@@ -171,26 +148,24 @@ const WealthPage: React.FC = () => {
           {netPositive ? '' : '−'}{fmt(Math.abs(netWorth))}
         </div>
 
-        {/* Split bar */}
         <div style={{ marginBottom: 12 }}>
           <div style={{ height: 10, borderRadius: 10, background: 'var(--expense-dim)', overflow: 'hidden', display: 'flex' }}>
             <div style={{ width: `${assetBarPct}%`, background: 'var(--income)', borderRadius: '10px 0 0 10px', transition: 'width 0.5s ease' }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--income)', display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--income)', display: 'inline-block' }} />
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Assets</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--income)' }}>{fmtShort(totalAssets)}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--expense)' }}>{fmtShort(totalLiabilities)}</span>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Liabilities</span>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--expense)', display: 'inline-block', flexShrink: 0 }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--expense)', display: 'inline-block' }} />
             </div>
           </div>
         </div>
 
-        {/* 3 stat pills */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 4 }}>
           {[
             { label: 'Total Assets',      value: fmt(totalAssets),      color: 'var(--income)',  bg: 'var(--income-dim)'  },
@@ -205,175 +180,99 @@ const WealthPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Assets + Liabilities columns ───────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
-
-        {/* ASSETS */}
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--text-muted)', marginBottom: 12 }}>
-            Assets · {fmtShort(totalAssets)}
-          </div>
-
-          <SectionCard
-            icon="🏦"
-            label="Cash & Bank Accounts"
-            amount={bankBalance}
-            total={totalAssets}
-            color="var(--income)"
-            onNavigate={navigate}
-            items={bankAccArr
-              .filter(a => a.currentBalance > 0)
-              .sort((a, b) => b.currentBalance - a.currentBalance)
-              .map(a => ({
-                label: a.name,
-                sub: a.bankName || undefined,
-                amount: a.currentBalance,
-                to: `/accounts/bank/${a.id}`,
-              }))}
-          />
-
-          <SectionCard
-            icon="📈"
-            label="Investments (RD & FD)"
-            amount={investmentValue}
-            total={totalAssets}
-            color="#6366f1"
-            onNavigate={navigate}
-            items={[
-              ...(investments?.fdList ?? []).filter(i => i.status === 'ACTIVE').map(i => ({
-                label: i.name,
-                sub: `FD · ${i.bankName || ''}`,
-                amount: i.totalInvested,
-                to: '/finance/investments',
-              })),
-              ...(investments?.rdList ?? []).filter(i => i.status === 'ACTIVE').map(i => ({
-                label: i.name,
-                sub: `RD · ${i.bankName || ''}`,
-                amount: i.totalInvested,
-                to: '/finance/investments',
-              })),
-            ]}
-          />
-
-          <SectionCard
-            icon="🔄"
-            label="Chit Groups (Receivable)"
-            amount={chitAsset}
-            total={totalAssets}
-            color="#f59e0b"
-            onNavigate={navigate}
-            items={chits
-              .filter(c => c.totalPaid > c.totalReceived)
-              .map(c => ({
-                label: c.name,
-                sub: `${c.groupLabel} · Paid ${fmtShort(c.totalPaid)}`,
-                amount: c.totalPaid - c.totalReceived,
-                to: `/finance/chit/${c.id}`,
-              }))}
-          />
-        </div>
-
-        {/* LIABILITIES */}
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--text-muted)', marginBottom: 12 }}>
-            Liabilities · {fmtShort(totalLiabilities)}
-          </div>
-
-          <SectionCard
-            icon="💳"
-            label="Credit Cards"
-            amount={creditCardDebt}
-            total={totalLiabilities}
-            color="var(--expense)"
-            onNavigate={navigate}
-            items={cards
-              .filter(c => (c.outstanding || 0) > 0)
-              .sort((a, b) => (b.outstanding || 0) - (a.outstanding || 0))
-              .map(c => ({
-                label: c.lastFourDigits ? `${c.name} ••••${c.lastFourDigits}` : c.name,
-                sub: c.bank || undefined,
-                amount: c.outstanding || 0,
-                to: `/accounts/card/${c.id}`,
-              }))}
-          />
-
-          <SectionCard
-            icon="🏧"
-            label="EMI Loans"
-            amount={emiDebt}
-            total={totalLiabilities}
-            color="#e05c6a"
-            onNavigate={navigate}
-            items={emiLoans
-              .sort((a, b) => b.outstandingPrincipal - a.outstandingPrincipal)
-              .map(l => ({
-                label: l.name,
-                sub: `${l.annualInterestRate}% · ${l.loanId}`,
-                amount: l.outstandingPrincipal,
-                to: `/finance/debt/emi/${l.id}`,
-              }))}
-          />
-
-          <SectionCard
-            icon="📅"
-            label="Annual Interest Loans"
-            amount={annualDebt}
-            total={totalLiabilities}
-            color="#f97316"
-            onNavigate={navigate}
-            items={annualLoans
-              .sort((a, b) => (b.currentBalance || 0) - (a.currentBalance || 0))
-              .map(l => ({
-                label: l.name,
-                sub: `${l.annualInterestRate}% annual · ${l.loanId}`,
-                amount: l.currentBalance || 0,
-                to: `/finance/debt/annual/${l.id}`,
-              }))}
-          />
-
-          <SectionCard
-            icon="🤝"
-            label="Borrowed Loans"
-            amount={borrowedDebt}
-            total={totalLiabilities}
-            color="#a855f7"
-            onNavigate={navigate}
-            items={borrowedLoans
-              .sort((a, b) => b.outstandingBalance - a.outstandingBalance)
-              .map(l => ({
-                label: l.lenderName,
-                sub: `Borrowed ${fmtShort(l.amountBorrowed)}`,
-                amount: l.outstandingBalance,
-                to: `/finance/debt/borrowed/${l.id}`,
-              }))}
-          />
-
-          <SectionCard
-            icon="🔄"
-            label="Chit Groups (Liability)"
-            amount={chitLiability}
-            total={totalLiabilities}
-            color="#f59e0b"
-            onNavigate={navigate}
-            items={chits
-              .filter(c => c.totalReceived > c.totalPaid)
-              .map(c => ({
-                label: c.name,
-                sub: `${c.groupLabel} · Received ${fmtShort(c.totalReceived)}`,
-                amount: c.totalReceived - c.totalPaid,
-                to: `/finance/chit/${c.id}`,
-              }))}
-          />
-        </div>
-      </div>
-
-      {/* ── Empty state ────────────────────────────────────────────────────── */}
-      {totalAssets === 0 && totalLiabilities === 0 && (
-        <div className="card" style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', marginTop: 16 }}>
+      {/* ── Empty state ─────────────────────────────────────────────────────── */}
+      {items.length === 0 && (
+        <div className="card" style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>📊</div>
-          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6, color: 'var(--text-secondary)' }}>No data yet</div>
-          <div style={{ fontSize: 13 }}>Add bank accounts, investments, or loans to see your net worth.</div>
+          <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6, color: 'var(--text-secondary)' }}>No entries yet</div>
+          <div style={{ fontSize: 13, marginBottom: 20 }}>Add your assets and liabilities to see your net worth.</div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+            <button className="btn btn-primary" onClick={() => setAddModal('ASSET')}>+ Add Asset</button>
+            <button className="btn btn-secondary" onClick={() => setAddModal('LIABILITY')}>+ Add Liability</button>
+          </div>
         </div>
+      )}
+
+      {/* ── Assets + Liabilities columns ────────────────────────────────────── */}
+      {items.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
+
+          {/* ASSETS */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--text-muted)', marginBottom: 12 }}>
+              Assets · {fmtShort(totalAssets)}
+            </div>
+            {assets.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '16px 0' }}>No assets added yet.</div>
+            )}
+            {Object.entries(assetGroups).map(([cat, catItems], idx) => {
+              const total = catItems.reduce((s, i) => s + i.currentValue, 0);
+              const color = ASSET_COLORS[idx % ASSET_COLORS.length];
+              return (
+                <SectionCard key={cat}
+                  icon={CATEGORY_ICONS[cat] || '📌'}
+                  label={cat}
+                  amount={total}
+                  total={totalAssets}
+                  color={color}
+                  items={catItems.map(i => ({
+                    id: i.id,
+                    label: i.name,
+                    sub: i.typeLabel + (i.notes ? ` · ${i.notes}` : ''),
+                    amount: i.currentValue,
+                  }))}
+                  onRemove={handleRemove}
+                />
+              );
+            })}
+            {assets.length > 0 && (
+              <button className="btn btn-secondary" style={{ width: '100%', marginTop: 4, fontSize: 12 }}
+                onClick={() => setAddModal('ASSET')}>+ Add Asset</button>
+            )}
+          </div>
+
+          {/* LIABILITIES */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: 'var(--text-muted)', marginBottom: 12 }}>
+              Liabilities · {fmtShort(totalLiabilities)}
+            </div>
+            {liabilities.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '16px 0' }}>No liabilities added yet.</div>
+            )}
+            {Object.entries(liabilityGroups).map(([cat, catItems], idx) => {
+              const total = catItems.reduce((s, i) => s + i.currentValue, 0);
+              const color = LIABILITY_COLORS[idx % LIABILITY_COLORS.length];
+              return (
+                <SectionCard key={cat}
+                  icon={CATEGORY_ICONS[cat] || '📌'}
+                  label={cat}
+                  amount={total}
+                  total={totalLiabilities}
+                  color={color}
+                  items={catItems.map(i => ({
+                    id: i.id,
+                    label: i.name,
+                    sub: i.typeLabel !== cat ? i.typeLabel + (i.notes ? ` · ${i.notes}` : '') : (i.notes || undefined),
+                    amount: i.currentValue,
+                  }))}
+                  onRemove={handleRemove}
+                />
+              );
+            })}
+            {liabilities.length > 0 && (
+              <button className="btn btn-secondary" style={{ width: '100%', marginTop: 4, fontSize: 12, color: 'var(--expense)', borderColor: 'var(--expense)' }}
+                onClick={() => setAddModal('LIABILITY')}>+ Add Liability</button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {addModal && (
+        <AddWealthItemModal
+          defaultMode={addModal}
+          onClose={() => setAddModal(null)}
+          onSuccess={reload}
+        />
       )}
     </div>
   );
