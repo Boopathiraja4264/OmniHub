@@ -162,7 +162,7 @@ const DebtTrackerPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px' }}>
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
           <h2 className="page-title">Debt Dashboard</h2>

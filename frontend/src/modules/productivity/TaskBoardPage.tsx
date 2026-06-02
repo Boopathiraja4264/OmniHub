@@ -69,7 +69,7 @@ const TaskBoardPage: React.FC = () => {
   );
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200 }}>
+    <div style={{ padding: '24px 28px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>

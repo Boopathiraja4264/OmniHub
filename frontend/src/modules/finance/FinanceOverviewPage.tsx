@@ -95,7 +95,7 @@ const FinanceOverviewPage: React.FC = () => {
   const savingsColor = savingsRate >= 20 ? 'var(--income)' : savingsRate >= 10 ? 'var(--warning)' : 'var(--expense)';
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px' }}>
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
           <h2 className="page-title">Finance Overview</h2>

@@ -182,7 +182,7 @@ const EmiLoansPage: React.FC = () => {
   if (loading) return <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px' }}>
       <div className="page-header" style={{ marginBottom: 24 }}>
         <div>
           <h2 className="page-title">EMI Based Loans</h2>

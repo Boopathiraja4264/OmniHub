@@ -78,7 +78,7 @@ const IncomeExpenseDashboard: React.FC = () => {
   const budgetBarColor = (pct: number) => pct > 100 ? 'var(--expense)' : pct > 80 ? 'var(--warning)' : 'var(--income)';
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px' }}>
 
       {/* Header */}
       <div className="page-header" style={{ marginBottom: 22 }}>

@@ -83,7 +83,7 @@ const AnnualBudgetPage: React.FC = () => {
   const isCurrentYear = year === now.getFullYear();
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1400 }}>
+    <div style={{ padding: '24px 28px' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>

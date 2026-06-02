@@ -303,7 +303,7 @@ const ChitGroupDetailPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px' }}>
       {/* Back */}
       <button onClick={() => navigate('/finance/chit')} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13, marginBottom: 16, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
         ← Back to Chit Tracker

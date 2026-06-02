@@ -279,7 +279,7 @@ const HomePage: React.FC = () => {
   const accentCardClass = 'home-accent-card';
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <div style={{ width: '100%' }}>
 
       {/* ── Greeting ── */}
       <div style={{ marginBottom: 28 }}>
