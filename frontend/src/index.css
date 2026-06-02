@@ -1102,3 +1102,5 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 /* ─── TRANSACTION FEED ────────────────── */
 .txn-row { transition: background 0.12s; }
 .txn-row:hover { background: var(--bg-elevated); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
