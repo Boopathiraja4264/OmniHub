@@ -67,7 +67,7 @@ const ChitTrackerPage: React.FC = () => {
   const activeCount = groups.filter(g => g.status === 'ACTIVE').length;
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1100 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px' }}>
       {/* Header */}
       <div className="page-header" style={{ marginBottom: 28 }}>
         <div>

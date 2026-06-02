@@ -126,7 +126,7 @@ const InsightsPage: React.FC = () => {
     : 0;
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1100 }}>
+    <div style={{ padding: '24px 28px' }}>
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Insights</h2>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>

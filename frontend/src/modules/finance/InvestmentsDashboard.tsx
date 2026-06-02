@@ -64,7 +64,7 @@ const InvestmentsDashboard: React.FC = () => {
   const chitMonthly = activeChits.reduce((s, c) => s + (c.monthlyAmount || 0), 0);
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 28px', maxWidth: 1200 }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 28px' }}>
 
       {/* Header */}
       <div className="page-header" style={{ marginBottom: 22 }}>

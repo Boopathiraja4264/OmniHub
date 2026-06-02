@@ -190,7 +190,7 @@ const EmergencyFundPage: React.FC = () => {
   const hasAny = efFds.length > 0 || efRds.length > 0 || efAccs.length > 0;
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200 }}>
+    <div style={{ padding: '24px 28px' }}>
 
       {/* Header */}
       <div className="page-header" style={{ marginBottom: 20 }}>
