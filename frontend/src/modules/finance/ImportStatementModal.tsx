@@ -2,9 +2,20 @@ import React, { useEffect, useRef, useState } from 'react';
 import { bankAccountApi, creditCardApi, categoryItemApi, transactionApi } from '../../services/api';
 import { BankAccount, CreditCard, ExpenseCategory, ExpenseItem } from '../../types';
 import { ParsedRow, parseKotakCSV, parseKotakExcel, parseKotakPDF } from './parsers/KotakParser';
+import { parseUjjivanPDF } from './parsers/UjjivanParser';
+import { parseSBIPDF } from './parsers/SBIParser';
+import { parseAUPDF } from './parsers/AUParser';
+import { parseHDFCPDF } from './parsers/HDFCParser';
+import { parseICICIPDF } from './parsers/ICICIParser';
 
 type FileType = 'PDF' | 'CSV' | 'Excel';
-type BankFormat = 'Kotak Mahindra Bank';
+type BankFormat =
+  | 'Kotak Mahindra Bank'
+  | 'Ujjivan Small Finance Bank'
+  | 'State Bank of India'
+  | 'AU Small Finance Bank'
+  | 'HDFC Bank'
+  | 'ICICI Bank';
 
 interface ReviewRow extends ParsedRow {
   id: string;
@@ -13,6 +24,8 @@ interface ReviewRow extends ParsedRow {
   itemName: string;
   notes: string;
   included: boolean;
+  isTransfer: boolean;
+  transferToAccountId: string;
 }
 
 interface Props {
@@ -20,7 +33,14 @@ interface Props {
   onSuccess: () => void;
 }
 
-const BANK_FORMATS: BankFormat[] = ['Kotak Mahindra Bank'];
+const BANK_FORMATS: BankFormat[] = [
+  'Kotak Mahindra Bank',
+  'Ujjivan Small Finance Bank',
+  'State Bank of India',
+  'AU Small Finance Bank',
+  'HDFC Bank',
+  'ICICI Bank',
+];
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n);
@@ -76,11 +96,28 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     setParsing(true); setParseError('');
     try {
       let parsed: ParsedRow[] = [];
-      if (fileType === 'PDF')   parsed = await parseKotakPDF(file);
-      if (fileType === 'CSV')   parsed = await parseKotakCSV(file);
-      if (fileType === 'Excel') parsed = await parseKotakExcel(file);
+      if (bankFormat === 'Kotak Mahindra Bank') {
+        if (fileType === 'PDF')   parsed = await parseKotakPDF(file);
+        if (fileType === 'CSV')   parsed = await parseKotakCSV(file);
+        if (fileType === 'Excel') parsed = await parseKotakExcel(file);
+      } else if (bankFormat === 'Ujjivan Small Finance Bank') {
+        if (fileType === 'PDF') parsed = await parseUjjivanPDF(file);
+        else { setParseError('Ujjivan: only PDF format is supported.'); return; }
+      } else if (bankFormat === 'State Bank of India') {
+        if (fileType === 'PDF') parsed = await parseSBIPDF(file);
+        else { setParseError('SBI: only PDF format is supported.'); return; }
+      } else if (bankFormat === 'AU Small Finance Bank') {
+        if (fileType === 'PDF') parsed = await parseAUPDF(file);
+        else { setParseError('AU Small Finance Bank: only PDF format is supported.'); return; }
+      } else if (bankFormat === 'HDFC Bank') {
+        if (fileType === 'PDF') parsed = await parseHDFCPDF(file);
+        else { setParseError('HDFC Bank: only PDF format is supported.'); return; }
+      } else if (bankFormat === 'ICICI Bank') {
+        if (fileType === 'PDF') parsed = await parseICICIPDF(file);
+        else { setParseError('ICICI Bank: only PDF format is supported.'); return; }
+      }
       if (!parsed.length) { setParseError('No transactions found. Make sure the file matches the selected bank format.'); return; }
-      setRows(parsed.map((r, i) => ({ ...r, id: String(i), categoryId: '', category: '', itemName: '', notes: '', included: true })));
+      setRows(parsed.map((r, i) => ({ ...r, id: String(i), categoryId: '', category: '', itemName: '', notes: '', included: true, isTransfer: false, transferToAccountId: '' })));
       setRowItems({});
       setStep('review');
     } catch { setParseError('Failed to parse file. Please check the file and bank format.'); }
@@ -118,22 +155,38 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
     setSaving(true);
     try {
       const accountId = parseInt(selectedAccountId.split(':')[1]);
-      await Promise.all(includedRows.map(row => {
+      await Promise.all(includedRows.flatMap(row => {
+        const isTransfer = row.isTransfer && row.transferToAccountId;
+        const category = isTransfer ? 'Transfer' : (row.category || 'Uncategorised');
         const description = row.notes.trim()
-          || (row.category && row.itemName ? `${row.category} – ${row.itemName}` : row.category)
+          || (isTransfer ? 'Transfer' : (row.category && row.itemName ? `${row.category} – ${row.itemName}` : row.category))
           || (row.type === 'EXPENSE' ? 'Expense' : 'Income');
-        const payload: any = {
-          description,
-          amount: row.amount, type: row.type,
-          category: row.category || 'Uncategorised',
-          itemName: row.itemName || undefined,
+
+        const mainPayload: any = {
+          description, amount: row.amount, type: row.type, category,
+          itemName: isTransfer ? undefined : (row.itemName || undefined),
           date: row.date,
           notes: row.notes.trim() || undefined,
           paymentSource: selectedAccountType === 'BANK' ? 'BANK' : 'CREDIT_CARD',
         };
-        if (selectedAccountType === 'BANK') payload.bankAccountId = accountId;
-        else payload.cardId = accountId;
-        return transactionApi.create(payload);
+        if (selectedAccountType === 'BANK') mainPayload.bankAccountId = accountId;
+        else mainPayload.cardId = accountId;
+
+        const ops = [transactionApi.create(mainPayload)];
+
+        if (isTransfer) {
+          const otherAccountId = parseInt(row.transferToAccountId.split(':')[1]);
+          const mirrorPayload: any = {
+            description, amount: row.amount,
+            type: row.type === 'EXPENSE' ? 'INCOME' : 'EXPENSE',
+            category: 'Transfer', date: row.date,
+            notes: row.notes.trim() || undefined,
+            paymentSource: 'BANK',
+            bankAccountId: otherAccountId,
+          };
+          ops.push(transactionApi.create(mirrorPayload));
+        }
+        return ops;
       }));
       onSuccess(); onClose();
     } catch { alert('Some transactions failed to save. Please try again.'); }
@@ -240,6 +293,7 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
               <th style={th}>Date</th>
               <th style={th}>Amount</th>
               <th style={th}>Type</th>
+              <th style={{ ...th, minWidth: 160 }}>Transfer ⇄</th>
               <th style={{ ...th, minWidth: 140 }}>Category</th>
               <th style={{ ...th, minWidth: 140 }}>Item</th>
               <th style={{ ...th, minWidth: 140 }}>Description</th>
@@ -261,10 +315,34 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                   </td>
                   <td style={td}>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
-                      background: row.type === 'INCOME' ? 'var(--income-dim)' : 'var(--expense-dim)',
-                      color: row.type === 'INCOME' ? 'var(--income)' : 'var(--expense)' }}>{row.type}</span>
+                      background: row.isTransfer ? 'var(--bg-elevated)' : row.type === 'INCOME' ? 'var(--income-dim)' : 'var(--expense-dim)',
+                      color: row.isTransfer ? 'var(--text-muted)' : row.type === 'INCOME' ? 'var(--income)' : 'var(--expense)' }}>
+                      {row.isTransfer ? 'TRANSFER' : row.type}
+                    </span>
                   </td>
                   <td style={td}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <input
+                        type="checkbox"
+                        checked={row.isTransfer}
+                        title="Mark as internal transfer between your accounts"
+                        onChange={() => updateRow(row.id, { isTransfer: !row.isTransfer, transferToAccountId: '' })}
+                        style={{ cursor: 'pointer', accentColor: 'var(--primary)' }}
+                      />
+                      {row.isTransfer && (
+                        <select
+                          value={row.transferToAccountId}
+                          onChange={e => updateRow(row.id, { transferToAccountId: e.target.value })}
+                          style={{ ...selectStyle, minWidth: 110, borderColor: row.transferToAccountId ? 'var(--primary)' : 'var(--expense)' }}>
+                          <option value="">— to account —</option>
+                          {bankAccounts
+                            .filter(a => `bank:${a.id}` !== selectedAccountId)
+                            .map(a => <option key={a.id} value={`bank:${a.id}`}>{a.name}{a.bankName ? ` · ${a.bankName}` : ''}</option>)}
+                        </select>
+                      )}
+                    </div>
+                  </td>
+                  <td style={{ ...td, opacity: row.isTransfer ? 0.4 : 1, pointerEvents: row.isTransfer ? 'none' : 'auto' }}>
                     <select value={row.categoryId}
                       onChange={e => handleCategoryChange(row.id, e.target.value)}
                       style={selectStyle}>
@@ -272,7 +350,7 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                       {categories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
                     </select>
                   </td>
-                  <td style={td}>
+                  <td style={{ ...td, opacity: row.isTransfer ? 0.4 : 1, pointerEvents: row.isTransfer ? 'none' : 'auto' }}>
                     <select value={row.itemName}
                       onChange={e => {
                         const val = e.target.value;
