@@ -79,19 +79,27 @@ async function extractLines(file: File): Promise<{
 // Columns: Value Date | Post Date | Details | Ref No/Cheque No | ₹ Debit | ₹ Credit | Balance
 // Each transaction spans multiple PDF lines: date row first, then multi-line details,
 // then the amounts row (e.g. "- - 10,000.00 12,996.05").
-// Strategy: state machine — latch onto a date, then wait for an amounts line to close the row.
+// The SBI header row is split across multiple pdfjs lines so we cannot use a single-line
+// inTable trigger. Instead: first-pass finds ₹ Debit / ₹ Credit column x-positions by
+// looking for the first standalone "Debit" and "Credit" tokens; second-pass parses rows.
 export async function parseSBIPDF(file: File): Promise<ParsedRow[]> {
   const { lines } = await extractLines(file);
 
+  // Pass 1 — locate Debit / Credit column x-positions from header tokens
   let debitX = -1;
   let creditX = -1;
-  let inTable = false;
+  for (const line of lines) {
+    for (const item of line) {
+      if (/^Debit$/i.test(item.text) && debitX < 0) debitX = item.x;
+      if (/^Credit$/i.test(item.text) && creditX < 0) creditX = item.x;
+    }
+    if (debitX >= 0 && creditX >= 0) break;
+  }
 
-  // State for current open transaction
+  // Pass 2 — extract transactions
   let currentDate = '';
   let currentRawDate = '';
   let currentNarration = '';
-
   const rows: ParsedRow[] = [];
 
   for (const line of lines) {
@@ -99,28 +107,12 @@ export async function parseSBIPDF(file: File): Promise<ParsedRow[]> {
     const tokens = line.map(i => i.text);
     const text = tokens.join(' ');
 
-    // Detect the transaction table header (appears once per page)
-    if (/Value\s*Date/i.test(text) && /Debit/i.test(text) && /Credit/i.test(text)) {
-      inTable = true;
-      if (debitX < 0) {
-        for (const item of line) {
-          if (/Debit/i.test(item.text)) debitX = item.x;
-          if (/Credit/i.test(item.text)) creditX = item.x;
-        }
-      }
-      continue;
-    }
-
-    // End of table / summary section
     if (/Statement Summary|Brought Forward|Page no\./i.test(text)) {
-      inTable = false;
       currentDate = '';
       continue;
     }
 
-    if (!inTable) continue;
-
-    // Start of a new transaction row — leftmost token is a date
+    // Transaction rows start with DD/MM/YYYY at the leftmost position
     const dateStr = tryParseDate(tokens[0]);
     if (dateStr) {
       currentDate = dateStr;
@@ -132,15 +124,10 @@ export async function parseSBIPDF(file: File): Promise<ParsedRow[]> {
 
     if (!currentDate) continue;
 
-    // Collect amounts on this line (dashes are skipped — they don't match AMOUNT_RE)
     const amounts: { x: number; v: number }[] = [];
     for (const item of line) {
-      if (AMOUNT_RE.test(item.text)) {
-        amounts.push({ x: item.x, v: parseAmount(item.text) });
-      }
+      if (AMOUNT_RE.test(item.text)) amounts.push({ x: item.x, v: parseAmount(item.text) });
     }
-
-    // Need at least 2 amounts: transaction amount + running balance
     if (amounts.length < 2) continue;
 
     amounts.sort((a, b) => a.x - b.x);
