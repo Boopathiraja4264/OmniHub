@@ -80,22 +80,22 @@ function findDateInTokens(tokens: string[]): { date: string; raw: string } | nul
 
 // Columns: Transaction Date | Value Date | Description/Narration | Cheque/Reference No. | Debit (₹) | Credit (₹) | Balance (₹)
 // Date arrives as 3 tokens ("03 Jan 2026"). State machine handles multi-line rows.
+// The AU header row is split across pdfjs lines so we cannot use a single-line inTable trigger.
+// First-pass locates Debit/Credit column x-positions by finding the first standalone tokens.
 export async function parseAUPDF(file: File): Promise<ParsedRow[]> {
   const { lines } = await extractLines(file);
 
+  // Pass 1 — locate Debit / Credit column x-positions from header tokens
   let debitX = -1, creditX = -1;
   for (const line of lines) {
-    const text = line.map(i => i.text).join(' ');
-    if (/Transaction\s*Date/i.test(text) && /Debit/i.test(text) && /Credit/i.test(text)) {
-      for (const item of line) {
-        if (/Debit/i.test(item.text)) debitX = item.x;
-        if (/Credit/i.test(item.text)) creditX = item.x;
-      }
-      break;
+    for (const item of line) {
+      if (/^Debit$/i.test(item.text) && debitX < 0) debitX = item.x;
+      if (/^Credit$/i.test(item.text) && creditX < 0) creditX = item.x;
     }
+    if (debitX >= 0 && creditX >= 0) break;
   }
 
-  let inTable = false;
+  // Pass 2 — extract transactions
   let currentDate = '';
   let currentRawDate = '';
   const rows: ParsedRow[] = [];
@@ -105,9 +105,8 @@ export async function parseAUPDF(file: File): Promise<ParsedRow[]> {
     const tokens = line.map(i => i.text);
     const text = tokens.join(' ');
 
-    if (/Transaction\s*Date/i.test(text) && /Debit/i.test(text)) { inTable = true; continue; }
-    if (/Total|Opening Balance/i.test(text)) { currentDate = ''; continue; }
-    if (!inTable) continue;
+    // Reset on footer/summary markers
+    if (/^Total$|Opening Balance/i.test(text)) { currentDate = ''; continue; }
 
     const dateResult = findDateInTokens(tokens);
     if (dateResult) { currentDate = dateResult.date; currentRawDate = dateResult.raw; }
