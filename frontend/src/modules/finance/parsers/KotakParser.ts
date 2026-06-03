@@ -26,16 +26,16 @@ function tryParseDate(raw: string): string {
   // YYYY-MM-DD (ISO)
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   // DD Mon YYYY  |  DD-Mon-YYYY  |  DD/Mon/YYYY  (4-digit year)
-  const m1 = s.match(/^(\d{1,2})[\s\-\/](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[\s\-\/](\d{4})$/i);
+  const m1 = s.match(/^(\d{1,2})[\s\-/](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[\s\-/](\d{4})$/i);
   if (m1) return `${m1[3]}-${normalizeMonth(m1[2])}-${m1[1].padStart(2, '0')}`;
   // DD Mon YY  |  DD-Mon-YY  |  DD/Mon/YY  (2-digit year e.g. 15-Mar-26)
-  const m1b = s.match(/^(\d{1,2})[\s\-\/](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[\s\-\/](\d{2})$/i);
+  const m1b = s.match(/^(\d{1,2})[\s\-/](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[\s\-/](\d{2})$/i);
   if (m1b) return `20${m1b[3]}-${normalizeMonth(m1b[2])}-${m1b[1].padStart(2, '0')}`;
   // DD/MM/YYYY  |  DD-MM-YYYY
-  const m2 = s.match(/^(\d{1,2})[\/\-](\d{2})[\/\-](\d{4})$/);
+  const m2 = s.match(/^(\d{1,2})[-/](\d{2})[-/](\d{4})$/);
   if (m2) return `${m2[3]}-${m2[2].padStart(2, '0')}-${m2[1].padStart(2, '0')}`;
   // DD/MM/YY  |  DD-MM-YY
-  const m3 = s.match(/^(\d{1,2})[\/\-](\d{2})[\/\-](\d{2})$/);
+  const m3 = s.match(/^(\d{1,2})[-/](\d{2})[-/](\d{2})$/);
   if (m3) return `20${m3[3]}-${m3[2].padStart(2, '0')}-${m3[1].padStart(2, '0')}`;
   return '';
 }
@@ -120,7 +120,7 @@ function findDateInTokens(tokens: string[]): string {
 // and the amount to its left is the transaction amount (DR or CR).
 // Type (EXPENSE/INCOME) is determined by whether the balance went DOWN or UP.
 export async function parseKotakPDF(file: File): Promise<ParsedRow[]> {
-  const { lines, pageWidth } = await extractLines(file);
+  const { lines } = await extractLines(file);
 
 
   const amountXThreshold = 0;
