@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { transactionApi, creditCardApi } from '../../services/api';
-import { Transaction, CreditCard } from '../../types';
+import { transactionApi, creditCardApi, bankAccountApi } from '../../services/api';
+import { Transaction, CreditCard, BankAccount } from '../../types';
 import FilterDropdown from '../../components/FilterDropdown';
 import DatePicker from '../../components/DatePicker';
 
@@ -23,6 +23,9 @@ const CreditCardDetailPage: React.FC = () => {
   const [filterYear, setFilterYear] = useState<number | 'ALL'>('ALL');
   const [filterMonth, setFilterMonth] = useState<number | 'ALL'>('ALL');
   const [showEdit, setShowEdit] = useState(false);
+  const [showPayBill, setShowPayBill] = useState(false);
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [payForm, setPayForm] = useState({ bankAccountId: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [editForm, setEditForm] = useState({
@@ -32,6 +35,7 @@ const CreditCardDetailPage: React.FC = () => {
   });
 
   const load = (cardId: number) => {
+    bankAccountApi.getAll().then(r => setBankAccounts(Array.isArray(r.data) ? r.data : []));
     Promise.all([
       creditCardApi.getAll(),
       transactionApi.getByCard(cardId),
@@ -143,9 +147,13 @@ const CreditCardDetailPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setShowEdit(true)}>Edit</button>
-          <div style={{ textAlign: 'right' }}>
+          <button className="btn btn-primary btn-sm"
+            onClick={() => { setPayForm({ bankAccountId: '', amount: String(card.outstanding || ''), date: new Date().toISOString().split('T')[0], notes: '' }); setShowPayBill(true); }}>
+            Pay Bill
+          </button>
+          <div style={{ textAlign: 'right', marginLeft: 6 }}>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Current Outstanding</div>
             <div style={{ fontSize: 24, fontWeight: 800, color: outstandingColor }}>{fmt(card.outstanding)}</div>
           </div>
@@ -262,6 +270,74 @@ const CreditCardDetailPage: React.FC = () => {
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => { setShowEdit(false); setSaveError(''); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pay Bill Modal */}
+      {showPayBill && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowPayBill(false)}>
+          <div className="modal" style={{ maxWidth: 460, width: '95vw' }}>
+            <div className="modal-header">
+              <h3 className="modal-title">Record Bill Payment</h3>
+              <button className="close-btn" onClick={() => setShowPayBill(false)}>✕</button>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
+              Records a bank deduction for paying the bill of <strong>{displayName}</strong>.
+            </p>
+            <form onSubmit={async e => {
+              e.preventDefault();
+              setSaving(true);
+              try {
+                await transactionApi.create({
+                  description: `CC Payment – ${card.name}`,
+                  amount: parseFloat(payForm.amount),
+                  type: 'EXPENSE',
+                  category: 'Credit Card Payment',
+                  date: payForm.date,
+                  paymentSource: 'BANK',
+                  bankAccountId: payForm.bankAccountId ? parseInt(payForm.bankAccountId) : undefined,
+                  notes: payForm.notes || undefined,
+                });
+                setShowPayBill(false);
+                setPayForm({ bankAccountId: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
+              } catch {} finally { setSaving(false); }
+            }}>
+              <div className="form-grid" style={{ marginBottom: 24 }}>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Pay from Bank Account</label>
+                  <FilterDropdown
+                    value={payForm.bankAccountId}
+                    options={bankAccounts.map(b => ({ label: b.name + (b.bankName ? ` (${b.bankName})` : ''), value: String(b.id) }))}
+                    onChange={v => setPayForm({ ...payForm, bankAccountId: v as string })}
+                    placeholder="Select bank account..." fullWidth />
+                </div>
+                <div className="form-group">
+                  <label>Amount</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input type="number" step="0.01" min="1" value={payForm.amount}
+                      onChange={e => setPayForm({ ...payForm, amount: e.target.value })} required placeholder="0.00" style={{ flex: 1 }} />
+                    <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px',
+                      background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                      borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap', flexShrink: 0 }}>₹ INR</div>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Date</label>
+                  <DatePicker value={payForm.date} onChange={e => setPayForm({ ...payForm, date: e.target.value })} required fullWidth />
+                </div>
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label>Notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
+                  <input value={payForm.notes} onChange={e => setPayForm({ ...payForm, notes: e.target.value })} placeholder="e.g. CRED app, net banking..." />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPayBill(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={saving || !payForm.bankAccountId || !payForm.amount}>
+                  {saving ? 'Saving…' : 'Record Payment'}
+                </button>
               </div>
             </form>
           </div>

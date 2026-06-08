@@ -20,25 +20,25 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findByUserIdAndTypeOrderByDateDesc(Long userId, TransactionType type);
 
-    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = :type")
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = :type AND t.category != 'Transfer' AND t.category != 'Credit Card Payment' AND (t.paymentSource IS NULL OR t.paymentSource != 'CREDIT_CARD')")
     BigDecimal sumByUserIdAndType(@Param("userId") Long userId, @Param("type") TransactionType type);
 
-    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = :type AND MONTH(t.date) = :month AND YEAR(t.date) = :year")
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = :type AND MONTH(t.date) = :month AND YEAR(t.date) = :year AND t.category != 'Transfer' AND t.category != 'Credit Card Payment' AND (t.paymentSource IS NULL OR t.paymentSource != 'CREDIT_CARD')")
     BigDecimal sumByUserIdAndTypeAndMonthAndYear(@Param("userId") Long userId, @Param("type") TransactionType type,
                                                   @Param("month") int month, @Param("year") int year);
 
-    @Query("SELECT t.category, SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = 'EXPENSE' AND MONTH(t.date) = :month AND YEAR(t.date) = :year GROUP BY t.category")
+    @Query("SELECT t.category, SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = 'EXPENSE' AND MONTH(t.date) = :month AND YEAR(t.date) = :year AND t.category != 'Transfer' AND t.category != 'Credit Card Payment' AND (t.paymentSource IS NULL OR t.paymentSource != 'CREDIT_CARD') GROUP BY t.category")
     List<Object[]> sumExpensesByCategoryForMonth(@Param("userId") Long userId, @Param("month") int month, @Param("year") int year);
 
-    @Query("SELECT MONTH(t.date) as month, SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = :type AND YEAR(t.date) = :year GROUP BY MONTH(t.date) ORDER BY MONTH(t.date)")
+    @Query("SELECT MONTH(t.date) as month, SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = :type AND YEAR(t.date) = :year AND t.category != 'Transfer' AND t.category != 'Credit Card Payment' AND (t.paymentSource IS NULL OR t.paymentSource != 'CREDIT_CARD') GROUP BY MONTH(t.date) ORDER BY MONTH(t.date)")
     List<Object[]> monthlyTotalsByType(@Param("userId") Long userId, @Param("type") TransactionType type, @Param("year") int year);
 
     List<Transaction> findByUserIdAndCategoryAndDateBetween(Long userId, String category, LocalDate start, LocalDate end);
 
-    @Query("SELECT t.category, MONTH(t.date), SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = 'EXPENSE' AND YEAR(t.date) = :year GROUP BY t.category, MONTH(t.date) ORDER BY t.category, MONTH(t.date)")
+    @Query("SELECT t.category, MONTH(t.date), SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = 'EXPENSE' AND YEAR(t.date) = :year AND t.category != 'Transfer' AND t.category != 'Credit Card Payment' AND (t.paymentSource IS NULL OR t.paymentSource != 'CREDIT_CARD') GROUP BY t.category, MONTH(t.date) ORDER BY t.category, MONTH(t.date)")
     List<Object[]> sumExpensesByCategoryAndMonthForYear(@Param("userId") Long userId, @Param("year") int year);
 
-    @Query("SELECT t.itemName, SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = 'EXPENSE' AND MONTH(t.date) = :month AND YEAR(t.date) = :year AND t.itemName IS NOT NULL GROUP BY t.itemName ORDER BY SUM(t.amount) DESC")
+    @Query("SELECT t.itemName, SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.type = 'EXPENSE' AND MONTH(t.date) = :month AND YEAR(t.date) = :year AND t.itemName IS NOT NULL AND t.category != 'Transfer' AND t.category != 'Credit Card Payment' AND (t.paymentSource IS NULL OR t.paymentSource != 'CREDIT_CARD') GROUP BY t.itemName ORDER BY SUM(t.amount) DESC")
     List<Object[]> topItemsBySpend(@Param("userId") Long userId, @Param("month") int month, @Param("year") int year);
 
     @Query("SELECT t.cardId, SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.paymentSource = 'CREDIT_CARD' AND MONTH(t.date) = :month AND YEAR(t.date) = :year AND t.cardId IS NOT NULL GROUP BY t.cardId")
@@ -63,6 +63,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     // Summary pivot: category, itemName, month, total — for annual summary export
     @Query("SELECT t.category, t.itemName, MONTH(t.date), SUM(t.amount) " +
            "FROM Transaction t WHERE t.user.id = :userId AND t.type = 'EXPENSE' AND YEAR(t.date) = :year " +
+           "AND t.category != 'Transfer' AND t.category != 'Credit Card Payment' AND (t.paymentSource IS NULL OR t.paymentSource != 'CREDIT_CARD') " +
            "GROUP BY t.category, t.itemName, MONTH(t.date) ORDER BY t.category, COALESCE(t.itemName,''), MONTH(t.date)")
     List<Object[]> getExpensesByItemAndMonth(@Param("userId") Long userId, @Param("year") int year);
 }
