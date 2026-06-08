@@ -403,13 +403,19 @@ const EditBankModal: React.FC<EditBankModalProps> = ({ account, onClose, onSucce
             )}
 
             <div className="form-group">
-              <label>Opening Balance (₹)</label>
-              <input type="number" step="0.01" value={openingBalance}
-                onChange={e => setOpeningBalance(e.target.value)} placeholder="0.00" />
+              <label>Opening Balance</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="number" step="0.01" value={openingBalance}
+                  onChange={e => setOpeningBalance(e.target.value)} placeholder="0.00" style={{ flex: 1 }} />
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px',
+                  background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap', flexShrink: 0 }}>₹ INR</div>
+              </div>
             </div>
             <div className="form-group">
               <label>Balance as of</label>
               <DatePicker value={balanceDate} onChange={e => setBalanceDate(e.target.value)} fullWidth />
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>Your balance on this date.</div>
             </div>
 
             <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -530,8 +536,13 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ card, onClose, onSuccess 
                 onChange={v => setCardType(v as string)} placeholder="Select network..." fullWidth />
             </div>
             <div className="form-group">
-              <label>Credit Limit (₹)</label>
-              <input type="number" value={creditLimit} onChange={e => setCreditLimit(e.target.value)} placeholder="e.g. 150000" />
+              <label>Credit Limit</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="number" value={creditLimit} onChange={e => setCreditLimit(e.target.value)} placeholder="e.g. 150000" style={{ flex: 1 }} />
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px',
+                  background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap', flexShrink: 0 }}>₹ INR</div>
+              </div>
             </div>
             <div className="form-group">
               <label>Statement Date <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(day)</span></label>
@@ -546,8 +557,13 @@ const EditCardModal: React.FC<EditCardModalProps> = ({ card, onClose, onSuccess 
               <DatePicker value={balanceDate} onChange={e => setBalanceDate(e.target.value)} fullWidth />
             </div>
             <div className="form-group">
-              <label>Outstanding as of that date (₹)</label>
-              <input type="number" step="0.01" value={openingOutstanding} onChange={e => setOutstanding(e.target.value)} placeholder="0.00" />
+              <label>Outstanding as of that date</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input type="number" step="0.01" value={openingOutstanding} onChange={e => setOutstanding(e.target.value)} placeholder="0.00" style={{ flex: 1 }} />
+                <div style={{ display: 'flex', alignItems: 'center', padding: '0 12px',
+                  background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap', flexShrink: 0 }}>₹ INR</div>
+              </div>
             </div>
             <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <ColourPicker value={colour} onChange={setColour} />
@@ -782,7 +798,7 @@ const CardsTab: React.FC<{ refreshKey: number }> = ({ refreshKey }) => {
       await transactionApi.create({
         description: `CC Payment – ${payModal.name}`,
         amount: parseFloat(payForm.amount),
-        type: 'EXPENSE', category: 'EMI', date: payForm.date,
+        type: 'EXPENSE', category: 'Credit Card Payment', date: payForm.date,
         paymentSource: 'BANK',
         bankAccountId: payForm.bankAccountId ? parseInt(payForm.bankAccountId) : undefined,
         notes: payForm.notes || undefined,
