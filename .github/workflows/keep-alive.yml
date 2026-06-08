@@ -9,8 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Render backend
+        continue-on-error: true
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://omnihub-prod.onrender.com/actuator/health)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 https://omnihub-prod.onrender.com/actuator/health || echo "000")
           echo "Response: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "Warning: got $STATUS — server may be cold starting"
