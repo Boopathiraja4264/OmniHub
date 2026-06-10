@@ -58,7 +58,7 @@ const CreditCardDetailPage: React.FC = () => {
       const list: Transaction[] = txRes.data;
       let outstanding = 0;
       const enriched: TxWithOutstanding[] = list.map(t => {
-        outstanding += t.amount;
+        outstanding += t.type === 'EXPENSE' ? t.amount : -t.amount;
         return { ...t, runningOutstanding: outstanding };
       });
       setTxs(enriched);
@@ -291,18 +291,27 @@ const CreditCardDetailPage: React.FC = () => {
               e.preventDefault();
               setSaving(true);
               try {
+                const amt = parseFloat(payForm.amount);
+                const desc = `CC Payment – ${card.name}`;
+                // 1. Debit bank account
                 await transactionApi.create({
-                  description: `CC Payment – ${card.name}`,
-                  amount: parseFloat(payForm.amount),
-                  type: 'EXPENSE',
-                  category: 'Credit Card Payment',
-                  date: payForm.date,
-                  paymentSource: 'BANK',
+                  description: desc, amount: amt,
+                  type: 'EXPENSE', category: 'Credit Card Payment',
+                  date: payForm.date, paymentSource: 'BANK',
                   bankAccountId: payForm.bankAccountId ? parseInt(payForm.bankAccountId) : undefined,
+                  notes: payForm.notes || undefined,
+                });
+                // 2. Credit the card — reduces outstanding balance
+                await transactionApi.create({
+                  description: desc, amount: amt,
+                  type: 'INCOME', category: 'Credit Card Payment',
+                  date: payForm.date, paymentSource: 'CREDIT_CARD',
+                  cardId: card.id,
                   notes: payForm.notes || undefined,
                 });
                 setShowPayBill(false);
                 setPayForm({ bankAccountId: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
+                load(parseInt(id!));
               } catch {} finally { setSaving(false); }
             }}>
               <div className="form-grid" style={{ marginBottom: 24 }}>
@@ -381,9 +390,12 @@ const CreditCardDetailPage: React.FC = () => {
                       </td>
                       <td style={{ fontSize: 13 }}>{new Date(t.date).toLocaleDateString()}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <span style={{ color: 'var(--expense)', fontWeight: 600 }}>-{fmt(t.amount)}</span>
+                        {t.type === 'INCOME'
+                          ? <span style={{ color: 'var(--income)', fontWeight: 600 }}>+{fmt(t.amount)}</span>
+                          : <span style={{ color: 'var(--expense)', fontWeight: 600 }}>-{fmt(t.amount)}</span>}
                       </td>
-                      <td style={{ textAlign: 'right', paddingRight: 20, fontWeight: 700, color: 'var(--expense)' }}>
+                      <td style={{ textAlign: 'right', paddingRight: 20, fontWeight: 700,
+                        color: t.runningOutstanding <= 0 ? 'var(--income)' : 'var(--expense)' }}>
                         {fmt(t.runningOutstanding)}
                       </td>
                     </tr>
