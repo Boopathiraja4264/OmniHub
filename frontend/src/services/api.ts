@@ -1,10 +1,14 @@
 import axios from "axios";
 
-const BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+// When REACT_APP_API_URL is set (production / ngrok) use it directly.
+// When empty, use a relative /api path so the CRA dev-server proxy
+// (package.json "proxy": "http://localhost:8080") forwards requests —
+// this way a single ngrok tunnel on port 3000 is enough for mobile testing.
+const BASE_URL = process.env.REACT_APP_API_URL || "";
 
 const api = axios.create({
-  baseURL: `${BASE_URL}/api`,
-  withCredentials: true, // send HttpOnly JWT cookie with every request
+  baseURL: BASE_URL ? `${BASE_URL}/api` : "/api",
+  withCredentials: true,
 });
 
 api.interceptors.response.use(

@@ -56,9 +56,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.bankAccountId = :bankAccountId AND t.type = :type AND t.date >= :fromDate")
     BigDecimal sumByBankAccountIdAndTypeFromDate(@Param("userId") Long userId, @Param("bankAccountId") Long bankAccountId, @Param("type") TransactionType type, @Param("fromDate") LocalDate fromDate);
 
-    // Credit card billing cycle outstanding: all expenses from a date onwards
+    // Credit card expenses from a date onwards
     @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.cardId = :cardId AND t.type = 'EXPENSE' AND t.date >= :fromDate")
     BigDecimal sumCardOutstandingFromDate(@Param("userId") Long userId, @Param("cardId") Long cardId, @Param("fromDate") LocalDate fromDate);
+
+    // Credit card payments (bill payments) from a date onwards
+    @Query("SELECT SUM(t.amount) FROM Transaction t WHERE t.user.id = :userId AND t.cardId = :cardId AND t.type = 'INCOME' AND t.date >= :fromDate")
+    BigDecimal sumCardPaymentsFromDate(@Param("userId") Long userId, @Param("cardId") Long cardId, @Param("fromDate") LocalDate fromDate);
 
     // Summary pivot: category, itemName, month, total — for annual summary export
     @Query("SELECT t.category, t.itemName, MONTH(t.date), SUM(t.amount) " +

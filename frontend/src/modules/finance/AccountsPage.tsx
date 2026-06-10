@@ -795,12 +795,22 @@ const CardsTab: React.FC<{ refreshKey: number }> = ({ refreshKey }) => {
     if (!payModal) return;
     setSaving(true);
     try {
+      const amt = parseFloat(payForm.amount);
+      const desc = `CC Payment – ${payModal.name}`;
+      // 1. Debit bank account
       await transactionApi.create({
-        description: `CC Payment – ${payModal.name}`,
-        amount: parseFloat(payForm.amount),
+        description: desc, amount: amt,
         type: 'EXPENSE', category: 'Credit Card Payment', date: payForm.date,
         paymentSource: 'BANK',
         bankAccountId: payForm.bankAccountId ? parseInt(payForm.bankAccountId) : undefined,
+        notes: payForm.notes || undefined,
+      });
+      // 2. Credit the card — reduces outstanding balance
+      await transactionApi.create({
+        description: desc, amount: amt,
+        type: 'INCOME', category: 'Credit Card Payment', date: payForm.date,
+        paymentSource: 'CREDIT_CARD',
+        cardId: payModal.id,
         notes: payForm.notes || undefined,
       });
       setPayModal(null);

@@ -76,28 +76,26 @@ public class CreditCardService {
     }
 
     private BigDecimal getOutstanding(CreditCard card, Long userId) {
-        if (card.getBalanceDate() != null) {
-            BigDecimal txExpenses = txRepo.sumCardOutstandingFromDate(userId, card.getId(), card.getBalanceDate());
-            BigDecimal opening = card.getOpeningOutstanding() != null ? card.getOpeningOutstanding() : BigDecimal.ZERO;
-            return opening.add(txExpenses != null ? txExpenses : BigDecimal.ZERO);
-        }
-        // Fall back to billing cycle logic
-        LocalDate today = LocalDate.now();
         LocalDate fromDate;
-        if (card.getBillingDate() != null) {
+        if (card.getBalanceDate() != null) {
+            fromDate = card.getBalanceDate();
+        } else if (card.getBillingDate() != null) {
+            LocalDate today = LocalDate.now();
             int day = Math.min(card.getBillingDate(), today.lengthOfMonth());
             LocalDate thisMonthStatement = today.withDayOfMonth(day);
-            if (!today.isBefore(thisMonthStatement)) {
-                fromDate = thisMonthStatement;
-            } else {
-                int prevDay = Math.min(card.getBillingDate(), today.minusMonths(1).lengthOfMonth());
-                fromDate = today.minusMonths(1).withDayOfMonth(prevDay);
-            }
+            fromDate = !today.isBefore(thisMonthStatement)
+                ? thisMonthStatement
+                : today.minusMonths(1).withDayOfMonth(Math.min(card.getBillingDate(), today.minusMonths(1).lengthOfMonth()));
         } else {
-            fromDate = today.withDayOfMonth(1);
+            fromDate = LocalDate.now().withDayOfMonth(1);
         }
-        BigDecimal outstanding = txRepo.sumCardOutstandingFromDate(userId, card.getId(), fromDate);
-        return outstanding != null ? outstanding : BigDecimal.ZERO;
+
+        BigDecimal opening  = card.getOpeningOutstanding() != null ? card.getOpeningOutstanding() : BigDecimal.ZERO;
+        BigDecimal expenses = txRepo.sumCardOutstandingFromDate(userId, card.getId(), fromDate);
+        BigDecimal payments = txRepo.sumCardPaymentsFromDate(userId, card.getId(), fromDate);
+        return opening
+            .add(expenses != null ? expenses : BigDecimal.ZERO)
+            .subtract(payments != null ? payments : BigDecimal.ZERO);
     }
 
     private CreditCardResponse toResponse(CreditCard c, Long userId) {
