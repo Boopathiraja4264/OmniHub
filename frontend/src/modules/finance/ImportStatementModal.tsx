@@ -7,6 +7,10 @@ import { parseSBIPDF } from './parsers/SBIParser';
 import { parseAUPDF } from './parsers/AUParser';
 import { parseHDFCPDF } from './parsers/HDFCParser';
 import { parseICICIPDF } from './parsers/ICICIParser';
+import { parseAxisCCPDF } from './parsers/AxisCCParser';
+import { parseHDFCCCPDF } from './parsers/HDFCCCParser';
+import { parseSBICCPDF } from './parsers/SBICCParser';
+import { parseICICICCPDF } from './parsers/ICICICCParser';
 
 type FileType = 'PDF' | 'CSV' | 'Excel';
 type BankFormat =
@@ -15,7 +19,11 @@ type BankFormat =
   | 'State Bank of India'
   | 'AU Small Finance Bank'
   | 'HDFC Bank'
-  | 'ICICI Bank';
+  | 'ICICI Bank'
+  | 'Axis Bank Credit Card'
+  | 'HDFC Bank Credit Card'
+  | 'SBI Credit Card'
+  | 'ICICI Bank Credit Card';
 
 interface ReviewRow extends ParsedRow {
   id: string;
@@ -40,6 +48,10 @@ const BANK_FORMATS: BankFormat[] = [
   'AU Small Finance Bank',
   'HDFC Bank',
   'ICICI Bank',
+  'Axis Bank Credit Card',
+  'HDFC Bank Credit Card',
+  'SBI Credit Card',
+  'ICICI Bank Credit Card',
 ];
 
 const fmt = (n: number) =>
@@ -115,6 +127,18 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
       } else if (bankFormat === 'ICICI Bank') {
         if (fileType === 'PDF') parsed = await parseICICIPDF(file);
         else { setParseError('ICICI Bank: only PDF format is supported.'); return; }
+      } else if (bankFormat === 'Axis Bank Credit Card') {
+        if (fileType === 'PDF') parsed = await parseAxisCCPDF(file);
+        else { setParseError('Axis Bank Credit Card: only PDF format is supported.'); return; }
+      } else if (bankFormat === 'HDFC Bank Credit Card') {
+        if (fileType === 'PDF') parsed = await parseHDFCCCPDF(file);
+        else { setParseError('HDFC Bank Credit Card: only PDF format is supported.'); return; }
+      } else if (bankFormat === 'SBI Credit Card') {
+        if (fileType === 'PDF') parsed = await parseSBICCPDF(file);
+        else { setParseError('SBI Credit Card: only PDF format is supported.'); return; }
+      } else if (bankFormat === 'ICICI Bank Credit Card') {
+        if (fileType === 'PDF') parsed = await parseICICICCPDF(file);
+        else { setParseError('ICICI Bank Credit Card: only PDF format is supported.'); return; }
       }
       if (!parsed.length) { setParseError('No transactions found. Make sure the file matches the selected bank format.'); return; }
       setRows(parsed.map((r, i) => ({ ...r, id: String(i), categoryId: '', category: '', itemName: '', notes: '', included: true, isTransfer: false, transferToAccountId: '' })));
@@ -197,7 +221,7 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
   const renderSetup = () => (
     <>
       <div className="modal-header">
-        <h3 className="modal-title">Import Bank Statement</h3>
+        <h3 className="modal-title">{selectedAccountType === 'CARD' ? 'Import Credit Card Statement' : 'Import Bank Statement'}</h3>
         <button className="close-btn" onClick={onClose}>✕</button>
       </div>
       <div className="form-grid" style={{ gap: 16 }}>
@@ -293,7 +317,7 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
               <th style={th}>Date</th>
               <th style={th}>Amount</th>
               <th style={th}>Type</th>
-              <th style={{ ...th, minWidth: 160 }}>Transfer ⇄</th>
+              {selectedAccountType === 'BANK' && <th style={{ ...th, minWidth: 160 }}>Transfer ⇄</th>}
               <th style={{ ...th, minWidth: 140 }}>Category</th>
               <th style={{ ...th, minWidth: 140 }}>Item</th>
               <th style={{ ...th, minWidth: 140 }}>Description</th>
@@ -320,6 +344,7 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                       {row.isTransfer ? 'TRANSFER' : row.type}
                     </span>
                   </td>
+                  {selectedAccountType === 'BANK' && (
                   <td style={td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <input
@@ -342,6 +367,7 @@ const ImportStatementModal: React.FC<Props> = ({ onClose, onSuccess }) => {
                       )}
                     </div>
                   </td>
+                  )}
                   <td style={{ ...td, opacity: row.isTransfer ? 0.4 : 1, pointerEvents: row.isTransfer ? 'none' : 'auto' }}>
                     <select value={row.categoryId}
                       onChange={e => handleCategoryChange(row.id, e.target.value)}

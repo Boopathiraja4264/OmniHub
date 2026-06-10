@@ -10,10 +10,138 @@ const fmtDateInput = (d?: string) => d ? d.split('T')[0] : '';
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
 
+const fmtShort = (dateStr: string) =>
+  new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+const fmtFull = (dateStr: string) =>
+  new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 interface TxWithOutstanding extends Transaction { runningOutstanding: number; }
 
+interface BillingCycle {
+  key: string;
+  label: string;
+  start: string;
+  end: string;
+  statementDate: string;
+  expenses: number;
+  payments: number;
+  paymentDate?: string;
+  txs: TxWithOutstanding[];
+}
+
+function getDateStr(y: number, m: number, day: number): string {
+  const maxDay = new Date(y, m, 0).getDate(); // m is 1-indexed; new Date(y, m, 0) = last day of month m
+  return `${y}-${String(m).padStart(2, '0')}-${String(Math.min(day, maxDay)).padStart(2, '0')}`;
+}
+
+function computeCycles(billingDay: number, allTxs: TxWithOutstanding[]): BillingCycle[] {
+  if (!billingDay || !allTxs.length) return [];
+  const todayStr = new Date().toISOString().split('T')[0];
+  const sorted = [...allTxs].sort((a, b) => a.date.localeCompare(b.date));
+  const oldestDate = sorted[0].date;
+  const [oy, om, od] = oldestDate.split('-').map(Number);
+
+  let y = oy, m = om;
+  if (od < billingDay) { m--; if (m === 0) { m = 12; y--; } }
+
+  const cycles: BillingCycle[] = [];
+
+  for (let i = 0; i < 120; i++) {
+    const startStr = getDateStr(y, m, billingDay);
+    if (startStr > todayStr) break;
+
+    let ny = y, nm = m + 1;
+    if (nm > 12) { nm = 1; ny++; }
+    const nextBillingStr = getDateStr(ny, nm, billingDay);
+
+    const nextBillingMs = new Date(nextBillingStr + 'T00:00:00').getTime();
+    const endStr = new Date(nextBillingMs - 86400000).toISOString().split('T')[0];
+
+    const cycleTxs = allTxs.filter(t => t.date >= startStr && t.date <= endStr);
+    if (cycleTxs.length > 0) {
+      const expenses = cycleTxs.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + t.amount, 0);
+      const payments = cycleTxs.filter(t => t.type === 'INCOME').reduce((s, t) => s + t.amount, 0);
+
+      const payDeadline = new Date(new Date(endStr + 'T00:00:00').getTime() + 45 * 86400000)
+        .toISOString().split('T')[0];
+      const paymentTx = allTxs.find(t =>
+        t.type === 'INCOME' && t.category === 'Credit Card Payment' &&
+        t.date > endStr && t.date <= payDeadline
+      );
+
+      cycles.push({
+        key: startStr,
+        label: new Date(startStr + 'T00:00:00').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+        start: startStr, end: endStr, statementDate: nextBillingStr,
+        expenses, payments, paymentDate: paymentTx?.date, txs: cycleTxs,
+      });
+    }
+
+    y = ny; m = nm;
+  }
+
+  return cycles.reverse();
+}
+
+// ── Bill category breakdown (used inside bill detail modal) ───────────────────
+const BillCategoryBreakdown: React.FC<{ cycle: BillingCycle }> = ({ cycle }) => {
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const expenseTxs = cycle.txs.filter(t => t.type === 'EXPENSE');
+  const byCategory: Record<string, { total: number; txs: TxWithOutstanding[] }> = {};
+  for (const t of expenseTxs) {
+    if (!byCategory[t.category]) byCategory[t.category] = { total: 0, txs: [] };
+    byCategory[t.category].total += t.amount;
+    byCategory[t.category].txs.push(t);
+  }
+  const entries = Object.entries(byCategory).sort((a, b) => b[1].total - a[1].total);
+  const total = entries.reduce((s, [, v]) => s + v.total, 0);
+  if (!entries.length) return <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '10px 0' }}>No expense transactions in this cycle.</div>;
+
+  return (
+    <div style={{ maxHeight: '52vh', overflowY: 'auto' }}>
+      {entries.map(([cat, data]) => (
+        <div key={cat} style={{ marginBottom: 2 }}>
+          <div onClick={() => setExpandedCat(expandedCat === cat ? null : cat)}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '9px 12px', background: expandedCat === cat ? 'var(--bg-elevated)' : 'transparent',
+              borderRadius: 8, cursor: 'pointer', userSelect: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>{cat}</span>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{data.txs.length} txn{data.txs.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--expense)' }}>{fmt(data.total)}</span>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', minWidth: 28, textAlign: 'right' }}>{Math.round((data.total / total) * 100)}%</span>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{expandedCat === cat ? '▲' : '▼'}</span>
+            </div>
+          </div>
+          {expandedCat === cat && (
+            <div style={{ paddingLeft: 8, paddingBottom: 6 }}>
+              {data.txs.sort((a, b) => b.amount - a.amount).map(t => (
+                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '6px 12px', borderLeft: '2px solid var(--border)', marginBottom: 1 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t.description}</div>
+                    {t.itemName && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t.itemName}</div>}
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--expense)' }}>{fmt(t.amount)}</div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{fmtShort(t.date)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const CreditCardDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -28,6 +156,7 @@ const CreditCardDetailPage: React.FC = () => {
   const [payForm, setPayForm] = useState({ bankAccountId: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [selectedCycle, setSelectedCycle] = useState<BillingCycle | null>(null);
   const [editForm, setEditForm] = useState({
     name: '', bank: '', cardType: '', lastFourDigits: '',
     creditLimit: '', billingDate: '', paymentDueDate: '',
@@ -44,9 +173,7 @@ const CreditCardDetailPage: React.FC = () => {
       setCard(c || null);
       if (c) {
         setEditForm({
-          name: c.name,
-          bank: c.bank || '',
-          cardType: c.cardType || '',
+          name: c.name, bank: c.bank || '', cardType: c.cardType || '',
           lastFourDigits: c.lastFourDigits || '',
           creditLimit: c.creditLimit != null ? String(c.creditLimit) : '',
           billingDate: c.billingDate != null ? String(c.billingDate) : '',
@@ -65,20 +192,15 @@ const CreditCardDetailPage: React.FC = () => {
     }).finally(() => setLoading(false));
   };
 
-  useEffect(() => {
-    if (!id) return;
-    load(parseInt(id));
-  }, [id]);
+  useEffect(() => { if (!id) return; load(parseInt(id)); }, [id]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!card) return;
-    setSaving(true);
-    setSaveError('');
+    setSaving(true); setSaveError('');
     try {
       await creditCardApi.update(card.id, {
-        name: editForm.name,
-        bank: editForm.bank || undefined,
+        name: editForm.name, bank: editForm.bank || undefined,
         cardType: editForm.cardType || undefined,
         lastFourDigits: editForm.lastFourDigits || undefined,
         creditLimit: editForm.creditLimit ? parseFloat(editForm.creditLimit) : undefined,
@@ -90,14 +212,16 @@ const CreditCardDetailPage: React.FC = () => {
       setShowEdit(false);
       load(parseInt(id!));
     } catch (e: any) {
-      setSaveError(e?.response?.data?.message || e?.response?.data?.error || 'Failed to save. Please try again.');
-    } finally {
-      setSaving(false);
-    }
+      setSaveError(e?.response?.data?.message || e?.response?.data?.error || 'Failed to save.');
+    } finally { setSaving(false); }
   };
 
   if (loading) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Loading...</div>;
   if (!card) return <div style={{ padding: 40, color: 'var(--text-muted)' }}>Card not found.</div>;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const cycles = card.billingDate ? computeCycles(card.billingDate, txs) : [];
+  const lastCompletedCycle = cycles.find(c => c.end < todayStr);
 
   const now = new Date();
   const curY = now.getFullYear(), curM = now.getMonth() + 1;
@@ -117,7 +241,6 @@ const CreditCardDetailPage: React.FC = () => {
     return true;
   });
 
-  // Group newest first
   const groups: { label: string; year: number; month: number; txs: TxWithOutstanding[] }[] = [];
   const seen = new Set<string>();
   [...filtered].reverse().forEach(t => {
@@ -138,7 +261,7 @@ const CreditCardDetailPage: React.FC = () => {
       {/* Header */}
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/accounts')}>← Back</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/accounts?tab=cards')}>← Back</button>
           <div>
             <h2 className="page-title" style={{ marginBottom: 2 }}>{displayName}</h2>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
@@ -150,7 +273,13 @@ const CreditCardDetailPage: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setShowEdit(true)}>Edit</button>
           <button className="btn btn-primary btn-sm"
-            onClick={() => { setPayForm({ bankAccountId: '', amount: String(card.outstanding || ''), date: new Date().toISOString().split('T')[0], notes: '' }); setShowPayBill(true); }}>
+            onClick={() => {
+              const defaultAmt = lastCompletedCycle
+                ? String(lastCompletedCycle.expenses)
+                : String(card.outstanding || '');
+              setPayForm({ bankAccountId: '', amount: defaultAmt, date: todayStr, notes: '' });
+              setShowPayBill(true);
+            }}>
             Pay Bill
           </button>
           <div style={{ textAlign: 'right', marginLeft: 6 }}>
@@ -167,16 +296,12 @@ const CreditCardDetailPage: React.FC = () => {
             value={filterYear}
             options={[{ label: 'All Years', value: 'ALL' }, ...years.map(y => ({ label: String(y), value: y }))]}
             onChange={v => { setFilterYear(v as any); setFilterMonth('ALL'); }}
-            placeholder="All Years"
-            minWidth={120}
-          />
+            placeholder="All Years" minWidth={120} />
           <FilterDropdown
             value={filterMonth}
             options={[{ label: 'All Months', value: 'ALL' }, ...MONTHS.map((m, i) => ({ label: m, value: i + 1 }))]}
             onChange={v => setFilterMonth(v as any)}
-            placeholder="All Months"
-            minWidth={130}
-          />
+            placeholder="All Months" minWidth={130} />
           <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>
             {filtered.length} transactions
           </span>
@@ -186,8 +311,7 @@ const CreditCardDetailPage: React.FC = () => {
           {quickFilters.map(q => {
             const active = filterYear === q.year && filterMonth === q.month;
             return (
-              <button key={q.label}
-                className={`btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'}`}
+              <button key={q.label} className={`btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => { setFilterYear(q.year); setFilterMonth(q.month); }}>
                 {q.label}
               </button>
@@ -199,6 +323,53 @@ const CreditCardDetailPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Billing Cycles Strip */}
+      {cycles.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase',
+            letterSpacing: 1, marginBottom: 10, paddingLeft: 4 }}>
+            Billing Cycles
+          </div>
+          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 }}>
+            {cycles.map(cycle => {
+              const isCurrent = cycle.start <= todayStr && cycle.end >= todayStr;
+              return (
+                <div key={cycle.key}
+                  onClick={() => setSelectedCycle(cycle)}
+                  style={{ flexShrink: 0, background: 'var(--bg-card)', cursor: 'pointer', minWidth: 150,
+                    border: `1px solid ${isCurrent ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 12,
+                    padding: '12px 14px', transition: 'box-shadow 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 0 0 2px var(--primary)')}
+                  onMouseLeave={e => (e.currentTarget.style.boxShadow = '')}>
+                  <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 4,
+                    color: isCurrent ? 'var(--primary)' : 'var(--text-muted)' }}>
+                    {cycle.label}{isCurrent ? ' · Now' : ''}
+                  </div>
+                  <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--expense)', letterSpacing: -0.3 }}>
+                    {fmt(cycle.expenses)}
+                  </div>
+                  {cycle.payments > 0 && (
+                    <div style={{ fontSize: 11, color: 'var(--income)', marginTop: 2 }}>
+                      −{fmt(cycle.payments)} credits
+                    </div>
+                  )}
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 8 }}>
+                    Stmt: {fmtShort(cycle.statementDate)}
+                  </div>
+                  <div style={{ fontSize: 10, marginTop: 3 }}>
+                    {cycle.paymentDate
+                      ? <span style={{ color: 'var(--income)', fontWeight: 600 }}>✓ Paid {fmtShort(cycle.paymentDate)}</span>
+                      : !isCurrent
+                        ? <span style={{ color: 'var(--expense)', fontWeight: 600 }}>● Unpaid</span>
+                        : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {showEdit && (
@@ -216,20 +387,14 @@ const CreditCardDetailPage: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label>Card Type</label>
-                  <FilterDropdown
-                    value={editForm.cardType}
+                  <FilterDropdown value={editForm.cardType}
                     options={[
-                      { label: 'Visa', value: 'VISA' },
-                      { label: 'Mastercard', value: 'MASTERCARD' },
-                      { label: 'RuPay', value: 'RUPAY' },
-                      { label: 'American Express', value: 'AMEX' },
-                      { label: 'Discover', value: 'DISCOVER' },
-                      { label: 'Other', value: 'OTHER' },
+                      { label: 'Visa', value: 'VISA' }, { label: 'Mastercard', value: 'MASTERCARD' },
+                      { label: 'RuPay', value: 'RUPAY' }, { label: 'American Express', value: 'AMEX' },
+                      { label: 'Discover', value: 'DISCOVER' }, { label: 'Other', value: 'OTHER' },
                     ]}
                     onChange={v => setEditForm({ ...editForm, cardType: v as string })}
-                    placeholder="Select type..."
-                    fullWidth
-                  />
+                    placeholder="Select type..." fullWidth />
                 </div>
                 <div className="form-group">
                   <label>Last 4 Digits <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
@@ -258,15 +423,13 @@ const CreditCardDetailPage: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <label>
-                    Outstanding as of {editForm.balanceDate ? new Date(editForm.balanceDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'selected date'} (₹)
+                    Outstanding as of {editForm.balanceDate ? fmtFull(editForm.balanceDate) : 'selected date'} (₹)
                   </label>
                   <input type="number" step="0.01" min="0" value={editForm.openingOutstanding}
                     onChange={e => setEditForm({ ...editForm, openingOutstanding: e.target.value })} />
                 </div>
               </div>
-              {saveError && (
-                <div style={{ color: 'var(--expense)', fontSize: 13, marginBottom: 12 }}>{saveError}</div>
-              )}
+              {saveError && <div style={{ color: 'var(--expense)', fontSize: 13, marginBottom: 12 }}>{saveError}</div>}
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => { setShowEdit(false); setSaveError(''); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
@@ -281,44 +444,42 @@ const CreditCardDetailPage: React.FC = () => {
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowPayBill(false)}>
           <div className="modal" style={{ maxWidth: 460, width: '95vw' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Record Bill Payment</h3>
+              <div>
+                <h3 className="modal-title">Pay Bill</h3>
+                {lastCompletedCycle && (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {lastCompletedCycle.label} statement · Stmt date {fmtShort(lastCompletedCycle.statementDate)}
+                  </div>
+                )}
+              </div>
               <button className="close-btn" onClick={() => setShowPayBill(false)}>✕</button>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-              Records a bank deduction for paying the bill of <strong>{displayName}</strong>.
-            </p>
             <form onSubmit={async e => {
               e.preventDefault();
               setSaving(true);
               try {
                 const amt = parseFloat(payForm.amount);
                 const desc = `CC Payment – ${card.name}`;
-                // 1. Debit bank account
                 await transactionApi.create({
-                  description: desc, amount: amt,
-                  type: 'EXPENSE', category: 'Credit Card Payment',
+                  description: desc, amount: amt, type: 'EXPENSE', category: 'Credit Card Payment',
                   date: payForm.date, paymentSource: 'BANK',
                   bankAccountId: payForm.bankAccountId ? parseInt(payForm.bankAccountId) : undefined,
                   notes: payForm.notes || undefined,
                 });
-                // 2. Credit the card — reduces outstanding balance
                 await transactionApi.create({
-                  description: desc, amount: amt,
-                  type: 'INCOME', category: 'Credit Card Payment',
-                  date: payForm.date, paymentSource: 'CREDIT_CARD',
-                  cardId: card.id,
+                  description: desc, amount: amt, type: 'INCOME', category: 'Credit Card Payment',
+                  date: payForm.date, paymentSource: 'CREDIT_CARD', cardId: card.id,
                   notes: payForm.notes || undefined,
                 });
                 setShowPayBill(false);
-                setPayForm({ bankAccountId: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
+                setPayForm({ bankAccountId: '', amount: '', date: todayStr, notes: '' });
                 load(parseInt(id!));
               } catch {} finally { setSaving(false); }
             }}>
               <div className="form-grid" style={{ marginBottom: 24 }}>
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                   <label>Pay from Bank Account</label>
-                  <FilterDropdown
-                    value={payForm.bankAccountId}
+                  <FilterDropdown value={payForm.bankAccountId}
                     options={bankAccounts.map(b => ({ label: b.name + (b.bankName ? ` (${b.bankName})` : ''), value: String(b.id) }))}
                     onChange={v => setPayForm({ ...payForm, bankAccountId: v as string })}
                     placeholder="Select bank account..." fullWidth />
@@ -353,12 +514,70 @@ const CreditCardDetailPage: React.FC = () => {
         </div>
       )}
 
+      {/* Bill Detail Modal */}
+      {selectedCycle && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setSelectedCycle(null)}>
+          <div className="modal" style={{ maxWidth: 640, width: '95vw' }}>
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">{selectedCycle.label} Statement</h3>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {fmtFull(selectedCycle.start)} → {fmtFull(selectedCycle.end)}
+                  &nbsp;· Stmt: {fmtShort(selectedCycle.statementDate)}
+                </div>
+              </div>
+              <button className="close-btn" onClick={() => setSelectedCycle(null)}>✕</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+              <div style={{ background: 'var(--expense-dim)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>Total Charges</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--expense)' }}>{fmt(selectedCycle.expenses)}</div>
+              </div>
+              <div style={{ background: 'var(--income-dim)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>Credits / Cashback</div>
+                <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--income)' }}>{fmt(selectedCycle.payments)}</div>
+              </div>
+              <div style={{ background: 'var(--bg-elevated)', borderRadius: 10, padding: '12px 14px' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4 }}>Net Amount Due</div>
+                <div style={{ fontSize: 17, fontWeight: 800 }}>{fmt(Math.max(0, selectedCycle.expenses - selectedCycle.payments))}</div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>
+              Spend by Category
+            </div>
+            <BillCategoryBreakdown cycle={selectedCycle} />
+
+            {selectedCycle.paymentDate && (
+              <div style={{ marginTop: 14, fontSize: 12, color: 'var(--income)', fontWeight: 600 }}>
+                ✓ Bill paid on {fmtFull(selectedCycle.paymentDate)}
+              </div>
+            )}
+            {!selectedCycle.paymentDate && selectedCycle.end < todayStr && (
+              <div style={{ marginTop: 14, fontSize: 12, color: 'var(--expense)', fontWeight: 600 }}>
+                ● Payment not recorded for this cycle
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+              <button className="btn btn-secondary" onClick={() => setSelectedCycle(null)}>Close</button>
+              <button className="btn btn-primary" onClick={() => {
+                setSelectedCycle(null);
+                setPayForm({ bankAccountId: '', amount: String(selectedCycle.expenses), date: todayStr, notes: '' });
+                setShowPayBill(true);
+              }}>Pay this Bill</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Groups */}
       {filtered.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
           No transactions on this card.
         </div>
       )}
-
       {groups.map(g => (
         <div key={g.label} style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase',

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { bankAccountApi, creditCardApi, transactionApi } from '../../services/api';
 import FilterDropdown from '../../components/FilterDropdown';
 import DatePicker from '../../components/DatePicker';
@@ -768,19 +768,14 @@ const SimpleAccountTab: React.FC<{ type: 'CASH' | 'WALLET' | 'OTHER'; refreshKey
 const CardsTab: React.FC<{ refreshKey: number }> = ({ refreshKey }) => {
   const navigate = useNavigate();
   const [cards, setCards] = useState<CreditCard[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
-  const [payModal, setPayModal] = useState<CreditCard | null>(null);
   const [editTarget, setEditTarget] = useState<CreditCard | null>(null);
-  const [saving, setSaving] = useState(false);
   const [expandedCardId, setExpandedCardId] = useState<number | null>(null);
   const [categoryData, setCategoryData] = useState<Record<number, Record<string, number>>>({});
   const [loadingCategory, setLoadingCategory] = useState<Set<number>>(new Set());
   const [showDebtReport, setShowDebtReport] = useState(false);
-  const [payForm, setPayForm] = useState({ bankAccountId: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
 
   const load = () => {
     creditCardApi.getAll().then(r => setCards(Array.isArray(r.data) ? r.data : []));
-    bankAccountApi.getAll().then(r => setBankAccounts(Array.isArray(r.data) ? r.data : []));
   };
   useEffect(() => { load(); }, [refreshKey]);
 
@@ -788,34 +783,6 @@ const CardsTab: React.FC<{ refreshKey: number }> = ({ refreshKey }) => {
     if (!window.confirm('Delete this card?')) return;
     await creditCardApi.delete(id);
     load();
-  };
-
-  const handlePayBill = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!payModal) return;
-    setSaving(true);
-    try {
-      const amt = parseFloat(payForm.amount);
-      const desc = `CC Payment – ${payModal.name}`;
-      // 1. Debit bank account
-      await transactionApi.create({
-        description: desc, amount: amt,
-        type: 'EXPENSE', category: 'Credit Card Payment', date: payForm.date,
-        paymentSource: 'BANK',
-        bankAccountId: payForm.bankAccountId ? parseInt(payForm.bankAccountId) : undefined,
-        notes: payForm.notes || undefined,
-      });
-      // 2. Credit the card — reduces outstanding balance
-      await transactionApi.create({
-        description: desc, amount: amt,
-        type: 'INCOME', category: 'Credit Card Payment', date: payForm.date,
-        paymentSource: 'CREDIT_CARD',
-        cardId: payModal.id,
-        notes: payForm.notes || undefined,
-      });
-      setPayModal(null);
-      setPayForm({ bankAccountId: '', amount: '', date: new Date().toISOString().split('T')[0], notes: '' });
-    } catch {} finally { setSaving(false); }
   };
 
   const displayName = (card: CreditCard) => card.lastFourDigits ? `${card.name} ••••${card.lastFourDigits}` : card.name;
@@ -906,10 +873,6 @@ const CardsTab: React.FC<{ refreshKey: number }> = ({ refreshKey }) => {
                   {card.paymentDueDate && <span>Due: <strong style={{ color: 'var(--text-secondary)' }}>{card.paymentDueDate}th</strong></span>}
                 </div>
               )}
-              <button className="btn btn-sm btn-secondary" style={{ width: '100%' }}
-                onClick={e => { e.stopPropagation(); setPayModal(card); setPayForm({ bankAccountId: '', amount: String(card.outstanding || ''), date: new Date().toISOString().split('T')[0], notes: '' }); }}>
-                Record Bill Payment
-              </button>
             </div>
           );
         })}
@@ -1022,48 +985,6 @@ const CardsTab: React.FC<{ refreshKey: number }> = ({ refreshKey }) => {
         <EditCardModal card={editTarget} onClose={() => setEditTarget(null)} onSuccess={load} />
       )}
 
-      {/* Pay Bill Modal */}
-      {payModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setPayModal(null)}>
-          <div className="modal">
-            <div className="modal-header">
-              <h3 className="modal-title">Record Bill Payment</h3>
-              <button className="close-btn" onClick={() => setPayModal(null)}>✕</button>
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-              Records a bank deduction for paying the bill of <strong>{displayName(payModal)}</strong>.
-            </p>
-            <form onSubmit={handlePayBill}>
-              <div className="form-grid" style={{ marginBottom: 24 }}>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label>Pay from Bank Account</label>
-                  <FilterDropdown value={payForm.bankAccountId}
-                    options={bankAccounts.map(b => ({ label: b.name + (b.bankName ? ` (${b.bankName})` : ''), value: String(b.id) }))}
-                    onChange={v => setPayForm({ ...payForm, bankAccountId: v as string })}
-                    placeholder="Select bank account..." fullWidth />
-                </div>
-                <div className="form-group">
-                  <label>Amount (₹)</label>
-                  <input type="number" step="0.01" min="1" value={payForm.amount}
-                    onChange={e => setPayForm({ ...payForm, amount: e.target.value })} required placeholder="0.00" />
-                </div>
-                <div className="form-group">
-                  <label>Date</label>
-                  <DatePicker value={payForm.date} onChange={e => setPayForm({ ...payForm, date: e.target.value })} required fullWidth />
-                </div>
-                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label>Notes <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
-                  <input value={payForm.notes} onChange={e => setPayForm({ ...payForm, notes: e.target.value })} placeholder="e.g. Full payment" />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setPayModal(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Record Payment'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </>
   );
 };
@@ -1075,8 +996,14 @@ const TAB_KIND: Record<Tab, AccountKind> = {
   bank: 'BANK', cards: 'CREDIT_CARD', cash: 'CASH', wallet: 'WALLET', other: 'OTHER',
 };
 
+const VALID_TABS: Tab[] = ['bank', 'cards', 'cash', 'wallet', 'other'];
+
 const AccountsPage: React.FC = () => {
-  const [tab, setTab] = useState<Tab>('bank');
+  const [searchParams] = useSearchParams();
+  const initialTab = VALID_TABS.includes(searchParams.get('tab') as Tab)
+    ? (searchParams.get('tab') as Tab)
+    : 'bank';
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [showAddModal, setShowAddModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
