@@ -76,19 +76,12 @@ public class CreditCardService {
     }
 
     private BigDecimal getOutstanding(CreditCard card, Long userId) {
-        LocalDate fromDate;
-        if (card.getBalanceDate() != null) {
-            fromDate = card.getBalanceDate();
-        } else if (card.getBillingDate() != null) {
-            LocalDate today = LocalDate.now();
-            int day = Math.min(card.getBillingDate(), today.lengthOfMonth());
-            LocalDate thisMonthStatement = today.withDayOfMonth(day);
-            fromDate = !today.isBefore(thisMonthStatement)
-                ? thisMonthStatement
-                : today.minusMonths(1).withDayOfMonth(Math.min(card.getBillingDate(), today.minusMonths(1).lengthOfMonth()));
-        } else {
-            fromDate = LocalDate.now().withDayOfMonth(1);
-        }
+        // balanceDate is the anchor: openingOutstanding = what was owed on that date,
+        // then add all charges and subtract all payments from that date forward.
+        // Without balanceDate, count all transactions ever recorded for this card.
+        LocalDate fromDate = card.getBalanceDate() != null
+                ? card.getBalanceDate()
+                : LocalDate.of(1970, 1, 1);
 
         BigDecimal opening  = card.getOpeningOutstanding() != null ? card.getOpeningOutstanding() : BigDecimal.ZERO;
         BigDecimal expenses = txRepo.sumCardOutstandingFromDate(userId, card.getId(), fromDate);

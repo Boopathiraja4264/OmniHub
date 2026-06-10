@@ -123,7 +123,12 @@ const BankAccountDetailPage: React.FC = () => {
       {/* Header */}
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/accounts')}>← Back</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => {
+            const t = ['SAVINGS','CURRENT','SALARY'].includes(account.accountType)
+              ? 'bank'
+              : account.accountType.toLowerCase();
+            navigate(`/accounts?tab=${t}`);
+          }}>← Back</button>
           <div>
             <h2 className="page-title" style={{ marginBottom: 2 }}>{account.name}</h2>
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
