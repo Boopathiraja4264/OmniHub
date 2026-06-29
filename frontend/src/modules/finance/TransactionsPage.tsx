@@ -4,7 +4,7 @@ import FilterDropdown from '../../components/FilterDropdown';
 import AddTransactionModal from '../../components/AddTransactionModal';
 import DatePicker from '../../components/DatePicker';
 import ImportStatementModal from './ImportStatementModal';
-import { Transaction, BankAccount } from '../../types';
+import { Transaction, BankAccount, CreditCard } from '../../types';
 
 const formatCurrency = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n || 0);
@@ -17,8 +17,8 @@ const emptyTransfer = {
 
 const PAGE_SIZE = 20;
 
-type SortField = 'description' | 'category' | 'date' | 'type' | 'paymentSource' | 'amount';
-const VALUE_FILTER_COLS: SortField[] = ['category', 'type', 'paymentSource'];
+type SortField = 'description' | 'category' | 'date' | 'type' | 'paymentSource' | 'amount' | 'account';
+const VALUE_FILTER_COLS: SortField[] = ['category', 'type', 'paymentSource', 'account'];
 
 const CAT_COLORS = [
   'var(--primary)', 'var(--income)', 'var(--warning)', 'var(--purple)',
@@ -57,6 +57,7 @@ const Chip: React.FC<{ label: string; onRemove: () => void }> = ({ label, onRemo
 const TransactionsPage: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [defaultBankId, setDefaultBankId] = useState<number | null>(null);
 
   const [showModal, setShowModal] = useState(false);
@@ -81,7 +82,7 @@ const TransactionsPage: React.FC = () => {
 
   useEffect(() => {
     load();
-    creditCardApi.getAll().catch(() => {});
+    creditCardApi.getAll().then(r => setCreditCards(Array.isArray(r.data) ? r.data : [])).catch(() => {});
     bankAccountApi.getAll().then(r => {
       const arr: BankAccount[] = Array.isArray(r.data) ? r.data : [];
       setBankAccounts(arr);
@@ -97,8 +98,19 @@ const TransactionsPage: React.FC = () => {
     if (col === 'date') return t.date;
     if (col === 'type') return t.type;
     if (col === 'paymentSource') return t.paymentSource || '—';
+    if (col === 'account') {
+      if (t.cardId != null) {
+        const c = creditCards.find(c => c.id === t.cardId);
+        return c ? `${c.name}${c.lastFourDigits ? ` ••${c.lastFourDigits}` : ''}` : '—';
+      }
+      if (t.bankAccountId != null) {
+        const b = bankAccounts.find(b => b.id === t.bankAccountId);
+        return b ? `${b.name}${b.bankName ? ` (${b.bankName})` : ''}` : '—';
+      }
+      return '—';
+    }
     return String(t.amount);
-  }, []);
+  }, [bankAccounts, creditCards]);
 
   const uniqueVals = useMemo(() => {
     const result: Partial<Record<SortField, string[]>> = {};
