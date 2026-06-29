@@ -983,6 +983,10 @@ public class DTOs {
         private BigDecimal kasirPerMonth;
         private BigDecimal companyYelam;
         private BigDecimal thalliEduthathu;
+        private boolean paid;
+        private LocalDate paidDate;
+        private Long paidBankAccountId;
+        private Long paidTransactionId;
 
         public Long getId() { return id; }
         public void setId(Long v) { id = v; }
@@ -998,6 +1002,14 @@ public class DTOs {
         public void setCompanyYelam(BigDecimal v) { companyYelam = v; }
         public BigDecimal getThalliEduthathu() { return thalliEduthathu; }
         public void setThalliEduthathu(BigDecimal v) { thalliEduthathu = v; }
+        public boolean isPaid() { return paid; }
+        public void setPaid(boolean v) { paid = v; }
+        public LocalDate getPaidDate() { return paidDate; }
+        public void setPaidDate(LocalDate v) { paidDate = v; }
+        public Long getPaidBankAccountId() { return paidBankAccountId; }
+        public void setPaidBankAccountId(Long v) { paidBankAccountId = v; }
+        public Long getPaidTransactionId() { return paidTransactionId; }
+        public void setPaidTransactionId(Long v) { paidTransactionId = v; }
     }
 
     public static class ChitKasirUpdateRequest {
@@ -1005,6 +1017,22 @@ public class DTOs {
 
         public BigDecimal getKasirPerMonth() { return kasirPerMonth; }
         public void setKasirPerMonth(BigDecimal v) { kasirPerMonth = v; }
+    }
+
+    public static class ChitPaymentUpdateRequest {
+        private boolean paid;
+        private LocalDate paidDate;
+        private Long paidBankAccountId;
+        private Long paidTransactionId;
+
+        public boolean isPaid() { return paid; }
+        public void setPaid(boolean v) { paid = v; }
+        public LocalDate getPaidDate() { return paidDate; }
+        public void setPaidDate(LocalDate v) { paidDate = v; }
+        public Long getPaidBankAccountId() { return paidBankAccountId; }
+        public void setPaidBankAccountId(Long v) { paidBankAccountId = v; }
+        public Long getPaidTransactionId() { return paidTransactionId; }
+        public void setPaidTransactionId(Long v) { paidTransactionId = v; }
     }
 
     // ─── Debt Tracker DTOs ────────────────────────────────────────────────────

@@ -38,6 +38,17 @@ public class ChitMonthlyEntry {
     @Column(precision = 12, scale = 2)
     private BigDecimal thalliEduthathu;
 
+    // ─── Payment tracking ─────────────────────────────────────────────────────
+    // columnDefinition gives existing rows a default when Hibernate ALTERs the table
+    @Column(nullable = false, columnDefinition = "boolean not null default false")
+    private boolean paid = false;
+
+    private LocalDate paidDate;            // date the monthly amount was paid
+
+    private Long paidBankAccountId;        // bank account the payment came from
+
+    private Long paidTransactionId;        // linked transaction, so edits/removal can sync it
+
     public Long getId() { return id; }
     public ChitBatch getChitBatch() { return chitBatch; }
     public void setChitBatch(ChitBatch v) { chitBatch = v; }
@@ -53,4 +64,12 @@ public class ChitMonthlyEntry {
     public void setCompanyYelam(BigDecimal v) { companyYelam = v; }
     public BigDecimal getThalliEduthathu() { return thalliEduthathu; }
     public void setThalliEduthathu(BigDecimal v) { thalliEduthathu = v; }
+    public boolean isPaid() { return paid; }
+    public void setPaid(boolean v) { paid = v; }
+    public LocalDate getPaidDate() { return paidDate; }
+    public void setPaidDate(LocalDate v) { paidDate = v; }
+    public Long getPaidBankAccountId() { return paidBankAccountId; }
+    public void setPaidBankAccountId(Long v) { paidBankAccountId = v; }
+    public Long getPaidTransactionId() { return paidTransactionId; }
+    public void setPaidTransactionId(Long v) { paidTransactionId = v; }
 }

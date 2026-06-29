@@ -252,6 +252,10 @@ export const chitApi = {
     api.put(`/chit/batches/${batchId}`, data),
   updateKasir: (entryId: number, kasirPerMonth: number | null) =>
     api.put(`/chit/entries/${entryId}/kasir`, { kasirPerMonth }),
+  updatePayment: (
+    entryId: number,
+    data: { paid: boolean; paidDate?: string; paidBankAccountId?: number; paidTransactionId?: number },
+  ) => api.put(`/chit/entries/${entryId}/payment`, data),
 };
 
 export const debtApi = {

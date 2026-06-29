@@ -340,6 +340,10 @@ export interface ChitMonthlyEntry {
   kasirPerMonth?: number;
   companyYelam?: number;
   thalliEduthathu?: number;
+  paid?: boolean;
+  paidDate?: string;
+  paidBankAccountId?: number;
+  paidTransactionId?: number;
 }
 
 export interface ChitBatch {

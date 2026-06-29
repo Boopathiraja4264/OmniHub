@@ -95,27 +95,61 @@ const ChitGroupDetailPage: React.FC = () => {
   }, [load]);
 
   const openPayModal = (entry: ChitMonthlyEntry, batchLabel: string) => {
-    setPayBankId('');
-    setPayDate(entry.monthDate.slice(0, 10));
+    setPayBankId(entry.paid && entry.paidBankAccountId != null ? String(entry.paidBankAccountId) : '');
+    setPayDate((entry.paid && entry.paidDate ? entry.paidDate : entry.monthDate).slice(0, 10));
     setPayModal({ entry, batchLabel });
   };
 
   const handlePay = async () => {
     if (!payModal || !payBankId || !group) return;
+    const { entry, batchLabel } = payModal;
+    const isEdit = !!entry.paid;
     setPaying(true);
     try {
-      await transactionApi.create({
-        description: `Chit – ${group.name} ${payModal.batchLabel} (Month ${payModal.entry.monthNumber})`,
-        amount: payModal.entry.amountPerMonth,
+      const txn = {
+        description: `Chit – ${group.name} ${batchLabel} (Month ${entry.monthNumber})`,
+        amount: entry.amountPerMonth,
         type: 'EXPENSE',
         category: 'Investments',
         date: payDate,
         paymentSource: 'BANK',
         bankAccountId: parseInt(payBankId),
+      };
+      // Re-use the linked transaction when editing; create a new one on first payment.
+      let transactionId = entry.paidTransactionId;
+      if (isEdit && transactionId != null) {
+        await transactionApi.update(transactionId, txn);
+      } else {
+        const res = await transactionApi.create(txn);
+        transactionId = res.data?.id;
+      }
+      await chitApi.updatePayment(entry.id, {
+        paid: true,
+        paidDate: payDate,
+        paidBankAccountId: parseInt(payBankId),
+        paidTransactionId: transactionId,
       });
       setPayModal(null);
+      await load();
     } catch (err: any) {
       alert(err?.response?.data?.message || 'Failed to record payment');
+    } finally { setPaying(false); }
+  };
+
+  const handleRemovePayment = async () => {
+    if (!payModal) return;
+    const { entry } = payModal;
+    if (!window.confirm('Remove this payment? The linked transaction will be deleted.')) return;
+    setPaying(true);
+    try {
+      if (entry.paidTransactionId != null) {
+        try { await transactionApi.delete(entry.paidTransactionId); } catch { /* already gone */ }
+      }
+      await chitApi.updatePayment(entry.id, { paid: false });
+      setPayModal(null);
+      await load();
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to remove payment');
     } finally { setPaying(false); }
   };
 
@@ -271,7 +305,20 @@ const ChitGroupDetailPage: React.FC = () => {
                       {entry.thalliEduthathu ? fmt(entry.thalliEduthathu) : '—'}
                     </td>
                     <td style={{ padding: '8px 8px', textAlign: 'right' }}>
-                      {isPast && (
+                      {entry.paid ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+                          <span title={entry.paidDate ? `Paid on ${fmtDate(entry.paidDate)}` : 'Paid'}
+                            style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 5, border: '1px solid rgba(34,197,94,0.4)', background: 'rgba(34,197,94,0.12)', color: 'var(--income)' }}>
+                            ✓ Paid
+                          </span>
+                          <button
+                            onClick={() => openPayModal(entry, batchLabel)}
+                            title="Edit this payment"
+                            style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 5, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                            Edit
+                          </button>
+                        </span>
+                      ) : isPast && (
                         <button
                           onClick={() => openPayModal(entry, batchLabel)}
                           title="Record payment from bank account"
@@ -385,7 +432,7 @@ const ChitGroupDetailPage: React.FC = () => {
           <div style={{ background: 'var(--bg-card)', borderRadius: 14, padding: 24, width: '100%', maxWidth: 380 }}
             onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Record Chit Payment</h3>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{payModal.entry.paid ? 'Edit Chit Payment' : 'Record Chit Payment'}</h3>
               <button onClick={() => setPayModal(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-muted)' }}>×</button>
             </div>
             <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 8, background: 'var(--bg-elevated)', fontSize: 12, color: 'var(--text-muted)' }}>
@@ -412,9 +459,15 @@ const ChitGroupDetailPage: React.FC = () => {
               <button onClick={() => setPayModal(null)} style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
               <button onClick={handlePay} disabled={!payBankId || paying}
                 style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: paying || !payBankId ? 'rgba(34,197,94,0.3)' : 'var(--income)', color: '#fff', fontWeight: 600, cursor: !payBankId || paying ? 'not-allowed' : 'pointer', fontSize: 13 }}>
-                {paying ? 'Recording…' : 'Record Payment'}
+                {paying ? 'Saving…' : payModal.entry.paid ? 'Save Changes' : 'Record Payment'}
               </button>
             </div>
+            {payModal.entry.paid && (
+              <button onClick={handleRemovePayment} disabled={paying}
+                style={{ width: '100%', marginTop: 10, padding: '8px', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: 'var(--expense)', fontWeight: 600, cursor: paying ? 'not-allowed' : 'pointer', fontSize: 12 }}>
+                Remove payment
+              </button>
+            )}
           </div>
         </div>
       )}
