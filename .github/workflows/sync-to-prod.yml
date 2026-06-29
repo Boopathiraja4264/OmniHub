@@ -19,7 +19,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote add prod "https://github.com/Boopathiraja4264/omnihub-prod.git"
+          git remote add prod "https://x-access-token:${GITHUB_TOKEN}@github.com/Boopathiraja4264/omnihub-prod.git"
           git push prod main:dev --force
         env:
           GITHUB_TOKEN: ${{ secrets.PROD_REPO_PAT }}

@@ -492,6 +492,8 @@ public class ChitService {
         List<ChitBatch> batches = chitBatchRepository.findByChitGroupIdOrderByBatchNumberAsc(group.getId());
         BigDecimal totalReceived = BigDecimal.ZERO;
         BigDecimal totalKasir = BigDecimal.ZERO;
+        // totalPaid = sum of amountPerMonth across every entry actually marked paid
+        BigDecimal totalPaid = BigDecimal.ZERO;
         List<ChitBatchResponse> batchResponses = new ArrayList<>();
         for (ChitBatch batch : batches) {
             if (batch.getAmountTaken() != null)
@@ -501,25 +503,14 @@ public class ChitService {
             for (ChitMonthlyEntry e : batchEntries) {
                 if (e.getKasirPerMonth() != null)
                     totalKasir = totalKasir.add(e.getKasirPerMonth());
+                if (e.isPaid())
+                    totalPaid = totalPaid.add(e.getAmountPerMonth());
             }
             batchResponses.add(toBatchResponse(batch));
         }
         r.setBatches(batchResponses);
         r.setTotalReceived(totalReceived);
         r.setTotalKasir(totalKasir);
-
-        // totalPaid = sum of amountPerMonth across all entries of batch 1 that have a monthDate <= today
-        BigDecimal totalPaid = BigDecimal.ZERO;
-        if (!batches.isEmpty()) {
-            List<ChitMonthlyEntry> entries = chitMonthlyEntryRepository
-                    .findByChitBatchIdOrderByMonthNumberAsc(batches.get(0).getId());
-            LocalDate today = LocalDate.now();
-            for (ChitMonthlyEntry e : entries) {
-                if (!e.getMonthDate().isAfter(today)) totalPaid = totalPaid.add(e.getAmountPerMonth());
-            }
-            // Multiply by totalBatches (user pays for each batch)
-            totalPaid = totalPaid.multiply(BigDecimal.valueOf(group.getTotalBatches()));
-        }
         r.setTotalPaid(totalPaid);
 
         return r;
