@@ -67,4 +67,11 @@ public class ChitController {
                                                                   @RequestBody ChitKasirUpdateRequest req) {
         return ResponseEntity.ok(chitService.updateKasir(user.getUsername(), entryId, req));
     }
+
+    @PutMapping("/entries/{entryId}/payment")
+    public ResponseEntity<ChitMonthlyEntryResponse> updatePayment(@AuthenticationPrincipal UserDetails user,
+                                                                  @PathVariable Long entryId,
+                                                                  @RequestBody ChitPaymentUpdateRequest req) {
+        return ResponseEntity.ok(chitService.updatePayment(user.getUsername(), entryId, req));
+    }
 }

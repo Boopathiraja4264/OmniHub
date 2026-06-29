@@ -253,6 +253,9 @@ public class ChitService {
         int newBatches        = req.getTotalBatches();
         LocalDate oldStart    = group.getStartDate();
         int oldMembersPerBatch = group.getMembersPerBatch();
+        BigDecimal oldMonthly    = group.getMonthlyAmount();
+        BigDecimal oldInterest   = group.getBasicInterest();
+        BigDecimal oldCommission = group.getCompanyCommission();
 
         applyGroupFields(group, req);
         group = chitGroupRepository.save(group);
@@ -265,9 +268,16 @@ public class ChitService {
         BigDecimal monthly    = req.getMonthlyAmount();
         BigDecimal totalAmt   = monthly.multiply(BigDecimal.valueOf(newMembersPerBatch));
         BigDecimal interest   = req.getBasicInterest() != null ? req.getBasicInterest() : BigDecimal.ZERO;
+        BigDecimal commission = req.getCompanyCommission() != null ? req.getCompanyCommission() : BigDecimal.ZERO;
 
-        // Update monthly entries for ALL existing batches when start date or tenure changed
-        if (startChanged || tenureChanged) {
+        // companyYelam depends on monthly+interest, thalli on monthly+commission — so any of
+        // these changing (not just start/tenure) must recompute the existing entries.
+        boolean derivedChanged = differs(oldMonthly, req.getMonthlyAmount())
+                || differs(oldInterest, req.getBasicInterest())
+                || differs(oldCommission, req.getCompanyCommission());
+
+        // Update monthly entries for ALL existing batches when any derived input changed
+        if (startChanged || tenureChanged || derivedChanged) {
             List<ChitBatch> existingBatches = chitBatchRepository
                     .findByChitGroupIdOrderByBatchNumberAsc(group.getId());
             for (ChitBatch batch : existingBatches) {
@@ -280,10 +290,21 @@ public class ChitService {
                         LocalDate newDate = newStart.plusMonths(entry.getMonthNumber() - 1);
                         entry.setMonthDate(newDate);
                         entry.setAmountPerMonth(monthly);
-                        // Recompute companyYelam
+                        // Recompute companyYelam (clear it when interest is removed)
                         if (interest.compareTo(BigDecimal.ZERO) > 0) {
                             BigDecimal remaining = totalAmt.subtract(monthly.multiply(BigDecimal.valueOf(entry.getMonthNumber() - 1)));
                             entry.setCompanyYelam(remaining.multiply(interest).setScale(2, RoundingMode.HALF_UP));
+                        } else {
+                            entry.setCompanyYelam(null);
+                        }
+                        // Recompute thalliEduthathu (kasir * membersPerBatch + totalAmt * commission)
+                        if (entry.getKasirPerMonth() != null && commission.compareTo(BigDecimal.ZERO) > 0) {
+                            entry.setThalliEduthathu(entry.getKasirPerMonth()
+                                    .multiply(BigDecimal.valueOf(newMembersPerBatch))
+                                    .add(totalAmt.multiply(commission))
+                                    .setScale(2, RoundingMode.HALF_UP));
+                        } else {
+                            entry.setThalliEduthathu(null);
                         }
                         chitMonthlyEntryRepository.save(entry);
                     } else {
@@ -402,7 +423,37 @@ public class ChitService {
         return toEntryResponse(entry);
     }
 
+    @Transactional
+    public ChitMonthlyEntryResponse updatePayment(String email, Long entryId, ChitPaymentUpdateRequest req) {
+        ChitMonthlyEntry entry = chitMonthlyEntryRepository.findById(entryId)
+                .orElseThrow(() -> new RuntimeException("Entry not found"));
+        User user = getUser(email);
+        ChitGroup group = entry.getChitBatch().getChitGroup();
+        if (!group.getUser().getId().equals(user.getId())) throw new RuntimeException("Unauthorized");
+
+        entry.setPaid(req.isPaid());
+        if (req.isPaid()) {
+            entry.setPaidDate(req.getPaidDate());
+            entry.setPaidBankAccountId(req.getPaidBankAccountId());
+            entry.setPaidTransactionId(req.getPaidTransactionId());
+        } else {
+            entry.setPaidDate(null);
+            entry.setPaidBankAccountId(null);
+            entry.setPaidTransactionId(null);
+        }
+
+        chitMonthlyEntryRepository.save(entry);
+        return toEntryResponse(entry);
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    // Scale-insensitive BigDecimal comparison (1.0 vs 1.00 are equal); null-safe.
+    private static boolean differs(BigDecimal a, BigDecimal b) {
+        if (a == null && b == null) return false;
+        if (a == null || b == null) return true;
+        return a.compareTo(b) != 0;
+    }
 
     private void applyGroupFields(ChitGroup group, ChitGroupRequest req) {
         group.setName(req.getName());
@@ -495,6 +546,10 @@ public class ChitService {
         r.setKasirPerMonth(e.getKasirPerMonth());
         r.setCompanyYelam(e.getCompanyYelam());
         r.setThalliEduthathu(e.getThalliEduthathu());
+        r.setPaid(e.isPaid());
+        r.setPaidDate(e.getPaidDate());
+        r.setPaidBankAccountId(e.getPaidBankAccountId());
+        r.setPaidTransactionId(e.getPaidTransactionId());
         return r;
     }
 }
